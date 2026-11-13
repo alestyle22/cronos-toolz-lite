@@ -1,0 +1,259 @@
+{
+    "id": "comercio",
+    "name": "Comercio y marca",
+    "desc": "Tiendas y marcas propias: clientes, productos, pedidos y campañas.",
+    "icon": "fa-store",
+    "accent": "#f59e0b",
+    "order": 5,
+    "vocab": {
+        "client": {
+            "s": "Cliente",
+            "p": "Clientes",
+            "g": "m"
+        },
+        "content": {
+            "s": "Campaña",
+            "p": "Campañas",
+            "g": "f"
+        },
+        "project": {
+            "s": "Pedido",
+            "p": "Pedidos",
+            "g": "m"
+        },
+        "service": {
+            "s": "Venta",
+            "p": "Ventas",
+            "g": "f"
+        },
+        "invoice": {
+            "s": "Comprobante",
+            "p": "Comprobantes",
+            "g": "m"
+        },
+        "material": {
+            "s": "Archivo",
+            "p": "Archivos",
+            "g": "m"
+        },
+        "client_name": {
+            "s": "Nombre o empresa",
+            "p": "Nombres o empresas",
+            "g": "m"
+        }
+    },
+    "client_types": [
+        {
+            "key": "minorista",
+            "label": "Minorista"
+        },
+        {
+            "key": "mayorista",
+            "label": "Mayorista"
+        },
+        {
+            "key": "proveedor",
+            "label": "Proveedor"
+        }
+    ],
+    "statuses": {
+        "clients": [
+            [
+                "potencial",
+                "Nuevo",
+                "#8b8b94"
+            ],
+            [
+                "activo",
+                "Frecuente",
+                "#22c55e"
+            ],
+            [
+                "pausado",
+                "Inactivo",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "Perdido",
+                "#ef4444"
+            ]
+        ]
+    },
+    "fields": [
+        {
+            "key": "canal",
+            "label": "Canal de compra",
+            "type": "select",
+            "options": [
+                "Local",
+                "Tienda online",
+                "WhatsApp",
+                "Mercado Libre",
+                "Instagram"
+            ]
+        },
+        {
+            "key": "cumple",
+            "label": "Cumpleaños",
+            "type": "date"
+        },
+        {
+            "key": "compra_total",
+            "label": "Compras acumuladas",
+            "type": "money"
+        },
+        {
+            "key": "newsletter",
+            "label": "Acepta novedades",
+            "type": "bool"
+        }
+    ],
+    "hide_fields": [
+        "linkedin",
+        "youtube",
+        "brand_fonts"
+    ],
+    "modules_on": [
+        "tareas",
+        "promos",
+        "chat",
+        "clientes",
+        "facturacion",
+        "stock",
+        "links",
+        "landings",
+        "mailing",
+        "tienda"
+    ],
+    "extras": [
+        "productos"
+    ],
+    "content_types": [
+        {
+            "key": "campana",
+            "label": "Campaña",
+            "icon": "fa-bullhorn",
+            "color": "#f59e0b"
+        },
+        {
+            "key": "lanzamiento",
+            "label": "Lanzamiento de producto",
+            "icon": "fa-rocket",
+            "color": "#a855f7"
+        },
+        {
+            "key": "social",
+            "label": "Redes sociales",
+            "icon": "fa-share-nodes",
+            "color": "#3b82f6"
+        }
+    ],
+    "home": {
+        "subtitle": "Pedidos, campañas y lo que se vende esta semana.",
+        "tiles": [
+            {
+                "id": "tienda",
+                "href": "/toolz/tienda/admin/",
+                "icon": "fa-bag-shopping",
+                "name": "Productos",
+                "desc": "Catálogo y pedidos de la tienda",
+                "color": "#f59e0b"
+            },
+            {
+                "id": "clientes",
+                "href": "/toolz/clientes.php",
+                "icon": "fa-address-book",
+                "name": "Clientes",
+                "desc": "Compradores frecuentes",
+                "color": "#60a5fa"
+            },
+            {
+                "id": "campanas",
+                "href": "/toolz/promos/",
+                "icon": "fa-bullhorn",
+                "name": "Campañas",
+                "desc": "Contenidos y promociones",
+                "color": "#a78bfa"
+            },
+            {
+                "id": "trabajo",
+                "href": "/toolz/trabajo/",
+                "icon": "fa-list-check",
+                "name": "Tareas",
+                "desc": "Pendientes del equipo",
+                "color": "#22c55e"
+            }
+        ]
+    },
+    "task_templates": [
+        {
+            "name": "Lanzamiento de producto",
+            "due_in": 14,
+            "checks": [
+                "Fotos del producto",
+                "Ficha y precio",
+                "Carga en la tienda",
+                "Piezas para redes",
+                "Newsletter"
+            ]
+        },
+        {
+            "name": "Campaña de temporada",
+            "due_in": 21,
+            "checks": [
+                "Definir descuentos",
+                "Piezas gráficas",
+                "Landing",
+                "Publicación",
+                "Reporte de ventas"
+            ]
+        }
+    ],
+    "folders": [
+        "Fotos de productos",
+        "Logos",
+        "Campañas"
+    ],
+    "billing": {
+        "concepts": [
+            "Venta",
+            "Envío",
+            "Mayorista"
+        ]
+    },
+    "samples": {
+        "clients": [
+            {
+                "name": "Sofía Ramírez",
+                "type": "minorista",
+                "status": "activo",
+                "contact_name": "Sofía Ramírez",
+                "email": "sofia.ramirez@example.test",
+                "fields": {
+                    "canal": "Tienda online",
+                    "newsletter": "1"
+                }
+            },
+            {
+                "name": "Almacén Don José",
+                "type": "mayorista",
+                "status": "activo",
+                "contact_name": "José Pérez",
+                "email": "compras@donjose.test",
+                "fields": {
+                    "canal": "WhatsApp",
+                    "compra_total": "420000"
+                }
+            }
+        ],
+        "tasks": [
+            {
+                "title": "Fotos de la colección de otoño"
+            },
+            {
+                "title": "Campaña de Día de la Madre"
+            }
+        ]
+    }
+}

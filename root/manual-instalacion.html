@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crear tu plataforma · Qué se necesita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<style>
+:root{--acc:#ff6a00;--bg:#f6f5f2;--paper:#ffffff;--ink:#16161a;--mute:#5d5d66;--dim:#8a8a93;--line:#e6e4df;--soft:#faf9f6;--ok:#0f9f6e;--tag:#fff1e6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0d10;--paper:#141417;--ink:#f1f1f3;--mute:#a4a4ad;--dim:#75757e;--line:#26262c;--soft:#1a1a1e;--tag:#2a1a0e}}
+:root[data-theme="dark"]{--bg:#0d0d10;--paper:#141417;--ink:#f1f1f3;--mute:#a4a4ad;--dim:#75757e;--line:#26262c;--soft:#1a1a1e;--tag:#2a1a0e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Bricolage Grotesque",Inter,sans-serif;letter-spacing:-.02em;line-height:1.15}
+a{color:var(--acc)}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
+header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);background:radial-gradient(700px 300px at 90% 0,color-mix(in srgb,var(--acc) 14%,transparent),transparent 70%)}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+h1{font-size:clamp(34px,5.5vw,54px);margin:12px 0 14px;font-weight:800}
+.lead{font-size:19px;color:var(--mute);max-width:660px;margin:0}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:600 14px Inter,sans-serif;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--acc)}.btn.pri{background:var(--acc);border-color:var(--acc);color:#111}
+nav.toc{display:flex;gap:6px;flex-wrap:wrap;padding:18px 0;position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.toc a{font-size:13.5px;font-weight:600;color:var(--mute);text-decoration:none;padding:6px 11px;border-radius:20px}
+nav.toc a:hover{background:var(--paper);color:var(--ink)}
+section{padding:46px 0 10px}
+h2{font-size:30px;margin:0 0 8px;font-weight:800}
+h2 .n{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--acc);color:#111;font-size:18px;margin-right:12px;vertical-align:4px}
+.sub{color:var(--mute);margin:0 0 22px;max-width:680px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-bottom:14px}
+.ways{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ways .card h3{margin:6px 0 6px;font-size:20px}.ways .card p{margin:0;color:var(--mute);font-size:15px}
+.ways .card i.big{font-size:22px;color:var(--acc)}
+.check{list-style:none;margin:0;padding:0}
+.check li{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;padding:14px 0;border-top:1px solid var(--line)}
+.check li:first-child{border-top:0;padding-top:4px}
+.check input{width:20px;height:20px;margin-top:3px;accent-color:var(--acc);cursor:pointer}
+.check b{display:block;font-weight:600}.check span.d{color:var(--mute);font-size:14.5px}
+.check .ex{display:block;font-size:13.5px;color:var(--dim);margin-top:3px}
+.req{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;background:var(--tag);color:var(--acc)}
+.req.opt{background:var(--soft);color:var(--dim);border:1px solid var(--line)}
+.group-h{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.group-h i{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--soft);color:var(--acc);border:1px solid var(--line)}
+.group-h h3{margin:0;font-size:19px}
+.progress{display:flex;align-items:center;gap:14px;margin:0 0 18px}
+.bar{flex:1;height:8px;border-radius:8px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--acc);border-radius:8px;transition:width .3s}
+.progress span{font-size:14px;font-weight:600;color:var(--mute);min-width:120px;text-align:right}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:11px 12px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);border-top:0}
+td code,p code,li code{font:13.5px ui-monospace,Consolas,monospace;background:var(--soft);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+.steps{counter-reset:s;list-style:none;margin:0;padding:0}
+.steps li{counter-increment:s;position:relative;padding:0 0 22px 52px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--acc);color:var(--acc);font-weight:700;font-size:14px;background:var(--paper)}
+.steps li::after{content:"";position:absolute;left:16px;top:38px;bottom:4px;width:2px;background:var(--line)}
+.steps li:last-child::after{display:none}
+.steps b{display:block;font-size:16.5px}.steps span{color:var(--mute);font-size:15px}
+.tpl{white-space:pre-wrap;font:14px/1.6 ui-monospace,Consolas,monospace;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:18px;margin:0;max-height:none}
+.note{display:flex;gap:14px;padding:16px 18px;border-radius:14px;background:var(--tag);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);margin:14px 0}
+.note i{color:var(--acc);margin-top:4px}.note p{margin:0;font-size:15px}
+details{border-top:1px solid var(--line);padding:14px 0}details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}summary::after{content:"+";color:var(--acc);font-size:20px;line-height:1}
+details[open] summary::after{content:"–"}details p{margin:10px 0 0;color:var(--mute)}
+footer{padding:40px 0 70px;color:var(--dim);font-size:14px;border-top:1px solid var(--line);margin-top:40px}
+@media(max-width:700px){.ways{grid-template-columns:1fr}.check li{grid-template-columns:26px 1fr}.check .req{grid-column:2;justify-self:start}.progress span{min-width:0}table{font-size:14px}th,td{padding:9px 6px}}
+@media print{nav.toc,.toolbar,.no-print{display:none!important}body{background:#fff;color:#000;font-size:13px}header.hero{padding:20px 0;background:none}.card{break-inside:avoid;border-color:#ccc}section{padding:22px 0 4px}h2{font-size:22px}.check input{-webkit-appearance:none;appearance:none;width:14px;height:14px;border:1.5px solid #555;border-radius:3px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Guía para agencias</span>
+    <h1>Crear tu plataforma:<br>qué se necesita</h1>
+    <p class="lead">Todo lo que hay que tener listo para poner en marcha la plataforma de tu agencia, con tu marca, tus herramientas y tu equipo. Si la instalamos nosotros, esta es la lista de lo que nos tenés que pasar.</p>
+    <div class="toolbar">
+      <button class="btn pri" type="button" onclick="document.getElementById('plantilla').scrollIntoView({behavior:'smooth'})"><i class="fa-regular fa-paper-plane"></i> Ir a la plantilla para mandarnos</button>
+      <button class="btn" type="button" onclick="print()"><i class="fa-solid fa-print"></i> Imprimir o guardar en PDF</button>
+      <button class="btn" type="button" id="theme"><i class="fa-solid fa-circle-half-stroke"></i> Claro / oscuro</button>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap" style="display:flex;gap:6px;flex-wrap:wrap">
+  <a href="#como">Cómo funciona</a><a href="#lista">Lo que hay que pasar</a><a href="#hosting">Hosting</a><a href="#pasos">Instalación paso a paso</a><a href="#plantilla">Plantilla</a><a href="#despues">Después</a><a href="#faq">Preguntas</a>
+</div></nav>
+
+<main class="wrap">
+
+<section id="como">
+  <h2><span class="n">1</span>Cómo funciona</h2>
+  <p class="sub">La plataforma es un sistema web propio de tu agencia: gestión de trabajo, clientes, facturación, chat del equipo, materiales y más. Vive en tu dominio, con tu logo y tus colores, y los datos son solo tuyos.</p>
+  <div class="ways">
+    <div class="card"><i class="fa-solid fa-handshake big"></i><h3>La instalamos nosotros</h3><p>Nos pasás los datos de la lista (sección 2) y te entregamos la plataforma funcionando, con los accesos de tu equipo listos para mandar. Tarda menos de un día hábil desde que tenemos todo.</p></div>
+    <div class="card"><i class="fa-solid fa-screwdriver-wrench big"></i><h3>La instalás vos</h3><p>Te damos el paquete de instalación. Lo subís a tu hosting, abrís el asistente y completás 7 pasos. Tarda unos 15 minutos si tenés todo a mano.</p></div>
+  </div>
+  <div class="note"><i class="fa-solid fa-circle-info"></i><p>En los dos casos se necesitan los mismos datos. La lista de abajo se puede ir tildando: lo que marques queda guardado en este navegador.</p></div>
+</section>
+
+<section id="lista">
+  <h2><span class="n">2</span>Lo que hay que pasar</h2>
+  <p class="sub">Lo marcado como <span class="req">Obligatorio</span> no puede faltar. Lo <span class="req opt">Opcional</span> se puede completar después desde el panel de administración.</p>
+  <div class="progress no-print"><div class="bar"><i id="bar"></i></div><span id="count">0 de 0 listos</span></div>
+
+  <div class="card">
+    <div class="group-h"><i class="fa-solid fa-globe"></i><h3>Dominio y hosting</h3></div>
+    <ul class="check">
+      <li><input type="checkbox" data-k="dominio"><div><b>Dirección donde va a estar</b><span class="d">Un dominio o subdominio propio, con certificado de seguridad (https).</span><span class="ex">Ejemplo: plataforma.tuagencia.com. La plataforma queda en plataforma.tuagencia.com/toolz/</span></div><span class="req">Obligatorio</span></li>
+      <li><input type="checkbox" data-k="hosting"><div><b>Hosting que cumpla los requisitos</b><span class="d">PHP 8 o más nuevo y MySQL o MariaDB. Los detalles están en la sección 3. Si no tenés, te recomendamos uno.</span><span class="ex">Funciona en Hostinger, cPanel y la mayoría de los hostings compartidos.</span></div><span class="req">Obligatorio</span></li>
+      <li><input type="checkbox" data-k="ftp"><div><b>Acceso FTP</b><span class="d">Servidor, usuario y contraseña. Solo si la instalamos nosotros.</span><span class="ex">Lo creás en el panel del hosting (Archivos › Cuentas FTP). Podés crear una cuenta solo para esto y borrarla al terminar.</span></div><span class="req">Obligatorio</span></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><i class="fa-solid fa-database"></i><h3>Base de datos</h3></div>
+    <ul class="check">
+      <li><input type="checkbox" data-k="db"><div><b>Una base de datos MySQL vacía</b><span class="d">Nombre de la base, usuario y contraseña. El usuario tiene que tener todos los permisos sobre esa base.</span><span class="ex">En Hostinger: Bases de datos › Administración. En cPanel: Bases de datos MySQL. El servidor casi siempre es "localhost".</span></div><span class="req">Obligatorio</span></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><i class="fa-solid fa-palette"></i><h3>Marca</h3></div>
+    <ul class="check">
+      <li><input type="checkbox" data-k="nombre"><div><b>Nombre de la plataforma</b><span class="d">Aparece en el login, los títulos, las facturas y los correos. Puede ser el nombre de la agencia.</span><span class="ex">Ejemplo: "Estudio Norte". También un nombre corto para las pestañas: "Norte".</span></div><span class="req">Obligatorio</span></li>
+      <li><input type="checkbox" data-k="logo"><div><b>Logo</b><span class="d">PNG con fondo transparente, horizontal, de hasta 3 MB. Que se lea bien sobre fondo oscuro.</span><span class="ex">Ideal: 600 × 160 px o más. Si tu logo es oscuro, mandá también una versión en blanco.</span></div><span class="req">Obligatorio</span></li>
+      <li><input type="checkbox" data-k="icono"><div><b>Ícono para la pestaña del navegador</b><span class="d">Cuadrado, PNG. Si no lo hay, se usa el logo.</span><span class="ex">Ideal: 512 × 512 px, solo el símbolo de la marca.</span></div><span class="req opt">Opcional</span></li>
+      <li><input type="checkbox" data-k="color"><div><b>Color principal</b><span class="d">El de los botones y los detalles. En código hexadecimal.</span><span class="ex">Ejemplo: #FF6A00. Si no lo sabés, lo sacamos del logo.</span></div><span class="req opt">Opcional</span></li>
+      <li><input type="checkbox" data-k="zona"><div><b>País y zona horaria</b><span class="d">Para que las fechas, los vencimientos y los recordatorios usen la hora correcta.</span><span class="ex">Ejemplo: Argentina, México (Centro), España.</span></div><span class="req">Obligatorio</span></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><i class="fa-solid fa-toolbox"></i><h3>Herramientas</h3></div>
+    <ul class="check">
+      <li><input type="checkbox" data-k="tools"><div><b>Qué herramientas van a usar</b><span class="d">Lo que no se elija queda apagado y se prende cuando quieras.</span>
+        <table style="margin-top:10px"><tr><th>Grupo</th><th>Herramientas</th></tr>
+          <tr><td>Equipo y trabajo</td><td>Gestión de trabajo (tareas, tableros, proyectos), To-Do, Chat, Comunidad, Biblioteca, Status, Encuestas</td></tr>
+          <tr><td>Clientes</td><td>Clientes y Facturación con portal para cada cliente, Materiales (carpetas por cliente)</td></tr>
+          <tr><td>Contenido</td><td>Promos, Pages, Planify, Stats, Image Host</td></tr>
+          <tr><td>Herramientas</td><td>Convertidor de imágenes, SVG a PNG, Recolorear SVG, Renombrador, Asistente de IA</td></tr>
+        </table></div><span class="req">Obligatorio</span></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><i class="fa-solid fa-users"></i><h3>Personas</h3></div>
+    <ul class="check">
+      <li><input type="checkbox" data-k="admin"><div><b>Administrador principal</b><span class="d">Nombre, email y usuario de quien va a manejar la plataforma. Puede todo, incluidas las actualizaciones.</span><span class="ex">La contraseña la elige esa persona. Si la instalamos nosotros, te mandamos una y la cambiás al entrar.</span></div><span class="req">Obligatorio</span></li>
+      <li><input type="checkbox" data-k="equipo"><div><b>Lista del equipo</b><span class="d">Nombre, email y rol de cada persona: <b style="display:inline">Equipo</b> o <b style="display:inline">Administrador</b>. Cada una recibe un mensaje con su usuario y una contraseña temporal.</span><span class="ex">Sirve una planilla con dos columnas: nombre y email. Se puede pegar tal cual en el instalador.</span></div><span class="req opt">Opcional</span></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><i class="fa-solid fa-cloud-arrow-down"></i><h3>Actualizaciones</h3></div>
+    <ul class="check">
+      <li><input type="checkbox" data-k="updates"><div><b>Si querés recibir mejoras</b><span class="d">Conectada al sitio base, la plataforma recibe arreglos y funciones nuevas con un clic. Al terminar la instalación aparece un código de conexión: hay que mandárnoslo.</span></div><span class="req opt">Opcional</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="hosting">
+  <h2><span class="n">3</span>Requisitos del hosting</h2>
+  <p class="sub">El asistente los revisa solo en el primer paso. Si falta algo, se pide al soporte del hosting.</p>
+  <div class="card" style="padding:8px 14px">
+    <table>
+      <tr><th>Qué</th><th>Mínimo</th><th>Para qué</th></tr>
+      <tr><td>PHP</td><td>8.0 o más nuevo</td><td>Todo el sistema</td></tr>
+      <tr><td>Base de datos</td><td>MySQL 5.7 o MariaDB 10.3</td><td>Guardar la información</td></tr>
+      <tr><td>Extensiones de PHP</td><td><code>pdo_mysql</code> <code>mbstring</code> <code>curl</code> <code>zip</code> <code>openssl</code> <code>gd</code> <code>json</code></td><td>Base, acentos, actualizaciones, firmas e imágenes</td></tr>
+      <tr><td>Certificado SSL</td><td>https activo</td><td>Seguridad del login</td></tr>
+      <tr><td>Límite de subida</td><td>64 MB o más (recomendado)</td><td>Archivos de clientes y materiales</td></tr>
+      <tr><td>Espacio</td><td>500 MB para empezar</td><td>Crece con los archivos que suba el equipo</td></tr>
+      <tr><td>Carpeta</td><td><code>/toolz/</code> en la raíz del dominio</td><td>La plataforma vive en esa ruta</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="pasos">
+  <h2><span class="n">4</span>Instalación paso a paso</h2>
+  <p class="sub">Si la instalás vos. Antes de empezar, tené a mano la lista de la sección 2.</p>
+  <div class="card">
+    <ol class="steps">
+      <li><b>Creá el subdominio y activá https</b><span>En el panel del hosting: Dominios › Subdominios, y SSL para ese subdominio.</span></li>
+      <li><b>Creá la base de datos</b><span>Base vacía y usuario con todos los permisos. Anotá nombre, usuario y contraseña.</span></li>
+      <li><b>Subí el paquete</b><span>Descomprimí el paquete de instalación y subí la carpeta <code>toolz</code> a la raíz del subdominio, por FTP o con el administrador de archivos.</span></li>
+      <li><b>Abrí el asistente</b><span>Entrá a <code>https://tu-subdominio/toolz/instalar.php</code>. El primer paso revisa el hosting.</span></li>
+      <li><b>Completá los 7 pasos</b><span>Requisitos, base de datos (con el botón "Probar conexión"), marca con vista previa, herramientas, administrador, equipo y actualizaciones.</span></li>
+      <li><b>Guardá los mensajes de acceso</b><span>Al terminar aparece un mensaje listo para cada persona, con su usuario y contraseña. Copialos y mandalos: las contraseñas no se vuelven a mostrar.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section id="plantilla">
+  <h2><span class="n">5</span>Plantilla para mandarnos los datos</h2>
+  <p class="sub">Si la instalamos nosotros, completá esto y mandalo por email o WhatsApp junto con el logo. Las contraseñas mandalas por un canal aparte.</p>
+  <div class="card">
+<pre class="tpl" id="tpl">DATOS PARA CREAR LA PLATAFORMA
+
+— Dominio y hosting
+Dirección (dominio o subdominio):
+Hosting (empresa):
+FTP · servidor:
+FTP · usuario:
+FTP · contraseña: (por otro canal)
+
+— Base de datos
+Nombre de la base:
+Usuario:
+Contraseña: (por otro canal)
+Servidor (casi siempre localhost):
+
+— Marca
+Nombre de la plataforma:
+Nombre corto:
+Color principal (#hex):
+País / zona horaria:
+Logo e ícono: (adjuntos, PNG con fondo transparente)
+
+— Herramientas (tachá las que no)
+Gestión de trabajo · To-Do · Chat · Comunidad · Biblioteca
+Clientes y Facturación · Materiales
+Promos · Pages · Planify · Stats · Image Host
+Convertidor de imágenes · SVG a PNG · Recolorear SVG · Renombrador · Asistente de IA
+
+— Administrador principal
+Nombre:
+Email:
+Usuario:
+
+— Equipo (una persona por línea: nombre, email, rol)
+Ejemplo: Juan Gómez, juan@agencia.com, equipo
+Ejemplo: María López, maria@agencia.com, administrador
+
+— Actualizaciones
+¿Recibir mejoras automáticas? Sí / No</pre>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap" class="no-print"><button class="btn pri" type="button" id="copy"><i class="fa-regular fa-copy"></i> Copiar plantilla</button><button class="btn" type="button" id="dl"><i class="fa-solid fa-download"></i> Descargar como .txt</button></div>
+  </div>
+</section>
+
+<section id="despues">
+  <h2><span class="n">6</span>Después de instalar</h2>
+  <div class="card">
+    <ul class="check">
+      <li><span style="color:var(--acc)"><i class="fa-solid fa-paper-plane"></i></span><div><b>Mandá los accesos</b><span class="d">Cada persona recibe su mensaje y cambia la contraseña en Mi perfil la primera vez que entra.</span></div></li>
+      <li><span style="color:var(--acc)"><i class="fa-solid fa-link"></i></span><div><b>Conectá las actualizaciones</b><span class="d">Mandanos el código de conexión. Si lo perdiste, está en Admin › Actualizaciones.</span></div></li>
+      <li><span style="color:var(--acc)"><i class="fa-solid fa-upload"></i></span><div><b>Subí el límite de archivos</b><span class="d">Pedile al hosting 64 MB o más, para los archivos de los clientes.</span></div></li>
+      <li><span style="color:var(--acc)"><i class="fa-solid fa-key"></i></span><div><b>Cargá las claves que uses</b><span class="d">En Admin: inteligencia artificial y el correo de los avisos.</span></div></li>
+      <li><span style="color:var(--acc)"><i class="fa-solid fa-address-book"></i></span><div><b>Cargá tus clientes</b><span class="d">Si usás Clientes y Facturación: fichas, datos de facturación y acceso al portal de cada cliente.</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<section id="faq">
+  <h2><span class="n">7</span>Preguntas frecuentes</h2>
+  <div class="card">
+    <details><summary>¿Puedo cambiar el logo, el nombre o el color después?</summary><p>Sí, desde Admin. El instalador solo deja todo listo para empezar.</p></details>
+    <details><summary>¿Puedo prender herramientas que no elegí?</summary><p>Sí: Admin › Módulos y permisos. Ahí también decidís quién ve cada una (todos, ciertos equipos o solo administradores).</p></details>
+    <details><summary>¿Quién ve mis datos?</summary><p>Solo tu equipo. Cada plataforma tiene su propia base de datos en tu hosting. Las actualizaciones cambian el programa, nunca tus datos ni tu configuración.</p></details>
+    <details><summary>¿Qué pasa si una actualización sale mal?</summary><p>Antes de instalar se guarda un respaldo. Si después la plataforma no responde bien, vuelve sola a la versión anterior. También se puede volver atrás a mano desde Admin › Actualizaciones.</p></details>
+    <details><summary>¿Las facturas tienen validez fiscal?</summary><p>Todavía no: son comprobantes internos, con PDF y portal para el cliente. La factura electrónica oficial se suma más adelante.</p></details>
+    <details><summary>¿Cuántas personas pueden usarla?</summary><p>No hay un límite fijo: depende del hosting. Para equipos de hasta unas 50 personas alcanza un hosting compartido común.</p></details>
+    <details><summary>Alguien perdió su contraseña, ¿qué hago?</summary><p>Un administrador la cambia desde Admin › Usuarios y le pasa la nueva.</p></details>
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap">Guía de creación de la plataforma · actualizada en noviembre de 2026.</div></footer>
+
+<script>
+(() => {
+  const KEY = 'manual_instalacion_checks';
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+  const boxes = [...document.querySelectorAll('.check input[type=checkbox]')];
+  const upd = () => { const n = boxes.filter(b => b.checked).length; document.getElementById('bar').style.width = (n / boxes.length * 100) + '%'; document.getElementById('count').textContent = `${n} de ${boxes.length} listos`; };
+  boxes.forEach(b => { b.checked = !!saved[b.dataset.k]; b.onchange = () => { saved[b.dataset.k] = b.checked; try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} upd(); }; });
+  upd();
+  const tpl = document.getElementById('tpl').textContent;
+  const copy = document.getElementById('copy');
+  copy.onclick = () => { const ok = () => { copy.innerHTML = '<i class="fa-solid fa-check"></i> Copiada'; setTimeout(() => copy.innerHTML = '<i class="fa-regular fa-copy"></i> Copiar plantilla', 1800); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(tpl).then(ok); else { const t = document.createElement('textarea'); t.value = tpl; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); ok(); } };
+  document.getElementById('dl').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([tpl.replace(/\n/g, '\r\n')], { type: 'text/plain;charset=utf-8' })); a.download = 'datos-para-crear-la-plataforma.txt'; a.click(); };
+  const root = document.documentElement, t = document.getElementById('theme');
+  try { const s = localStorage.getItem('manual_theme'); if (s) root.dataset.theme = s; } catch (e) {}
+  t.onclick = () => { const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; root.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('manual_theme', root.dataset.theme); } catch (e) {} };
+})();
+</script>
+</body>
+</html>

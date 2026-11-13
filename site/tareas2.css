@@ -1,0 +1,116 @@
+/* tareas2.css — Fase 2 de Gestión de trabajo sobre el tablero: Tabla, Gantt, subtareas, dependencias y campos. */
+.tk-dot{width:8px;height:8px;border-radius:50%;background:var(--c);flex-shrink:0;display:inline-block}
+.tk-meta.blk{color:#f87171}
+.tk-xbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.tk-xbar .grow{flex:1}
+
+/* Campos editables (tabla y ficha) */
+.tk-fin{height:30px;width:100%;min-width:0;border-radius:7px;border:1px solid transparent;background:none;padding:0 7px;outline:0;font-size:12.5px;color:var(--g7-text);color-scheme:dark;transition:background .15s,border-color .15s}
+.tk-fin:hover{background:var(--g7-bg-4)}
+.tk-fin:focus{background:var(--g7-bg);border-color:var(--g7-accent-border)}
+.tk-fin.wide{max-width:260px;border-color:var(--g7-border-2)}
+.tk-fin.num{text-align:right;font-variant-numeric:tabular-nums}
+.tk-fin.late{color:#f87171;font-weight:700}
+select.tk-fin{cursor:pointer}
+select.tk-fin option{background:#141414;color:#fff}
+input[type=checkbox].tk-fin{width:16px;height:16px;accent-color:var(--g7-accent);cursor:pointer}
+.tk-furl{display:flex;align-items:center;gap:4px;width:100%}
+.tk-furl a{color:var(--g7-text-3);font-size:11px;padding:4px}
+.tk-furl a:hover{color:var(--g7-accent)}
+:root[data-theme="light"] .tk-fin,.theme-light .tk-fin{color-scheme:light}
+
+/* Tabla */
+.tk-xt-w{overflow:auto;border:1px solid var(--g7-border-2);border-radius:12px;background:var(--g7-bg-2);max-height:calc(100dvh - 260px)}
+.tk-xt{display:grid;grid-template-columns:var(--cols);width:max-content;min-width:100%}
+.tk-xr{display:contents}
+.tk-xr>div{display:flex;align-items:center;min-height:42px;padding:0 6px;border-bottom:1px solid var(--g7-border-2);background:var(--g7-bg-2);min-width:0}
+.tk-xr>div:first-child{justify-content:center;position:sticky;left:0;z-index:1;border-left:3px solid var(--c,transparent)}
+.tk-xr>div.c-title{position:sticky;left:36px;z-index:1;border-right:1px solid var(--g7-border-2)}
+.tk-xr.tk-tr:hover>div,.tk-xr.sel>div{background:var(--g7-bg-3)}
+.tk-xh>div{position:sticky;top:0;z-index:2;min-height:38px;font-size:11px;font-weight:700;color:var(--g7-text-4);text-transform:uppercase;letter-spacing:.5px;background:var(--g7-bg-3);white-space:nowrap;cursor:pointer;user-select:none}
+.tk-xh>div:first-child{z-index:3;border-left-color:transparent}
+.tk-xh>div:nth-child(2){left:36px;z-index:3}
+.tk-xh>div:hover{color:var(--g7-text)}
+.tk-xh i{margin-left:4px}
+.tk-xr input[type=checkbox]{accent-color:var(--g7-accent)}
+.tk-xr .tk-title{display:flex;align-items:center;gap:8px;min-width:0;width:100%;cursor:pointer}
+.tk-xr .tk-title .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-xr .tk-title .ic{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.tk-xr .tk-cell-btn{width:100%}
+.tk-num{font-variant-numeric:tabular-nums;font-size:12.5px;width:100%;text-align:right;padding-right:6px}
+.tk-num.muted{color:var(--g7-text-5,var(--g7-text-4))}
+.tk-num.over{color:#f87171;font-weight:700}
+.tk-xadd>div{min-height:38px;border-bottom:0}
+.tk-xadd button{border:0;background:none;color:var(--g7-text-4);font-weight:600;font-size:12.5px;cursor:pointer;padding:6px}
+.tk-xadd button:hover{color:var(--g7-accent)}
+
+/* Gantt */
+.tk-gantt{display:grid;grid-template-columns:260px minmax(0,1fr);border:1px solid var(--g7-border-2);border-radius:12px;background:var(--g7-bg-2);overflow:hidden}
+.tk-gl{border-right:1px solid var(--g7-border-2);min-width:0}
+.tk-gh0{height:58px;display:flex;align-items:flex-end;padding:0 12px 8px;font-size:11px;font-weight:700;color:var(--g7-text-4);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--g7-border-2)}
+.tk-glr{height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--g7-border-2);font-size:12.5px;min-width:0}
+.tk-glr .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;cursor:pointer}
+.tk-glr .t:hover{color:var(--g7-accent)}
+.tk-glr .fa-lock{color:#f87171;font-size:11px}
+.tk-gr{overflow-x:auto;overflow-y:hidden;position:relative}
+.tk-gm,.tk-gd{display:flex;height:29px;border-bottom:1px solid var(--g7-border-2)}
+.tk-gm div{flex-shrink:0;font-size:11px;font-weight:700;color:var(--g7-text-3);padding:8px 8px 0;border-left:1px solid var(--g7-border-2);white-space:nowrap;overflow:hidden;text-transform:capitalize}
+.tk-gd div{flex-shrink:0;font-size:10.5px;color:var(--g7-text-4);text-align:center;line-height:28px;font-variant-numeric:tabular-nums}
+.tk-gd div.we{background:var(--g7-bg-3)}
+.tk-gd div.td{color:#fff;background:var(--g7-accent);border-radius:6px;font-weight:800}
+.tk-gb{position:relative}
+.tk-grow{position:absolute;left:0;right:0;height:38px;border-bottom:1px solid var(--g7-border-2)}
+.tk-gtoday{position:absolute;top:0;bottom:0;width:2px;background:var(--g7-accent);opacity:.55;z-index:1}
+.tk-garr{position:absolute;top:0;left:0;pointer-events:none;z-index:2;overflow:visible}
+.tk-garr path{fill:none;stroke:var(--g7-text-3);stroke-width:1.5}
+.tk-garr path.bad{stroke:#f87171;stroke-dasharray:4 3}
+.tk-garr marker path{fill:var(--g7-text-3);stroke:none}
+.tk-gbar{position:absolute;height:24px;border-radius:7px;background:color-mix(in srgb,var(--c) 75%,#000);border:1px solid color-mix(in srgb,var(--c) 90%,#fff 10%);display:flex;align-items:center;z-index:3;cursor:grab;touch-action:none;user-select:none;min-width:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.tk-gbar:active{cursor:grabbing}
+.tk-gbar.done{opacity:.45}
+.tk-gbar.late{box-shadow:0 0 0 2px #ef4444}
+.tk-gbar.ro{cursor:pointer}
+.tk-gbar .tx{flex:1;min-width:0;padding:0 8px;font-size:11.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.4);pointer-events:none}
+.tk-gbar .h{width:8px;align-self:stretch;cursor:ew-resize;flex-shrink:0}
+.tk-gbar .h:hover{background:rgba(255,255,255,.25)}
+.tk-gbar .h.l{border-radius:7px 0 0 7px}.tk-gbar .h.r{border-radius:0 7px 7px 0}
+.tk-gbar.ro .h{display:none}
+.tk-gund{margin-top:12px;border:1px solid var(--g7-border-2);border-radius:12px;background:var(--g7-bg-2);padding:4px 0}
+.tk-gund summary{cursor:pointer;padding:10px 12px;font-weight:700;font-size:12.5px;color:var(--g7-text-3)}
+
+/* Ficha: subtareas y dependencias */
+.tk-sub{display:flex;align-items:center;gap:9px;padding:6px 4px;border-bottom:1px solid var(--g7-border-2);font-size:13px}
+.tk-sub .t{flex:1;min-width:0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-sub .t:hover{color:var(--g7-accent)}
+.tk-sub.done .t{color:var(--g7-text-4);text-decoration:line-through}
+.tk-ck{width:20px;height:20px;border-radius:6px;border:2px solid var(--g7-border-3);background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:10px;color:transparent;flex-shrink:0}
+.tk-ck:hover{border-color:#22c55e;color:#22c55e}
+.tk-ck.on{background:#22c55e;border-color:#22c55e;color:#fff}
+.tk-subadd{padding-top:8px}
+.tk-pop button.tk-opt{width:100%;border:0;background:none;text-align:left}
+.tk-pop button.tk-opt .lbl{flex:1;min-width:0}
+
+@media (max-width:760px){
+  .tk-gantt{grid-template-columns:140px minmax(0,1fr)}
+  .tk-xr>div.c-title{position:static}
+}
+
+/* Fase 6: versiones de adjuntos */
+.tk-ver{display:inline-flex;height:17px;padding:0 6px;border-radius:5px;background:var(--g7-accent-muted);color:var(--g7-accent);font-size:10.5px;font-weight:800;align-items:center;margin-left:4px;vertical-align:1px}
+.tk-vers{margin-top:4px;font-size:11.5px}
+.tk-vers summary{cursor:pointer;color:var(--g7-text-3)}
+.tk-vers div{padding:3px 0 0 10px}
+.tk-vers a{color:var(--g7-text-2)}
+.tk-vers small{color:var(--g7-text-4)}
+
+/* Ticket de la tarea (ticket y tarea son el mismo elemento: trabajo/link_lib.php) */
+.tk-tkchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--g7-border-2);background:var(--g7-bg-3);color:var(--g7-text-2);font-size:12px;font-weight:600;text-decoration:none}
+.tk-tkchip:hover{border-color:var(--c,#3b82f6);color:var(--g7-text)}
+.tk-tkchip span{color:var(--c,#3b82f6);font-weight:600}
+.tk-tkchip.late{border-color:#ef444466}
+.tk-tkchip.late .fa-circle-exclamation{color:#f87171}
+.tk-tknote{margin-top:8px;font-size:12px}
+.tk-tknote a{color:var(--g7-accent)}
+.tk-cm.internal .tx{border-style:dashed;background:transparent}
+.tk-int{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:#fbbf24;font-weight:600}
+.tk-av-ext{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--g7-bg-4);color:var(--g7-accent);font-size:12px}

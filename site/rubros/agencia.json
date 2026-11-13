@@ -1,0 +1,70 @@
+{
+ "id": "agencia",
+ "name": "Agencia creativa",
+ "desc": "Diseño, redes, campañas y contenidos para marcas.",
+ "icon": "fa-palette",
+ "accent": "#ff6600",
+ "order": 1,
+ "vocab": {},
+ "client_types": [],
+ "statuses": {},
+ "fields": [],
+ "hide_fields": [],
+ "modules_on": [
+  "tareas",
+  "promos",
+  "chat",
+  "clientes",
+  "facturacion",
+  "stock",
+  "links",
+  "calendario"
+ ],
+ "extras": [],
+ "content_types": [],
+ "home": {
+  "subtitle": "",
+  "tiles": []
+ },
+ "task_templates": [],
+ "folders": [
+  "Logos",
+  "Tipografías",
+  "Manual de marca",
+  "Fotos",
+  "Entregas"
+ ],
+ "billing": {
+  "concepts": [
+   "Diseño",
+   "Gestión de redes",
+   "Campaña",
+   "Producción audiovisual"
+  ]
+ },
+ "samples": {
+  "clients": [
+   {
+    "name": "Café Aroma",
+    "status": "activo",
+    "contact_name": "Lucía Fernández",
+    "email": "lucia@cafearoma.test",
+    "phone": "+54 11 4000-1000"
+   },
+   {
+    "name": "Bici Urbana",
+    "status": "potencial",
+    "contact_name": "Diego Torres",
+    "email": "diego@biciurbana.test"
+   }
+  ],
+  "tasks": [
+   {
+    "title": "Calendario de publicaciones de Café Aroma"
+   },
+   {
+    "title": "Propuesta de identidad para Bici Urbana"
+   }
+  ]
+ }
+}

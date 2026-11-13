@@ -1,0 +1,5 @@
+Instalación
+
+1. Subí la carpeta toolz y el index.php a la raíz del sitio (la plataforma queda en https://tu-dominio/toolz/ y el panel de clientes en https://tu-dominio/).
+2. Creá una base de datos MySQL vacía con un usuario que tenga todos los permisos.
+3. Abrí https://tu-dominio/toolz/instalar.php y seguí los pasos.

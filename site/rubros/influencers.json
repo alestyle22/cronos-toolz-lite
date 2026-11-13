@@ -1,0 +1,326 @@
+{
+    "id": "influencers",
+    "name": "Agencia de influencers",
+    "desc": "Talentos y marcas: campañas, entregables y métricas.",
+    "icon": "fa-star",
+    "accent": "#ec4899",
+    "order": 6,
+    "vocab": {
+        "client": {
+            "s": "Cliente",
+            "p": "Clientes",
+            "g": "m"
+        },
+        "content": {
+            "s": "Entregable",
+            "p": "Entregables",
+            "g": "m"
+        },
+        "project": {
+            "s": "Campaña",
+            "p": "Campañas",
+            "g": "f"
+        },
+        "service": {
+            "s": "Acuerdo",
+            "p": "Acuerdos",
+            "g": "m"
+        },
+        "invoice": {
+            "s": "Factura",
+            "p": "Facturas",
+            "g": "f"
+        },
+        "material": {
+            "s": "Material",
+            "p": "Materiales",
+            "g": "m"
+        },
+        "client_name": {
+            "s": "Nombre o marca",
+            "p": "Nombres o marcas",
+            "g": "m"
+        }
+    },
+    "client_types": [
+        {
+            "key": "talento",
+            "label": "Talento"
+        },
+        {
+            "key": "marca",
+            "label": "Marca"
+        }
+    ],
+    "statuses": {
+        "projects": [
+            [
+                "planificado",
+                "Propuesta",
+                "#8b8b94"
+            ],
+            [
+                "en_curso",
+                "En producción",
+                "#3b82f6"
+            ],
+            [
+                "en_pausa",
+                "En pausa",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "Publicada",
+                "#22c55e"
+            ],
+            [
+                "cancelado",
+                "Cancelada",
+                "#ef4444"
+            ]
+        ]
+    },
+    "fields": [
+        {
+            "key": "red_principal",
+            "label": "Red principal",
+            "type": "select",
+            "options": [
+                "Instagram",
+                "TikTok",
+                "YouTube",
+                "Twitch",
+                "X",
+                "Kick"
+            ]
+        },
+        {
+            "key": "seguidores",
+            "label": "Seguidores",
+            "type": "number"
+        },
+        {
+            "key": "engagement",
+            "label": "Engagement (%)",
+            "type": "number"
+        },
+        {
+            "key": "tarifa",
+            "label": "Tarifa por publicación",
+            "type": "money"
+        },
+        {
+            "key": "nicho",
+            "label": "Nicho",
+            "type": "text"
+        },
+        {
+            "key": "exclusividad",
+            "label": "Exclusividad vigente",
+            "type": "bool"
+        }
+    ],
+    "hide_fields": [
+        "legal_name",
+        "cuit",
+        "iva_cond",
+        "brand_fonts"
+    ],
+    "modules_on": [
+        "tareas",
+        "promos",
+        "chat",
+        "clientes",
+        "facturacion",
+        "stock",
+        "links",
+        "calendario",
+        "talentos"
+    ],
+    "extras": [
+        "talentos"
+    ],
+    "content_types": [
+        {
+            "key": "entregable",
+            "label": "Entregable de campaña",
+            "icon": "fa-video",
+            "color": "#ec4899"
+        },
+        {
+            "key": "social",
+            "label": "Redes sociales",
+            "icon": "fa-share-nodes",
+            "color": "#3b82f6"
+        }
+    ],
+    "home": {
+        "subtitle": "Campañas en curso y publicaciones de la semana.",
+        "tiles": [
+            {
+                "id": "talentos",
+                "href": "/toolz/talentos/",
+                "icon": "fa-star",
+                "name": "Talentos",
+                "desc": "Roster, campañas y entregables",
+                "color": "#ec4899"
+            },
+            {
+                "id": "campanas",
+                "href": "/toolz/promos/",
+                "icon": "fa-video",
+                "name": "Entregables",
+                "desc": "Lo que se publica",
+                "color": "#a78bfa"
+            },
+            {
+                "id": "trabajo",
+                "href": "/toolz/trabajo/",
+                "icon": "fa-list-check",
+                "name": "Campañas",
+                "desc": "Tareas por campaña",
+                "color": "#22c55e"
+            },
+            {
+                "id": "calendario",
+                "href": "/toolz/calendario/",
+                "icon": "fa-calendar-days",
+                "name": "Publicaciones",
+                "desc": "Fechas de salida",
+                "color": "#f59e0b"
+            }
+        ]
+    },
+    "task_templates": [
+        {
+            "name": "Campaña con talento",
+            "due_in": 21,
+            "checks": [
+                "Brief de la marca",
+                "Propuesta de talentos",
+                "Contrato firmado",
+                "Guion aprobado",
+                "Publicación",
+                "Reporte de métricas"
+            ]
+        }
+    ],
+    "folders": [
+        "Media kit",
+        "Contratos",
+        "Contenido aprobado",
+        "Métricas"
+    ],
+    "billing": {
+        "concepts": [
+            "Fee de campaña",
+            "Comisión de representación",
+            "Producción"
+        ]
+    },
+    "samples": {
+        "clients": [
+            {
+                "name": "Mica Viajera",
+                "type": "talento",
+                "status": "activo",
+                "contact_name": "Micaela Romero",
+                "email": "mica@example.test",
+                "fields": {
+                    "red_principal": "Instagram",
+                    "seguidores": "240000",
+                    "engagement": "4.2",
+                    "nicho": "Viajes"
+                }
+            },
+            {
+                "name": "Bebidas Frescor",
+                "type": "marca",
+                "status": "activo",
+                "contact_name": "Laura Benítez",
+                "email": "marketing@frescor.test"
+            }
+        ],
+        "tasks": [
+            {
+                "title": "Brief de verano de Bebidas Frescor"
+            },
+            {
+                "title": "Reporte de métricas de Mica Viajera"
+            }
+        ],
+        "talent": {
+            "profiles": [
+                {
+                    "client": "Mica Viajera",
+                    "niche": "Viajes y gastronomía",
+                    "city": "Córdoba",
+                    "networks": [
+                        {
+                            "net": "instagram",
+                            "handle": "micaviajera",
+                            "followers": "184k",
+                            "er": "3,8"
+                        },
+                        {
+                            "net": "tiktok",
+                            "handle": "micaviajera",
+                            "followers": "420k",
+                            "er": "6,1"
+                        }
+                    ],
+                    "rates": [
+                        {
+                            "format": "Reel",
+                            "price": "450000",
+                            "currency": "ARS"
+                        },
+                        {
+                            "format": "Historia",
+                            "price": "120000",
+                            "currency": "ARS"
+                        }
+                    ],
+                    "audience": {
+                        "ages": "18–34",
+                        "gender": "68% mujeres",
+                        "countries": "AR, UY, CL"
+                    }
+                }
+            ],
+            "campaign": {
+                "brand": "Bebidas Frescor",
+                "name": "Verano Frescor",
+                "status": "en_curso",
+                "budget": "1500000",
+                "deliverables": [
+                    {
+                        "talent": "Mica Viajera",
+                        "format": "Reel",
+                        "network": "instagram",
+                        "in_days": -3,
+                        "status": "publicado",
+                        "fee": "450000",
+                        "url": "https://www.example.test/reel-frescor",
+                        "metrics": {
+                            "views": "96k",
+                            "reach": "71k",
+                            "likes": "5,2k",
+                            "comments": "310",
+                            "shares": "420"
+                        }
+                    },
+                    {
+                        "talent": "Mica Viajera",
+                        "format": "Video TikTok",
+                        "network": "tiktok",
+                        "in_days": 4,
+                        "status": "aprobado",
+                        "fee": "380000"
+                    }
+                ]
+            }
+        }
+    }
+}

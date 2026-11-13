@@ -1,0 +1,65 @@
+/* chat/refs.css — Tarjetitas de vínculos ([[tipo:id]]) y selectores "Vincular" / emojis del chat (chat/refs.js). */
+.cc-ref{--rc:#888;display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:2px 0;padding:4px 10px 4px 8px;border-radius:10px;
+  background:color-mix(in srgb,var(--rc) 12%,transparent);border:1px solid color-mix(in srgb,var(--rc) 32%,transparent);color:inherit!important;text-decoration:none!important;
+  font-size:12.5px;line-height:1.3;vertical-align:middle;transition:background .15s,border-color .15s,transform .15s}
+.cc-ref>i{color:var(--rc);font-size:11.5px;flex:none}
+.cc-ref em{font:700 10.5px ui-monospace,SFMono-Regular,Consolas,monospace;font-style:normal;color:var(--rc);flex:none}
+.cc-ref span{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cc-ref small{font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cc-ref[href]:not([href="#"]):hover{background:color-mix(in srgb,var(--rc) 20%,transparent);border-color:var(--rc);transform:translateY(-1px)}
+.cc-ref.na{--rc:#71717a;opacity:.75;cursor:default}
+.cc-pk{position:fixed;z-index:100000;width:min(360px,calc(100vw - 16px));max-height:min(440px,calc(100vh - 16px));display:flex;flex-direction:column;
+  background:var(--g7-bg-2,#141414);color:var(--g7-text,#eee);border:1px solid var(--g7-border-3,#333);border-radius:16px;box-shadow:0 24px 60px -12px rgba(0,0,0,.55);overflow:hidden;
+  font-family:var(--g7-font,inherit);animation:ccPkIn .16s ease-out}
+@keyframes ccPkIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cc-pk-h{padding:12px 14px 6px}.cc-pk-h b{display:flex;align-items:center;gap:8px;font-size:13.5px}.cc-pk-h b i{color:var(--g7-accent,#ff6600)}
+.cc-pk-h small{display:block;font-size:11.5px;color:var(--g7-text-4,#888);margin-top:2px}
+.cc-pk-tabs{display:flex;gap:4px;flex-wrap:wrap;padding:6px 12px}
+.cc-pk-tabs button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--g7-border-3,#333);background:none;color:var(--g7-text-3,#aaa);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+.cc-pk-tabs button i{font-size:10.5px}
+.cc-pk-tabs button.on{background:var(--g7-accent-muted,rgba(255,102,0,.12));border-color:var(--g7-accent-border,rgba(255,102,0,.3));color:var(--g7-text,#eee)}
+.cc-pk-q{margin:6px 12px 8px;height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--g7-border-3,#333);background:var(--g7-bg-3,#1a1a1a);color:inherit;font-family:inherit;font-size:13px;outline:none}
+.cc-pk-q:focus{border-color:var(--g7-accent-border,rgba(255,102,0,.4))}
+.cc-pk-list{overflow:auto;padding:0 6px 8px;min-height:60px}
+.cc-pk-it{--rc:#888;display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:10px;border:0;background:none;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.cc-pk-it:hover,.cc-pk-it:focus-visible{background:var(--g7-bg-4,#222);outline:none}
+.cc-pk-it>i{width:32px;height:32px;flex:none;border-radius:9px;display:grid;place-items:center;font-size:13px;color:var(--rc);background:color-mix(in srgb,var(--rc) 15%,transparent)}
+.cc-pk-it span{min-width:0}.cc-pk-it b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-pk-it em{font:700 10.5px ui-monospace,Consolas,monospace;font-style:normal;color:var(--rc)}
+.cc-pk-it small{display:block;font-size:11px;color:var(--g7-text-4,#888);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-pk-empty{padding:18px 12px;text-align:center;font-size:12.5px;color:var(--g7-text-4,#888)}
+.cc-pk.em{width:min(330px,calc(100vw - 16px))}
+.cc-pk-em{overflow:auto;padding:0 10px 10px}
+.cc-pk-cat{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g7-text-4,#888);padding:8px 2px 4px}
+.cc-pk-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.cc-pk-grid button{height:34px;border:0;border-radius:8px;background:none;font-size:20px;cursor:pointer;line-height:1}
+.cc-pk-grid button:hover{background:var(--g7-bg-4,#222);transform:scale(1.15)}
+/* "Está trabajando en…" y "Tareas en curso" (CCRefs.work / workLine) */
+.cc-wk{display:flex;flex-direction:column;gap:6px;text-align:left}
+.cc-wk-now{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.28);color:inherit!important;text-decoration:none!important}
+a.cc-wk-now:hover{background:rgba(34,197,94,.14)}
+.cc-wk-now b{display:block;font-size:12.5px}.cc-wk-now small{display:block;font-size:11.5px;opacity:.75;margin-top:2px;line-height:1.35}
+.cc-wk-now em,.cc-wk-t em{font:700 10.5px ui-monospace,Consolas,monospace;font-style:normal;opacity:.8}
+.cc-wk-now>i{margin-left:auto;font-size:10px;opacity:.5}
+.cc-wk-live{width:9px;height:9px;flex:none;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:ccWkLive 1.8s infinite}
+@keyframes ccWkLive{70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+@media (prefers-reduced-motion:reduce){.cc-wk-live{animation:none}}
+.cc-wk-h{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.7}
+.cc-wk-h span{font-weight:800;opacity:.9}
+.cc-wk-t{--sc:#888;display:grid;grid-template-columns:16px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;border:1px solid var(--g7-border-2,#2a2a2a);border-left:3px solid var(--sc);color:inherit!important;text-decoration:none!important;font-size:12.5px}
+.cc-wk-t:hover{background:var(--g7-bg-4,#222)}
+.cc-wk-t>i{font-size:11px;color:var(--sc)}
+.cc-wk-t .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-wk-st{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;color:var(--sc);background:color-mix(in srgb,var(--sc) 14%,transparent);white-space:nowrap}
+.cc-wk-due{font-size:10.5px;opacity:.7;white-space:nowrap}.cc-wk-due.late{color:#f87171;opacity:1;font-weight:700}.cc-wk-due.soon{color:#fbbf24;opacity:1;font-weight:700}
+.cc-wk-empty,.cc-wk-foot{font-size:12px;opacity:.65;padding:4px 2px}
+.cc-wk-line{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:#4ade80!important;text-decoration:none!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-wk-line .cc-wk-live{width:7px;height:7px}
+/* @ de la burbuja (personas, clientes y tickets) */
+.ccw-mention{max-height:300px}
+.ccw-mention .cc-pk-list{padding:6px}
+.ccw-mention .cc-pk-it.on{background:var(--g7-bg-4,#222)}
+.ccw-mention .cc-pk-it .ccw-av{width:32px;height:32px;flex:none;border-radius:50%}
+
+/* Jira (2026-11-11): el ícono es de marca; los chats lo piden como "fa-solid fa-jira" */
+.fa-solid.fa-jira{font-family:"Font Awesome 6 Brands";font-weight:400}

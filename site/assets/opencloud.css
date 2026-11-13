@@ -1,0 +1,41 @@
+/* assets/opencloud.css — Selector de archivos y carpeta del cliente de OpenCloud (assets/opencloud.js). Colores del tema (g7-theme.css). */
+.oc-dlg{border:1px solid var(--g7-border-3);border-radius:18px;background:var(--g7-bg-2);color:var(--g7-text);padding:0;width:min(720px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+.oc-dlg::backdrop{background:rgba(0,0,0,.6)}
+.oc-in{display:flex;flex-direction:column;max-height:calc(100vh - 42px)}
+.oc-h{display:flex;align-items:center;gap:10px;padding:16px 18px 10px}.oc-h h3{margin:0;font-size:16px;flex:1;display:flex;gap:9px;align-items:center}.oc-h h3 i{color:#4fb3d9}
+.oc-x{border:0;background:none;color:var(--g7-text-3);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px}.oc-x:hover{background:var(--g7-bg-4);color:var(--g7-text)}
+.oc-crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:0 18px 10px;font-size:12.5px;color:var(--g7-text-4)}
+.oc-crumbs.sm{padding:10px 0 6px}
+.oc-crumbs button{border:0;background:none;color:var(--g7-text-2);font-weight:700;cursor:pointer;padding:3px 6px;border-radius:6px;font-family:inherit;font-size:inherit;display:inline-flex;gap:6px;align-items:center}
+.oc-crumbs button:hover{background:var(--g7-bg-4)}.oc-crumbs>i{font-size:9px}
+.oc-list{overflow-y:auto;border-top:1px solid var(--g7-border-2);border-bottom:1px solid var(--g7-border-2);min-height:240px;max-height:55vh}
+.oc-list.sm{min-height:0;max-height:340px;border:1px solid var(--g7-border-2);border-radius:12px}
+.oc-row{display:grid;grid-template-columns:22px 22px minmax(0,1fr) auto auto 26px;gap:10px;align-items:center;padding:9px 18px;border-bottom:1px solid var(--g7-border-2);cursor:pointer;font-size:13px}
+.oc-list.sm .oc-row{grid-template-columns:22px minmax(0,1fr) auto auto 30px;padding:8px 12px}
+.oc-row:last-child{border-bottom:0}.oc-row:hover{background:var(--g7-bg-3)}.oc-row.on{background:rgba(79,179,217,.12)}
+.oc-ck{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--g7-border-3);display:grid;place-items:center;font-size:10px;color:transparent}
+.oc-ck.none{border:0}.oc-row.on .oc-ck{background:#4fb3d9;border-color:#4fb3d9;color:#00111a}
+.oc-ic{color:var(--g7-text-3);font-size:16px;text-align:center}.oc-ic.dir{color:#4fb3d9}
+.oc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.oc-meta{color:var(--g7-text-4);font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.oc-go{color:var(--g7-text-4);font-size:11px}
+.oc-empty{padding:34px 16px;text-align:center;color:var(--g7-text-4);font-size:13px;display:flex;flex-direction:column;gap:8px;align-items:center}.oc-empty i{font-size:22px}.oc-empty.err{color:#f87171}
+.oc-f{display:flex;align-items:center;gap:8px;padding:12px 18px;flex-wrap:wrap}.oc-sp{flex:1}
+.oc-pub{display:flex;gap:7px;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer}.oc-pub small{color:var(--g7-text-4);font-weight:400}
+.oc-sel{font-size:12.5px;color:var(--g7-text-3);font-weight:600}
+.oc-b{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--g7-border-3);background:var(--g7-bg-3);color:var(--g7-text);font-weight:700;font-size:12.5px;cursor:pointer;text-decoration:none;font-family:inherit}
+.oc-b:hover{border-color:var(--g7-text-4)}.oc-b.pri{background:#4fb3d9;border-color:#4fb3d9;color:#00111a}.oc-b.ghost{background:none;border-color:transparent;color:var(--g7-text-3)}.oc-b:disabled{opacity:.5;cursor:default}
+.oc-mini{border:0;background:none;color:var(--g7-text-3);cursor:pointer;width:28px;height:28px;border-radius:7px}.oc-mini:hover{background:var(--g7-bg-4);color:var(--g7-text)}
+/* Tarjeta del cliente */
+.oc-card{margin-top:14px;padding:16px;border-radius:14px;border:1px solid var(--g7-border-2);background:var(--g7-bg-2);display:flex;flex-direction:column;gap:10px}
+.oc-card-h{display:flex;gap:10px;align-items:center}.oc-card-h b{display:block;font-size:14px}.oc-card-h small{color:var(--g7-text-4);font-size:11.5px}
+.oc-logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(79,179,217,.14);color:#4fb3d9}
+.oc-muted{margin:0;color:var(--g7-text-3);font-size:13px;line-height:1.5}
+.oc-warn{margin:0;color:#fbbf24;font-size:12.5px}
+.oc-path{font-size:12.5px;color:var(--g7-text-2);font-weight:600;word-break:break-all}
+.oc-acts{display:flex;gap:8px;flex-wrap:wrap}
+.oc-share{display:flex;gap:8px;align-items:center}.oc-share i{color:#4fb3d9}.oc-share input{flex:1;min-width:0;height:34px;border-radius:9px;border:1px solid var(--g7-border-3);background:var(--g7-bg-3);color:var(--g7-text);padding:0 10px;font-family:inherit;font-size:12px}
+/* Aviso */
+.oc-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);opacity:0;background:#22c55e;color:#00140a;font-weight:700;font-size:13px;padding:10px 16px;border-radius:10px;z-index:10000;transition:.25s;max-width:calc(100vw - 32px)}
+.oc-toast.on{transform:translate(-50%,0);opacity:1}.oc-toast.err{background:#ef4444;color:#fff}
+@media (max-width:560px){.oc-row{grid-template-columns:22px 22px minmax(0,1fr) 22px}.oc-row .oc-meta{display:none}.oc-list.sm .oc-row{grid-template-columns:22px minmax(0,1fr) 30px}}

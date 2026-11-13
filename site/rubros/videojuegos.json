@@ -1,0 +1,350 @@
+{
+    "id": "videojuegos",
+    "name": "Estudio de videojuegos",
+    "desc": "Publishers, inversores y clientes: juegos, hitos, builds y bugs.",
+    "icon": "fa-gamepad",
+    "accent": "#8b5cf6",
+    "order": 7,
+    "vocab": {
+        "client": {
+            "s": "Socio",
+            "p": "Socios",
+            "g": "m"
+        },
+        "content": {
+            "s": "Pieza de marketing",
+            "p": "Piezas de marketing",
+            "g": "f"
+        },
+        "project": {
+            "s": "Juego",
+            "p": "Juegos",
+            "g": "m"
+        },
+        "service": {
+            "s": "Contrato",
+            "p": "Contratos",
+            "g": "m"
+        },
+        "invoice": {
+            "s": "Factura",
+            "p": "Facturas",
+            "g": "f"
+        },
+        "material": {
+            "s": "Asset",
+            "p": "Assets",
+            "g": "m"
+        },
+        "client_name": {
+            "s": "Empresa o nombre",
+            "p": "Empresas o nombres",
+            "g": "m"
+        }
+    },
+    "client_types": [
+        {
+            "key": "publisher",
+            "label": "Publisher"
+        },
+        {
+            "key": "inversor",
+            "label": "Inversor"
+        },
+        {
+            "key": "cliente",
+            "label": "Cliente de desarrollo"
+        }
+    ],
+    "statuses": {
+        "projects": [
+            [
+                "planificado",
+                "Concepto",
+                "#8b8b94"
+            ],
+            [
+                "prototipo",
+                "Prototipo",
+                "#06b6d4"
+            ],
+            [
+                "en_curso",
+                "Producción",
+                "#3b82f6"
+            ],
+            [
+                "beta",
+                "Beta",
+                "#a855f7"
+            ],
+            [
+                "en_pausa",
+                "En pausa",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "Lanzado",
+                "#22c55e"
+            ],
+            [
+                "cancelado",
+                "Cancelado",
+                "#ef4444"
+            ]
+        ]
+    },
+    "fields": [
+        {
+            "key": "plataformas",
+            "label": "Plataformas",
+            "type": "text"
+        },
+        {
+            "key": "genero",
+            "label": "Género",
+            "type": "text"
+        },
+        {
+            "key": "presupuesto",
+            "label": "Presupuesto",
+            "type": "money"
+        },
+        {
+            "key": "hito",
+            "label": "Próximo hito",
+            "type": "select",
+            "options": [
+                "Prototipo",
+                "Vertical slice",
+                "Alfa",
+                "Beta",
+                "Lanzamiento"
+            ]
+        },
+        {
+            "key": "fecha_hito",
+            "label": "Fecha del próximo hito",
+            "type": "date"
+        },
+        {
+            "key": "nda",
+            "label": "NDA firmado",
+            "type": "bool"
+        }
+    ],
+    "hide_fields": [
+        "iva_cond",
+        "brand_fonts",
+        "tiktok"
+    ],
+    "modules_on": [
+        "tareas",
+        "promos",
+        "chat",
+        "clientes",
+        "facturacion",
+        "stock",
+        "links",
+        "calendario",
+        "builds",
+        "juegos"
+    ],
+    "extras": [
+        "builds",
+        "juegos"
+    ],
+    "content_types": [
+        {
+            "key": "trailer",
+            "label": "Trailer o teaser",
+            "icon": "fa-video",
+            "color": "#8b5cf6"
+        },
+        {
+            "key": "devlog",
+            "label": "Devlog",
+            "icon": "fa-newspaper",
+            "color": "#14b8a6"
+        },
+        {
+            "key": "social",
+            "label": "Redes sociales",
+            "icon": "fa-share-nodes",
+            "color": "#3b82f6"
+        }
+    ],
+    "home": {
+        "subtitle": "Hitos de cada juego y pendientes del equipo.",
+        "tiles": [
+            {
+                "id": "clientes",
+                "href": "/toolz/clientes.php",
+                "icon": "fa-handshake",
+                "name": "Socios",
+                "desc": "Publishers e inversores",
+                "color": "#8b5cf6"
+            },
+            {
+                "id": "trabajo",
+                "href": "/toolz/trabajo/",
+                "icon": "fa-list-check",
+                "name": "Producción",
+                "desc": "Tareas, hitos y bugs",
+                "color": "#22c55e"
+            },
+            {
+                "id": "marketing",
+                "href": "/toolz/promos/",
+                "icon": "fa-video",
+                "name": "Marketing",
+                "desc": "Trailers y devlogs",
+                "color": "#a78bfa"
+            },
+            {
+                "id": "assets",
+                "href": "/toolz/stock.php",
+                "icon": "fa-cubes",
+                "name": "Assets",
+                "desc": "Arte, audio y builds",
+                "color": "#60a5fa"
+            },
+            {
+                "id": "builds",
+                "href": "/toolz/builds/",
+                "icon": "fa-bug",
+                "name": "Builds y bugs",
+                "desc": "Versiones, QA y bugs",
+                "color": "#a78bfa"
+            },
+            {
+                "id": "juegos",
+                "href": "/toolz/juegos/",
+                "icon": "fa-gamepad",
+                "name": "Juegos",
+                "desc": "Hitos, playtests, Steam y mercado",
+                "color": "#f97316"
+            }
+        ]
+    },
+    "task_templates": [
+        {
+            "name": "Hito de entrega",
+            "due_in": 30,
+            "checks": [
+                "Alcance acordado",
+                "Build estable",
+                "QA",
+                "Notas de versión",
+                "Entrega al publisher",
+                "Aprobación"
+            ]
+        },
+        {
+            "name": "Reporte de bug",
+            "due_in": 3,
+            "checks": [
+                "Reproducir",
+                "Severidad y plataforma",
+                "Corregir",
+                "Verificar en build"
+            ]
+        }
+    ],
+    "folders": [
+        "Arte",
+        "Audio",
+        "Builds",
+        "Documentos de diseño"
+    ],
+    "billing": {
+        "concepts": [
+            "Desarrollo por hito",
+            "Horas de desarrollo",
+            "Licencia",
+            "Port a consola"
+        ]
+    },
+    "samples": {
+        "clients": [
+            {
+                "name": "Nebula Publishing",
+                "type": "publisher",
+                "status": "activo",
+                "contact_name": "Ken Ito",
+                "email": "ken@nebula.test",
+                "fields": {
+                    "plataformas": "PC, Switch",
+                    "genero": "Plataformas",
+                    "hito": "Vertical slice",
+                    "nda": "1"
+                }
+            },
+            {
+                "name": "Fondo Pixel",
+                "type": "inversor",
+                "status": "potencial",
+                "contact_name": "Clara Núñez",
+                "email": "clara@fondopixel.test"
+            }
+        ],
+        "tasks": [
+            {
+                "title": "Vertical slice para Nebula Publishing"
+            },
+            {
+                "title": "Armar el pitch para Fondo Pixel"
+            }
+        ],
+        "builds": {
+            "client": "Nebula Publishing",
+            "project": "Proyecto Nébula",
+            "builds": [
+                {
+                    "version": "0.3.0",
+                    "channel": "alfa",
+                    "days_ago": 21,
+                    "platforms": [
+                        "pc"
+                    ],
+                    "notes": "- Primer nivel jugable\n- Guardado de partida"
+                },
+                {
+                    "version": "0.4.0",
+                    "channel": "beta",
+                    "days_ago": 3,
+                    "platforms": [
+                        "pc",
+                        "switch"
+                    ],
+                    "notes": "- Segundo nivel\n- Corregido el cierre al cargar la partida\n- Primera versión para Switch"
+                }
+            ],
+            "bugs": [
+                {
+                    "title": "El juego se cierra al cargar la partida",
+                    "severity": "bloqueante",
+                    "status": "resuelto",
+                    "platform": "pc",
+                    "found": "0.3.0",
+                    "fixed": "0.4.0"
+                },
+                {
+                    "title": "La música se corta al pausar en Switch",
+                    "severity": "media",
+                    "status": "confirmado",
+                    "platform": "switch",
+                    "found": "0.4.0"
+                },
+                {
+                    "title": "Texto cortado en el menú de opciones",
+                    "severity": "baja",
+                    "status": "nuevo",
+                    "platform": "",
+                    "found": "0.4.0"
+                }
+            ]
+        }
+    }
+}

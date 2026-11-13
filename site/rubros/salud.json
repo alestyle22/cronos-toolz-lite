@@ -1,0 +1,363 @@
+{
+    "id": "salud",
+    "name": "Salud y bienestar",
+    "desc": "Consultorios, centros y profesionales: pacientes, turnos y sesiones.",
+    "icon": "fa-heart-pulse",
+    "accent": "#10b981",
+    "order": 4,
+    "vocab": {
+        "client": {
+            "s": "Paciente",
+            "p": "Pacientes",
+            "g": "m"
+        },
+        "content": {
+            "s": "Comunicación",
+            "p": "Comunicaciones",
+            "g": "f"
+        },
+        "project": {
+            "s": "Tratamiento",
+            "p": "Tratamientos",
+            "g": "m"
+        },
+        "service": {
+            "s": "Prestación",
+            "p": "Prestaciones",
+            "g": "f"
+        },
+        "invoice": {
+            "s": "Comprobante",
+            "p": "Comprobantes",
+            "g": "m"
+        },
+        "material": {
+            "s": "Documento",
+            "p": "Documentos",
+            "g": "m"
+        },
+        "portal": {
+            "s": "Portal del paciente",
+            "p": "Portales de pacientes",
+            "g": "m"
+        },
+        "client_name": {
+            "s": "Nombre y apellido",
+            "p": "Nombres y apellidos",
+            "g": "m"
+        }
+    },
+    "client_types": [
+        {
+            "key": "particular",
+            "label": "Particular"
+        },
+        {
+            "key": "obra_social",
+            "label": "Con obra social o prepaga"
+        }
+    ],
+    "statuses": {
+        "clients": [
+            [
+                "potencial",
+                "Primera consulta",
+                "#8b8b94"
+            ],
+            [
+                "activo",
+                "En tratamiento",
+                "#22c55e"
+            ],
+            [
+                "pausado",
+                "En pausa",
+                "#f59e0b"
+            ],
+            [
+                "alta",
+                "Alta",
+                "#3b82f6"
+            ],
+            [
+                "terminado",
+                "Sin seguimiento",
+                "#ef4444"
+            ]
+        ],
+        "services": [
+            [
+                "pendiente",
+                "Por empezar",
+                "#8b8b94"
+            ],
+            [
+                "en_curso",
+                "En curso",
+                "#3b82f6"
+            ],
+            [
+                "pausado",
+                "Pausada",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "Completa",
+                "#22c55e"
+            ]
+        ]
+    },
+    "fields": [
+        {
+            "key": "nacimiento",
+            "label": "Fecha de nacimiento",
+            "type": "date"
+        },
+        {
+            "key": "documento",
+            "label": "Documento",
+            "type": "text"
+        },
+        {
+            "key": "cobertura",
+            "label": "Obra social o prepaga",
+            "type": "text"
+        },
+        {
+            "key": "afiliado",
+            "label": "N.º de afiliado",
+            "type": "text"
+        },
+        {
+            "key": "motivo",
+            "label": "Motivo de consulta",
+            "type": "text"
+        },
+        {
+            "key": "sesiones",
+            "label": "Sesiones autorizadas",
+            "type": "number"
+        },
+        {
+            "key": "consentimiento",
+            "label": "Consentimiento firmado",
+            "type": "bool"
+        }
+    ],
+    "hide_fields": [
+        "legal_name",
+        "cuit",
+        "iva_cond",
+        "website",
+        "tiktok",
+        "linkedin",
+        "youtube",
+        "facebook",
+        "instagram",
+        "brand_fonts",
+        "brand_colors"
+    ],
+    "modules_on": [
+        "tareas",
+        "chat",
+        "clientes",
+        "facturacion",
+        "stock",
+        "calendario",
+        "todos",
+        "turnos"
+    ],
+    "extras": [
+        "turnos"
+    ],
+    "content_types": [
+        {
+            "key": "recordatorio",
+            "label": "Recordatorio a pacientes",
+            "icon": "fa-bell",
+            "color": "#10b981"
+        },
+        {
+            "key": "social",
+            "label": "Redes sociales",
+            "icon": "fa-share-nodes",
+            "color": "#3b82f6"
+        }
+    ],
+    "home": {
+        "subtitle": "Turnos del día y pacientes en seguimiento.",
+        "tiles": [
+            {
+                "id": "clientes",
+                "href": "/toolz/clientes.php",
+                "icon": "fa-user-doctor",
+                "name": "Pacientes",
+                "desc": "Fichas y seguimiento",
+                "color": "#10b981"
+            },
+            {
+                "id": "turnos",
+                "href": "/toolz/turnos/",
+                "icon": "fa-calendar-check",
+                "name": "Turnos",
+                "desc": "Agenda de la semana",
+                "color": "#f59e0b"
+            },
+            {
+                "id": "trabajo",
+                "href": "/toolz/trabajo/",
+                "icon": "fa-list-check",
+                "name": "Tareas",
+                "desc": "Pendientes del equipo",
+                "color": "#22c55e"
+            },
+            {
+                "id": "facturacion",
+                "href": "/toolz/facturacion/",
+                "icon": "fa-file-invoice-dollar",
+                "name": "Cobros",
+                "desc": "Sesiones y cuotas",
+                "color": "#4ade80"
+            }
+        ]
+    },
+    "task_templates": [
+        {
+            "name": "Ingreso de paciente",
+            "due_in": 3,
+            "checks": [
+                "Datos y cobertura",
+                "Consentimiento firmado",
+                "Primera consulta",
+                "Plan de tratamiento"
+            ]
+        },
+        {
+            "name": "Autorización de obra social",
+            "due_in": 5,
+            "checks": [
+                "Pedir orden",
+                "Presentar",
+                "Confirmar sesiones autorizadas"
+            ]
+        }
+    ],
+    "folders": [
+        "Estudios",
+        "Órdenes y autorizaciones",
+        "Consentimientos"
+    ],
+    "billing": {
+        "concepts": [
+            "Consulta",
+            "Sesión",
+            "Paquete de sesiones",
+            "Cuota mensual"
+        ]
+    },
+    "samples": {
+        "clients": [
+            {
+                "name": "Ana Ruiz",
+                "type": "obra_social",
+                "status": "activo",
+                "contact_name": "Ana Ruiz",
+                "email": "ana.ruiz@example.test",
+                "fields": {
+                    "cobertura": "OSDE",
+                    "motivo": "Dolor lumbar",
+                    "sesiones": "10",
+                    "consentimiento": "1"
+                }
+            },
+            {
+                "name": "Pablo Méndez",
+                "type": "particular",
+                "status": "potencial",
+                "contact_name": "Pablo Méndez",
+                "email": "pablo.mendez@example.test",
+                "fields": {
+                    "motivo": "Control anual"
+                }
+            }
+        ],
+        "tasks": [
+            {
+                "title": "Pedir autorización de sesiones de Ana Ruiz"
+            },
+            {
+                "title": "Confirmar primera consulta de Pablo Méndez"
+            }
+        ],
+        "appts": {
+            "pro": {
+                "name": "Lic. Laura Pérez",
+                "specialty": "Kinesiología",
+                "slot_min": 45,
+                "schedule": {
+                    "1": [
+                        [
+                            "09:00",
+                            "13:00"
+                        ],
+                        [
+                            "15:00",
+                            "19:00"
+                        ]
+                    ],
+                    "2": [
+                        [
+                            "09:00",
+                            "13:00"
+                        ]
+                    ],
+                    "3": [
+                        [
+                            "09:00",
+                            "13:00"
+                        ],
+                        [
+                            "15:00",
+                            "19:00"
+                        ]
+                    ],
+                    "4": [
+                        [
+                            "09:00",
+                            "13:00"
+                        ]
+                    ],
+                    "5": [
+                        [
+                            "09:00",
+                            "13:00"
+                        ],
+                        [
+                            "15:00",
+                            "19:00"
+                        ]
+                    ]
+                }
+            },
+            "items": [
+                {
+                    "client": "Ana Ruiz",
+                    "day": 1,
+                    "reason": "Sesión de rehabilitación",
+                    "status": "confirmado"
+                },
+                {
+                    "client": "Pablo Méndez",
+                    "day": 1,
+                    "reason": "Primera consulta"
+                },
+                {
+                    "client": "Ana Ruiz",
+                    "day": 3,
+                    "reason": "Sesión de rehabilitación"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,24 @@
+# Toolz — reglas de seguridad (2026-10-10)
+Options -Indexes
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # HSTS lo manda PHP (auth.php) solo en conexiones HTTPS: "expr=" no anda igual en todos los servidores
+    # CSP mínima compatible con las páginas actuales: sin plugins, sin <base> ajeno y sin enmarcar desde otros sitios
+    Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    Header always set Permissions-Policy "geolocation=(), payment=(), usb=()"
+</IfModule>
+
+# Límites de subida donde el hosting los lee de acá (LiteSpeed)
+<IfModule lsapi_module>
+    php_value upload_max_filesize 32M
+    php_value post_max_size 64M
+    php_value max_file_uploads 30
+</IfModule>
+
+# Archivos que nunca se sirven: configuración, respaldos, logs, notas, cachés con datos
+<FilesMatch "(^\.|\.(sql|bak|old|orig|log|ini|env|md|sh|py|lock|dist|zip|gz|tgz|tar|7z|rar|pem|key|crt|p12|pfx|sqlite|db)$|^config\.local\.php$|^monday_cache\.json$)">
+    Require all denied
+</FilesMatch>

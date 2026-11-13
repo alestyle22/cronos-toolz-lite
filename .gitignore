@@ -1,0 +1,22 @@
+# Lo de cada sitio: configuración, claves, licencia y datos (nunca al repo)
+_private/
+**/_private/
+**/config.local.php
+*.key
+*.pem
+!site/_update/pubkey.pem
+*.sql
+*.zip
+.env
+backups/
+# Lo que suben las personas en una instalación
+site/avatars/
+site/chat_files/
+site/covers/
+site/stock_files/
+site/pages_files/
+site/post_imgs/
+site/link_covers/
+site/temp/
+site/brand/
+site/marcas/

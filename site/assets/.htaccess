@@ -1,0 +1,12 @@
+# Carpeta de archivos subidos (2026-10-10): acá no se ejecuta código aunque alguien suba un .php
+Options -Indexes
+<FilesMatch "\.(php[0-9]?|phtml|phar|pht|phps|shtml|cgi|pl|py|sh|asp|aspx|jsp|htaccess)$">
+    Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    # HTML y SVG subidos se muestran, pero sin poder correr scripts en el sitio
+    <FilesMatch "\.(html?|svg|xml)$">
+        Header set Content-Security-Policy "sandbox; default-src 'none'; img-src * data:; style-src * 'unsafe-inline'; font-src * data:; media-src *"
+    </FilesMatch>
+</IfModule>

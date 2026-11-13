@@ -1,0 +1,343 @@
+{
+    "id": "estudio",
+    "name": "Estudio profesional",
+    "desc": "Contadores, abogados y consultores: clientes, vencimientos y honorarios.",
+    "icon": "fa-scale-balanced",
+    "accent": "#6366f1",
+    "order": 3,
+    "vocab": {
+        "client": {
+            "s": "Cliente",
+            "p": "Clientes",
+            "g": "m"
+        },
+        "content": {
+            "s": "Comunicación",
+            "p": "Comunicaciones",
+            "g": "f"
+        },
+        "project": {
+            "s": "Expediente",
+            "p": "Expedientes",
+            "g": "m"
+        },
+        "service": {
+            "s": "Servicio",
+            "p": "Servicios",
+            "g": "m"
+        },
+        "invoice": {
+            "s": "Factura",
+            "p": "Facturas",
+            "g": "f"
+        },
+        "material": {
+            "s": "Documento",
+            "p": "Documentos",
+            "g": "m"
+        },
+        "client_name": {
+            "s": "Nombre o razón social",
+            "p": "Nombres o razones sociales",
+            "g": "m"
+        }
+    },
+    "client_types": [
+        {
+            "key": "persona",
+            "label": "Persona humana"
+        },
+        {
+            "key": "empresa",
+            "label": "Empresa"
+        },
+        {
+            "key": "monotributista",
+            "label": "Monotributista"
+        }
+    ],
+    "statuses": {
+        "clients": [
+            [
+                "potencial",
+                "Consulta",
+                "#8b8b94"
+            ],
+            [
+                "activo",
+                "Con abono",
+                "#22c55e"
+            ],
+            [
+                "pausado",
+                "Suspendido",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "De baja",
+                "#ef4444"
+            ]
+        ],
+        "projects": [
+            [
+                "planificado",
+                "Iniciado",
+                "#8b8b94"
+            ],
+            [
+                "en_curso",
+                "En trámite",
+                "#3b82f6"
+            ],
+            [
+                "en_pausa",
+                "En espera de documentación",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "Resuelto",
+                "#22c55e"
+            ],
+            [
+                "cancelado",
+                "Archivado",
+                "#ef4444"
+            ]
+        ]
+    },
+    "fields": [
+        {
+            "key": "clave_fiscal",
+            "label": "Tiene clave fiscal delegada",
+            "type": "bool"
+        },
+        {
+            "key": "actividad",
+            "label": "Actividad",
+            "type": "text"
+        },
+        {
+            "key": "abono",
+            "label": "Abono mensual",
+            "type": "money"
+        },
+        {
+            "key": "cierre",
+            "label": "Cierre de ejercicio",
+            "type": "date"
+        },
+        {
+            "key": "categoria",
+            "label": "Categoría",
+            "type": "select",
+            "options": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "F",
+                "G",
+                "H",
+                "I",
+                "J",
+                "K"
+            ]
+        },
+        {
+            "key": "expediente",
+            "label": "N.º de expediente",
+            "type": "text"
+        }
+    ],
+    "hide_fields": [
+        "tiktok",
+        "youtube",
+        "brand_fonts",
+        "brand_colors",
+        "instagram"
+    ],
+    "modules_on": [
+        "tareas",
+        "promos",
+        "chat",
+        "clientes",
+        "facturacion",
+        "stock",
+        "links",
+        "calendario",
+        "todos",
+        "vencimientos"
+    ],
+    "extras": [
+        "vencimientos"
+    ],
+    "content_types": [
+        {
+            "key": "comunicacion",
+            "label": "Comunicación a clientes",
+            "icon": "fa-envelope-open-text",
+            "color": "#6366f1"
+        },
+        {
+            "key": "novedad",
+            "label": "Novedad normativa",
+            "icon": "fa-newspaper",
+            "color": "#14b8a6"
+        }
+    ],
+    "home": {
+        "subtitle": "Vencimientos de la semana y pendientes de cada cliente.",
+        "tiles": [
+            {
+                "id": "clientes",
+                "href": "/toolz/clientes.php",
+                "icon": "fa-address-book",
+                "name": "Clientes",
+                "desc": "Fichas y abonos",
+                "color": "#6366f1"
+            },
+            {
+                "id": "trabajo",
+                "href": "/toolz/trabajo/",
+                "icon": "fa-list-check",
+                "name": "Tareas",
+                "desc": "Liquidaciones y trámites",
+                "color": "#22c55e"
+            },
+            {
+                "id": "vencimientos",
+                "href": "/toolz/vencimientos/",
+                "icon": "fa-calendar-xmark",
+                "name": "Vencimientos",
+                "desc": "Agenda del estudio",
+                "color": "#f59e0b"
+            },
+            {
+                "id": "documentos",
+                "href": "/toolz/stock.php",
+                "icon": "fa-folder-open",
+                "name": "Documentos",
+                "desc": "Papeles de cada cliente",
+                "color": "#60a5fa"
+            },
+            {
+                "id": "facturacion",
+                "href": "/toolz/facturacion/",
+                "icon": "fa-file-invoice-dollar",
+                "name": "Honorarios",
+                "desc": "Facturas y cobros",
+                "color": "#4ade80"
+            }
+        ]
+    },
+    "task_templates": [
+        {
+            "name": "Liquidación mensual de impuestos",
+            "due_in": 10,
+            "repeat_rule": "monthly",
+            "checks": [
+                "Pedir comprobantes",
+                "Cargar compras y ventas",
+                "Liquidar",
+                "Enviar VEP al cliente",
+                "Confirmar pago"
+            ]
+        },
+        {
+            "name": "Alta de cliente",
+            "due_in": 5,
+            "checks": [
+                "Datos y documentación",
+                "Clave fiscal delegada",
+                "Inscripciones",
+                "Abono acordado"
+            ]
+        }
+    ],
+    "folders": [
+        "Documentación personal",
+        "Declaraciones juradas",
+        "Comprobantes",
+        "Contratos"
+    ],
+    "billing": {
+        "concepts": [
+            "Honorarios mensuales",
+            "Honorarios por trámite",
+            "Consulta",
+            "Gastos administrativos"
+        ]
+    },
+    "samples": {
+        "clients": [
+            {
+                "name": "Ferretería López SRL",
+                "type": "empresa",
+                "status": "activo",
+                "contact_name": "Andrés López",
+                "email": "andres@ferreterialopez.test",
+                "fields": {
+                    "actividad": "Comercio minorista",
+                    "abono": "85000"
+                }
+            },
+            {
+                "name": "Valeria Sosa",
+                "type": "monotributista",
+                "status": "activo",
+                "contact_name": "Valeria Sosa",
+                "email": "valeria.sosa@example.test",
+                "fields": {
+                    "actividad": "Diseño gráfico",
+                    "categoria": "C"
+                }
+            },
+            {
+                "name": "Hernán Molina",
+                "type": "persona",
+                "status": "potencial",
+                "contact_name": "Hernán Molina",
+                "email": "hernan.molina@example.test"
+            }
+        ],
+        "tasks": [
+            {
+                "title": "Liquidar IVA de Ferretería López"
+            },
+            {
+                "title": "Recategorización de Valeria Sosa"
+            }
+        ],
+        "due": [
+            {
+                "client": "Ferretería López SRL",
+                "cuit": "30-71234567-4",
+                "types": [
+                    "IVA",
+                    "Cargas sociales (F.931)",
+                    "Ingresos Brutos"
+                ]
+            },
+            {
+                "client": "Valeria Sosa",
+                "cuit": "27-28765432-1",
+                "types": [
+                    "Monotributo",
+                    "Ganancias y Bienes Personales (anual)"
+                ]
+            },
+            {
+                "client": "Hernán Molina",
+                "cuit": "20-30111222-8",
+                "types": [
+                    "IVA",
+                    "Ingresos Brutos",
+                    "Ganancias y Bienes Personales (anual)"
+                ]
+            }
+        ]
+    }
+}

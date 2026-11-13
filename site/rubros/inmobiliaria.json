@@ -1,0 +1,563 @@
+{
+    "id": "inmobiliaria",
+    "name": "Inmobiliaria",
+    "desc": "Propietarios, interesados, propiedades, visitas y operaciones.",
+    "icon": "fa-house-chimney",
+    "accent": "#0ea5e9",
+    "order": 2,
+    "vocab": {
+        "client": {
+            "s": "Cliente",
+            "p": "Clientes",
+            "g": "m"
+        },
+        "content": {
+            "s": "Aviso",
+            "p": "Avisos",
+            "g": "m"
+        },
+        "project": {
+            "s": "Operación",
+            "p": "Operaciones",
+            "g": "f"
+        },
+        "task": {
+            "s": "Tarea",
+            "p": "Tareas",
+            "g": "f"
+        },
+        "service": {
+            "s": "Gestión",
+            "p": "Gestiones",
+            "g": "f"
+        },
+        "invoice": {
+            "s": "Comprobante",
+            "p": "Comprobantes",
+            "g": "m"
+        },
+        "material": {
+            "s": "Documento",
+            "p": "Documentos",
+            "g": "m"
+        },
+        "portal": {
+            "s": "Panel del cliente",
+            "p": "Paneles de clientes",
+            "g": "m"
+        },
+        "client_name": {
+            "s": "Nombre y apellido",
+            "p": "Nombres y apellidos",
+            "g": "m"
+        }
+    },
+    "client_types": [
+        {
+            "key": "propietario",
+            "label": "Propietario"
+        },
+        {
+            "key": "interesado",
+            "label": "Interesado"
+        },
+        {
+            "key": "inquilino",
+            "label": "Inquilino"
+        },
+        {
+            "key": "comprador",
+            "label": "Comprador"
+        }
+    ],
+    "statuses": {
+        "clients": [
+            [
+                "potencial",
+                "Nuevo contacto",
+                "#8b8b94"
+            ],
+            [
+                "activo",
+                "En gestión",
+                "#22c55e"
+            ],
+            [
+                "pausado",
+                "En pausa",
+                "#f59e0b"
+            ],
+            [
+                "cerrado_ok",
+                "Operación cerrada",
+                "#a855f7"
+            ],
+            [
+                "terminado",
+                "Sin interés",
+                "#ef4444"
+            ]
+        ],
+        "services": [
+            [
+                "pendiente",
+                "Por tasar",
+                "#8b8b94"
+            ],
+            [
+                "en_curso",
+                "Publicada",
+                "#3b82f6"
+            ],
+            [
+                "reservada",
+                "Reservada",
+                "#f59e0b"
+            ],
+            [
+                "pausado",
+                "Pausada",
+                "#6b7280"
+            ],
+            [
+                "terminado",
+                "Vendida o alquilada",
+                "#22c55e"
+            ]
+        ],
+        "projects": [
+            [
+                "planificado",
+                "Captación",
+                "#8b8b94"
+            ],
+            [
+                "en_curso",
+                "En negociación",
+                "#3b82f6"
+            ],
+            [
+                "en_pausa",
+                "En pausa",
+                "#f59e0b"
+            ],
+            [
+                "terminado",
+                "Escriturada o firmada",
+                "#22c55e"
+            ],
+            [
+                "cancelado",
+                "Caída",
+                "#ef4444"
+            ]
+        ]
+    },
+    "fields": [
+        {
+            "key": "busca",
+            "label": "Qué busca",
+            "type": "select",
+            "options": [
+                "Comprar",
+                "Alquilar",
+                "Vender",
+                "Poner en alquiler",
+                "Tasar"
+            ]
+        },
+        {
+            "key": "zona",
+            "label": "Zona de interés",
+            "type": "text"
+        },
+        {
+            "key": "presupuesto",
+            "label": "Presupuesto",
+            "type": "money"
+        },
+        {
+            "key": "ambientes",
+            "label": "Ambientes",
+            "type": "number"
+        },
+        {
+            "key": "apto_credito",
+            "label": "Apto crédito",
+            "type": "bool"
+        },
+        {
+            "key": "origen",
+            "label": "Cómo nos conoció",
+            "type": "select",
+            "options": [
+                "Portal inmobiliario",
+                "Cartel",
+                "Redes sociales",
+                "Recomendación",
+                "Sitio web",
+                "Otro"
+            ]
+        },
+        {
+            "key": "proximo_contacto",
+            "label": "Próximo contacto",
+            "type": "date"
+        },
+        {
+            "key": "ficha_portal",
+            "label": "Aviso en portal",
+            "type": "url"
+        }
+    ],
+    "hide_fields": [
+        "tiktok",
+        "linkedin",
+        "youtube",
+        "brand_fonts",
+        "brand_colors"
+    ],
+    "modules_on": [
+        "tareas",
+        "promos",
+        "chat",
+        "clientes",
+        "facturacion",
+        "stock",
+        "links",
+        "calendario",
+        "todos",
+        "propiedades"
+    ],
+    "extras": [
+        "propiedades"
+    ],
+    "content_types": [
+        {
+            "key": "aviso",
+            "label": "Aviso de propiedad",
+            "icon": "fa-house",
+            "color": "#0ea5e9"
+        },
+        {
+            "key": "social",
+            "label": "Redes sociales",
+            "icon": "fa-share-nodes",
+            "color": "#3b82f6"
+        },
+        {
+            "key": "newsletter",
+            "label": "Newsletter",
+            "icon": "fa-envelope-open-text",
+            "color": "#14b8a6"
+        }
+    ],
+    "home": {
+        "subtitle": "Propiedades, interesados y visitas de la semana.",
+        "tiles": [
+            {
+                "id": "propiedades",
+                "href": "/toolz/propiedades/",
+                "icon": "fa-building",
+                "name": "Propiedades",
+                "desc": "Cartera, fotos, interesados y visitas",
+                "color": "#38bdf8"
+            },
+            {
+                "id": "clientes",
+                "href": "/toolz/clientes.php",
+                "icon": "fa-address-book",
+                "name": "Clientes",
+                "desc": "Propietarios e interesados",
+                "color": "#0ea5e9"
+            },
+            {
+                "id": "trabajo",
+                "href": "/toolz/trabajo/",
+                "icon": "fa-list-check",
+                "name": "Tareas",
+                "desc": "Visitas, tasaciones y seguimientos",
+                "color": "#22c55e"
+            },
+            {
+                "id": "avisos",
+                "href": "/toolz/promos/",
+                "icon": "fa-house",
+                "name": "Avisos",
+                "desc": "Publicaciones de propiedades",
+                "color": "#a78bfa"
+            },
+            {
+                "id": "calendario",
+                "href": "/toolz/calendario/",
+                "icon": "fa-calendar-days",
+                "name": "Agenda",
+                "desc": "Visitas y firmas",
+                "color": "#f59e0b"
+            },
+            {
+                "id": "documentos",
+                "href": "/toolz/stock.php",
+                "icon": "fa-folder-open",
+                "name": "Documentos",
+                "desc": "Títulos, planos y fotos",
+                "color": "#60a5fa"
+            },
+            {
+                "id": "facturacion",
+                "href": "/toolz/facturacion/",
+                "icon": "fa-file-invoice-dollar",
+                "name": "Comprobantes",
+                "desc": "Comisiones y alquileres",
+                "color": "#4ade80"
+            }
+        ]
+    },
+    "task_templates": [
+        {
+            "name": "Captación de propiedad",
+            "due_in": 7,
+            "checks": [
+                "Visita y relevamiento",
+                "Tasación",
+                "Autorización de venta firmada",
+                "Fotos y plano",
+                "Publicación en portales",
+                "Cartel"
+            ]
+        },
+        {
+            "name": "Visita con interesado",
+            "due_in": 2,
+            "checks": [
+                "Confirmar día y hora",
+                "Enviar ubicación",
+                "Hacer la visita",
+                "Registrar la devolución"
+            ]
+        },
+        {
+            "name": "Cierre de operación",
+            "due_in": 30,
+            "checks": [
+                "Reserva firmada",
+                "Informe de dominio",
+                "Boleto o contrato",
+                "Escritura o firma",
+                "Entrega de llaves",
+                "Cobro de comisión"
+            ]
+        }
+    ],
+    "folders": [
+        "Títulos y planos",
+        "Fotos",
+        "Contratos",
+        "Documentación personal"
+    ],
+    "billing": {
+        "concepts": [
+            "Comisión por venta",
+            "Comisión por alquiler",
+            "Honorarios de tasación",
+            "Administración de alquiler",
+            "Gastos de publicación"
+        ]
+    },
+    "samples": {
+        "clients": [
+            {
+                "name": "Marta Giménez",
+                "type": "propietario",
+                "status": "activo",
+                "contact_name": "Marta Giménez",
+                "email": "marta.gimenez@example.test",
+                "phone": "+54 11 4555-0101",
+                "fields": {
+                    "busca": "Vender",
+                    "zona": "Palermo",
+                    "ambientes": "3",
+                    "origen": "Recomendación"
+                }
+            },
+            {
+                "name": "Julián Ortiz",
+                "type": "interesado",
+                "status": "activo",
+                "contact_name": "Julián Ortiz",
+                "email": "julian.ortiz@example.test",
+                "phone": "+54 11 4555-0202",
+                "fields": {
+                    "busca": "Comprar",
+                    "zona": "Palermo o Belgrano",
+                    "presupuesto": "150000",
+                    "ambientes": "3",
+                    "apto_credito": "1",
+                    "origen": "Portal inmobiliario"
+                }
+            },
+            {
+                "name": "Carolina Paz",
+                "type": "inquilino",
+                "status": "potencial",
+                "contact_name": "Carolina Paz",
+                "email": "carolina.paz@example.test",
+                "fields": {
+                    "busca": "Alquilar",
+                    "zona": "Caballito",
+                    "presupuesto": "600",
+                    "ambientes": "2",
+                    "origen": "Redes sociales"
+                }
+            },
+            {
+                "name": "Roberto Díaz",
+                "type": "propietario",
+                "status": "pausado",
+                "contact_name": "Roberto Díaz",
+                "email": "roberto.diaz@example.test",
+                "fields": {
+                    "busca": "Poner en alquiler",
+                    "zona": "Núñez",
+                    "ambientes": "2"
+                }
+            }
+        ],
+        "tasks": [
+            {
+                "title": "Tasar el departamento de Marta Giménez"
+            },
+            {
+                "title": "Visita con Julián Ortiz al 3 ambientes de Palermo"
+            },
+            {
+                "title": "Publicar el 2 ambientes de Roberto Díaz en portales"
+            }
+        ],
+        "properties": [
+            {
+                "title": "Departamento 3 ambientes con balcón al frente",
+                "operation": "venta",
+                "kind": "departamento",
+                "status": "disponible",
+                "price": 168000,
+                "currency": "USD",
+                "expenses": 95000,
+                "address": "Gorriti 4800",
+                "zone": "Palermo",
+                "city": "CABA",
+                "rooms": 3,
+                "bedrooms": 2,
+                "bathrooms": 1,
+                "m2_total": 78,
+                "m2_covered": 72,
+                "age": 25,
+                "amenities": [
+                    "balcon",
+                    "ascensor",
+                    "credito",
+                    "calefaccion"
+                ],
+                "description": "Luminoso, al frente, con balcón corrido. Cocina separada y lavadero. A dos cuadras del subte.",
+                "owner": "Marta Giménez",
+                "leads": [
+                    {
+                        "name": "Julián Ortiz",
+                        "stage": "visito"
+                    }
+                ],
+                "visit": {
+                    "name": "Julián Ortiz",
+                    "in_days": 2,
+                    "time": "17:00"
+                },
+                "listings": [
+                    {
+                        "portal": "Zonaprop",
+                        "url": "https://www.example.test/aviso-palermo-3amb"
+                    },
+                    {
+                        "portal": "Instagram",
+                        "url": ""
+                    }
+                ]
+            },
+            {
+                "title": "2 ambientes a estrenar con cochera",
+                "operation": "alquiler",
+                "kind": "departamento",
+                "status": "disponible",
+                "price": 650000,
+                "currency": "ARS",
+                "expenses": 80000,
+                "address": "Av. del Libertador 7200",
+                "zone": "Núñez",
+                "city": "CABA",
+                "rooms": 2,
+                "bedrooms": 1,
+                "bathrooms": 1,
+                "m2_total": 52,
+                "m2_covered": 48,
+                "age": 0,
+                "amenities": [
+                    "cochera",
+                    "amenities",
+                    "seguridad",
+                    "pileta"
+                ],
+                "description": "Edificio nuevo con amenities, cochera fija y seguridad las 24 horas.",
+                "owner": "Roberto Díaz",
+                "leads": [
+                    {
+                        "name": "Carolina Paz",
+                        "stage": "interesado"
+                    }
+                ],
+                "visit": {
+                    "name": "Carolina Paz",
+                    "in_days": 1,
+                    "time": "11:30"
+                },
+                "listings": []
+            },
+            {
+                "title": "PH 4 ambientes con terraza propia",
+                "operation": "venta",
+                "kind": "ph",
+                "status": "reservada",
+                "price": 215000,
+                "currency": "USD",
+                "address": "Bauness 2100",
+                "zone": "Villa Urquiza",
+                "city": "CABA",
+                "rooms": 4,
+                "bedrooms": 3,
+                "bathrooms": 2,
+                "m2_total": 140,
+                "m2_covered": 105,
+                "age": 40,
+                "amenities": [
+                    "terraza",
+                    "parrilla",
+                    "patio",
+                    "mascotas"
+                ],
+                "description": "PH sin expensas, con terraza y parrilla. Reciclado a nuevo.",
+                "owner": "Marta Giménez",
+                "leads": [
+                    {
+                        "name": "Julián Ortiz",
+                        "stage": "oferto",
+                        "offer": 205000
+                    }
+                ],
+                "listings": [
+                    {
+                        "portal": "Argenprop",
+                        "url": "https://www.example.test/aviso-urquiza-ph"
+                    }
+                ]
+            }
+        ]
+    }
+}
