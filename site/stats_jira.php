@@ -48,10 +48,11 @@ $jsQ = fn(array $extra = [], array $drop = []) => '?' . http_build_query(array_d
   <div class="metric-grid">
     <?php foreach ([
         ['Creados', $k['created'], 'fa-plus', '#4c9aff', 'en el rango'],
-        ['Resueltos', $k['resolved'], 'fa-check', '#22c55e', $k['flow'] !== null ? $k['flow'] . '% de lo creado' : ''],
+        ['Entregados', $k['resolved'], 'fa-check', '#22c55e', ($k['flow'] !== null ? $k['flow'] . '% de lo creado' : '') . ($k['awaiting'] ? ' · ' . $k['awaiting'] . ' esperan aprobación' : '')],
         ['A tiempo', $k['on_time_pct'] === null ? '—' : $k['on_time_pct'] . '%', 'fa-bullseye', '#14b8a6', 'de lo entregado en el rango'],
-        ['Abiertos hoy', $k['open'], 'fa-folder-open', '#a78bfa', $k['unassigned'] ? $k['unassigned'] . ' sin asignar' : 'todos asignados'],
-        ['Tiempo de resolución', $k['avg_days'] === null ? '—' : $jn($k['avg_days']) . ' d', 'fa-stopwatch', '#f59e0b', $k['median_days'] !== null ? 'mediana ' . $jn($k['median_days']) . ' d' : '']] as [$l, $v, $ic, $c, $sub]): ?>
+        ['Sin entregar hoy', $k['open'], 'fa-folder-open', '#a78bfa', $k['unassigned'] ? $k['unassigned'] . ' sin asignar' : 'todos asignados'],
+        ['Tiempo hasta entregar', $k['avg_days'] === null ? '—' : $jn($k['avg_days']) . ' d', 'fa-stopwatch', '#f59e0b', $k['median_days'] !== null ? 'mediana ' . $jn($k['median_days']) . ' d' : ''],
+        ['Plazo que se da', $k['avg_lead'] === null ? '—' : $jn($k['avg_lead']) . ' d', 'fa-hourglass-half', '#ec4899', $k['median_lead'] !== null ? 'mediana ' . $jn($k['median_lead']) . ' d · de creado a la entrega' : 'sin fechas de entrega']] as [$l, $v, $ic, $c, $sub]): ?>
       <div class="mc" style="border-top:2px solid <?= $c ?>"><div class="mc-top"><div class="mc-icon" style="background:<?= $c ?>1a"><i class="fa-solid <?= $ic ?>" style="color:<?= $c ?>"></i></div></div>
         <div class="mc-val" style="color:<?= $c ?>"><?= $jh($v) ?></div><div class="mc-label"><?= $jh($l) ?><?= $sub !== '' ? '<br><span class="js-mut">' . $jh($sub) . '</span>' : '' ?></div></div>
     <?php endforeach; ?>
@@ -59,7 +60,8 @@ $jsQ = fn(array $extra = [], array $drop = []) => '?' . http_build_query(array_d
 
   <div class="card js-sum">
     <div class="card-title"><i class="fa-solid fa-clipboard-list"></i> Resumen de pedidos <span class="js-mut">· tocá uno para ver la lista</span></div>
-    <p class="js-mut js-sum-help">Entregados: lo resuelto dentro del rango, a tiempo o después de su fecha de entrega. Atrasados, en curso y sin empezar: cómo está hoy lo que sigue abierto.</p>
+    <p class="js-mut js-sum-help">Entregados: lo que llegó a un estado de entrega dentro del rango (<?= $jh(implode(', ', $J['deliver']['states']) ?: 'los de la categoría Listo') ?>), a tiempo o después de su fecha. La fecha que cuenta es la de la entrega, no la de la aprobación. Atrasados, en curso y sin empezar: cómo está hoy lo que sigue sin entregar.
+      <?php if (($currentUser['role'] ?? '') === 'admin'): ?><button type="button" class="js-link" id="js-deliver-open">Elegir qué estados cuentan como entregado</button><?php endif; ?></p>
     <div class="js-sum-grid">
       <?php foreach (['on_time', 'late_done', 'overdue', 'in_progress', 'not_started'] as $s): [$lbl, $col, $ic] = G7_JS_SIT[$s]; ?>
         <button type="button" class="js-sit" data-sit="<?= $s ?>" style="--c:<?= $col ?>"><i class="fa-solid <?= $ic ?>"></i><b><?= (int)$k[$s] ?></b><span><?= $jh($lbl) ?></span></button>
@@ -69,6 +71,9 @@ $jsQ = fn(array $extra = [], array $drop = []) => '?' . http_build_query(array_d
       <button type="button" class="js-pill" data-flag="due_soon"><i class="fa-solid fa-calendar-day"></i> <?= (int)$k['due_soon'] ?> vencen en los próximos 7 días</button>
       <button type="button" class="js-pill" data-flag="no_due"><i class="fa-regular fa-calendar-xmark"></i> <?= (int)$k['no_due'] ?> abiertos sin fecha de entrega</button>
       <button type="button" class="js-pill" data-flag="unassigned"><i class="fa-solid fa-user-slash"></i> <?= (int)$k['unassigned'] ?> abiertos sin asignar</button>
+      <button type="button" class="js-pill" data-flag="awaiting"><i class="fa-solid fa-stamp"></i> <?= (int)$k['awaiting'] ?> entregados esperando aprobación<?= $k['avg_approval'] !== null ? ' · la aprobación tarda ' . $jn($k['avg_approval']) . ' d en promedio' : '' ?></button>
+      <button type="button" class="js-pill" data-flag="due_weekend"><i class="fa-solid fa-calendar-week"></i> <?= (int)$k['due_weekend'] ?> con entrega en fin de semana</button>
+      <button type="button" class="js-pill" data-flag="created_weekend"><i class="fa-solid fa-mug-saucer"></i> <?= (int)$k['created_weekend'] ?> pedidos un fin de semana</button>
     </div>
   </div>
 
@@ -77,12 +82,16 @@ $jsQ = fn(array $extra = [], array $drop = []) => '?' . http_build_query(array_d
     <button type="button" role="tab" data-tab="entregas"><i class="fa-solid fa-truck-fast"></i> Entregas</button>
     <button type="button" role="tab" data-tab="personas"><i class="fa-solid fa-users"></i> Personas</button>
     <button type="button" role="tab" data-tab="tiempos"><i class="fa-solid fa-stopwatch"></i> Tiempos</button>
+    <button type="button" role="tab" data-tab="plazos"><i class="fa-solid fa-hourglass-half"></i> Plazos y prioridad</button>
+    <button type="button" role="tab" data-tab="calendario"><i class="fa-regular fa-calendar"></i> Calendario</button>
+    <button type="button" role="tab" data-tab="origen"><i class="fa-solid fa-route"></i> Origen</button>
     <button type="button" role="tab" data-tab="explorar"><i class="fa-solid fa-sliders"></i> Explorar</button>
     <button type="button" role="tab" data-tab="lista"><i class="fa-solid fa-list"></i> Lista</button>
   </div>
   <div id="js-view" class="js-view"></div>
   <div id="js-data" hidden data-report="<?= $jh(json_encode(['kpi' => $k, 'series' => $J['series'], 'gran' => $J['gran'], 'groups' => $J['groups'], 'res_hist' => $J['res_hist'],
-      'issues' => $J['issues'], 'site' => $J['site'], 'today' => $J['today'], 'from' => $J['from'], 'to' => $J['to'], 'sit' => G7_JS_SIT], JSON_UNESCAPED_UNICODE)) ?>"></div>
+      'issues' => $J['issues'], 'site' => $J['site'], 'today' => $J['today'], 'from' => $J['from'], 'to' => $J['to'], 'sit' => G7_JS_SIT,
+      'calendar' => $J['calendar'], 'lead_hist' => $J['lead_hist'], 'lead_buckets' => G7_JS_LEAD, 'deliver' => $J['deliver']], JSON_UNESCAPED_UNICODE)) ?>"></div>
 
   <dialog class="js-dlg" id="js-export">
     <form method="get" action="" class="js-dlg-in" id="js-export-form">
@@ -97,7 +106,8 @@ $jsQ = fn(array $extra = [], array $drop = []) => '?' . http_build_query(array_d
       </fieldset>
       <fieldset><legend>Qué incluir</legend><div class="js-checks">
         <?php foreach (['kpi' => 'Indicadores', 'summary' => 'Resumen de pedidos', 'series' => 'Evolución en el tiempo', 'person' => 'Por persona', 'project' => 'Por proyecto',
-            'type' => 'Por tipo', 'priority' => 'Por prioridad', 'status' => 'Por estado', 'times' => 'Tiempos de resolución', 'issues' => 'Lista de issues'] as $kk => $vv): ?>
+            'type' => 'Por tipo', 'priority' => 'Por prioridad', 'status' => 'Por estado', 'times' => 'Tiempos de resolución', 'origin' => 'Origen (informante, componente, etiqueta)',
+            'lead' => 'Plazos que se dan', 'matrix' => 'Días vs prioridad', 'calendar' => 'Pedidos por día', 'weekend' => 'Fines de semana', 'issues' => 'Lista de issues'] as $kk => $vv): ?>
           <label><input type="checkbox" name="sec[]" value="<?= $kk ?>"<?= in_array($kk, ['kpi', 'summary', 'person', 'issues'], true) ? ' checked' : '' ?>> <?= $jh($vv) ?></label>
         <?php endforeach; ?></div>
         <div class="js-checks-a"><button type="button" class="js-link" data-all="sec[]">Todo</button> · <button type="button" class="js-link" data-none="sec[]">Nada</button></div>
@@ -106,17 +116,35 @@ $jsQ = fn(array $extra = [], array $drop = []) => '?' . http_build_query(array_d
         <label class="js-lbl">Cuáles
           <select name="only"><option value="">Todos los del informe</option>
             <?php foreach (G7_JS_SIT as $kk => [$vv]): ?><option value="<?= $kk ?>"><?= $jh($vv) ?></option><?php endforeach; ?>
-            <option value="open">Todos los abiertos</option><option value="done">Todos los entregados en el rango</option><option value="due_soon">Vencen en los próximos 7 días</option></select></label>
+            <option value="open">Todos los abiertos</option><option value="done">Todos los entregados en el rango</option><option value="due_soon">Vencen en los próximos 7 días</option>
+            <option value="awaiting">Entregados esperando aprobación</option><option value="due_weekend">Con entrega en fin de semana</option><option value="created_weekend">Pedidos un fin de semana</option></select></label>
         <div class="js-checks">
           <?php foreach (['key' => 'Clave', 'summary' => 'Título', 'situation' => 'Situación', 'status' => 'Estado', 'type' => 'Tipo', 'priority' => 'Prioridad', 'assignee' => 'Responsable',
-              'project' => 'Proyecto', 'created' => 'Creado', 'due' => 'Fecha de entrega', 'resolved' => 'Resuelto', 'res_days' => 'Días hasta resolver', 'late' => 'Días de atraso', 'url' => 'Link a Jira'] as $kk => $vv): ?>
-            <label><input type="checkbox" name="col[]" value="<?= $kk ?>"<?= in_array($kk, ['url', 'project', 'res_days'], true) ? '' : ' checked' ?>> <?= $jh($vv) ?></label>
+              'project' => 'Proyecto', 'reporter' => 'Informante', 'components' => 'Componentes', 'created' => 'Creado', 'due' => 'Fecha de entrega', 'lead' => 'Plazo dado (días)',
+              'delivered_at' => 'Entregado', 'resolved' => 'Aprobado / resuelto', 'res_days' => 'Días hasta entregar', 'late' => 'Días de atraso', 'url' => 'Link a Jira'] as $kk => $vv): ?>
+            <label><input type="checkbox" name="col[]" value="<?= $kk ?>"<?= in_array($kk, ['url', 'project', 'res_days', 'reporter', 'components', 'lead', 'resolved'], true) ? '' : ' checked' ?>> <?= $jh($vv) ?></label>
           <?php endforeach; ?></div>
         <label class="js-lbl">Ordenar por
-          <select name="sort"><option value="">Situación (atrasados primero)</option><option value="due">Fecha de entrega</option><option value="created">Creado</option><option value="resolved">Resuelto</option><option value="assignee">Responsable</option><option value="key">Clave</option></select></label>
+          <select name="sort"><option value="">Situación (atrasados primero)</option><option value="due">Fecha de entrega</option><option value="created">Creado</option><option value="delivered_at">Entregado</option><option value="resolved">Aprobado / resuelto</option><option value="reporter">Informante</option><option value="assignee">Responsable</option><option value="key">Clave</option></select></label>
       </fieldset>
       <div class="js-dlg-a"><button type="button" class="js-btn" data-close>Cancelar</button><button type="submit" class="js-btn primary"><i class="fa-solid fa-download"></i> Exportar</button></div>
     </form>
   </dialog>
+  <?php if (($currentUser['role'] ?? '') === 'admin'): ?>
+  <dialog class="js-dlg" id="js-deliver">
+    <form class="js-dlg-in" id="js-deliver-form">
+      <h3><i class="fa-solid fa-stamp"></i> ¿Qué cuenta como entregado?</h3>
+      <p class="js-mut">Jira da un pedido por terminado recién cuando pasa a un estado verde (categoría «Listo»). Si tu flujo tiene un paso como «Pendiente de aprobación», marcalo acá: el pedido cuenta como <b>entregado el día que llegó a ese estado</b>, aunque lo aprueben después. Los estados verdes siempre cuentan.</p>
+      <label class="js-opt"><input type="radio" name="mode" value="auto"<?= $J['deliver']['auto'] ? ' checked' : '' ?>> <span><b>Automático</b> Los verdes y los que se llaman como «aprobación», «revisión del cliente» o «entregado».</span></label>
+      <label class="js-opt"><input type="radio" name="mode" value="pick"<?= $J['deliver']['auto'] ? '' : ' checked' ?>> <span><b>Elegir los estados</b> Los que aparecen en este informe:</span></label>
+      <div class="js-checks" id="js-deliver-list">
+        <?php $cats = ['done' => 'verde', 'indeterminate' => 'azul', 'new' => 'gris', '' => 'en el historial'];
+        foreach ($J['deliver']['seen'] as $st => $cat): ?>
+          <label><input type="checkbox" name="st" value="<?= $jh($st) ?>"<?= in_array($st, $J['deliver']['states'], true) ? ' checked' : '' ?><?= $cat === 'done' ? ' disabled' : '' ?>> <?= $jh($st) ?> <small class="js-mut">(<?= $cats[$cat] ?? $cat ?>)</small></label>
+        <?php endforeach; ?></div>
+      <div class="js-dlg-a"><button type="button" class="js-btn" data-close>Cancelar</button><button type="submit" class="js-btn primary"><i class="fa-solid fa-floppy-disk"></i> Guardar y recalcular</button></div>
+    </form>
+  </dialog>
+  <?php endif; ?>
   <script src="/toolz/assets/stats-jira.js?v=<?= (int)@filemtime(__DIR__ . '/assets/stats-jira.js') ?>"></script>
 <?php endif; ?>

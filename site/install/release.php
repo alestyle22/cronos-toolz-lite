@@ -1,7 +1,7 @@
 <?php
 // Versión de este paquete de instalación y sus archivos (los usa instalar.php para el actualizador).
 return array (
-  'version' => '1.0.57',
+  'version' => '1.0.58',
   'edition' => 'lite',
   'files' => 
   array (
@@ -71,8 +71,8 @@ return array (
     'assets/stats-changelog.js' => 'ef148e6712e480e5ea419989b5f20c84b5645873594dfce4da33c663819757c8',
     'assets/stats-charts.js' => 'cd22acc76d12a65c20e0bad77beaccf411cc026851de41cb7eec41fd20fc71ed',
     'assets/stats-jira-print.js' => '1393136e0c32983ea7bda9121818e21baf91c86f12df95f6adf2f5b404b1f60b',
-    'assets/stats-jira.css' => 'd18f7c43f1b7270e7cf65baaa770d3e719da66a542196ff35b5c3ea48246f194',
-    'assets/stats-jira.js' => 'a0352b1b6d4a731951aa186d09eb4426837d812fe4f94e5e03656c73d45ceefa',
+    'assets/stats-jira.css' => 'bc166e44347fca2138ebd94c88888d8fa9b215c16d94f33b0d0a6fb450a615c7',
+    'assets/stats-jira.js' => '675dcf469e5d018b1c25f1a3738482ee6623ecd65cbca1acfef5d7b5ee7f7d94',
     'assets/stats-produccion.js' => 'b89e6b8447d29ca50a9e86a5160f3b29026d8947916666f0cc0bf2d734ee9ecc',
     'assets/stats-reporte.js' => '3fc0c4673586c7bfeb5071b112ce69df6bce8cf2a430f45cbdce9a2281c68c50',
     'assets/stats-timeline.js' => '6beb11309b99b8bc05bed682890cc1436f709d43cf2cf75c52e8a074f7264c86',
@@ -165,8 +165,8 @@ return array (
     'integraciones/user_api.php' => 'ccb1efe95ac21b9aa25edb19bf04ea18600085ee54e8d390576e93bb1cbbc9c8',
     'integraciones/whatsapp.php' => 'e23bf98eadf31af3e8108f59476eec6ab67d64a7377529dfbde9042aa4a2e34b',
     'integraciones/youtube.php' => '4244281b62351451ba06e5366b30e0ccafc28ba3cb74e4ee943fbb2edaabf885',
-    'jira_lib.php' => '2745915fef7a3f5840c7145f37eeb7787d460985838c864ef323f09e24e0b76b',
-    'jira_stats_lib.php' => 'bd39ce28e3d9aacf852e9b5ee59f438bc3ca1c2f9d8e815a7f927724870dd0ac',
+    'jira_lib.php' => 'ecfcf204dd3ea0703c03d9841b15b4c11eb69e8f3b0245ef3748f6d96423c502',
+    'jira_stats_lib.php' => 'dee004a865e1c74d687a23f35876b2a19f0e553f821f1cb4618bbe873e7825fa',
     'jira_use_lib.php' => '22faece12d892b8c63a9fdbccddaa685d180a546b102a8df2cbdab11076eac16',
     'jpg_converter.php' => 'b060bf2b672b6f0aa7bd5b82a6ee2ac96f825ec2f7b79976ea02241a8622ebe6',
     'jpgmaker.html' => '30f44b07ea4e08b7b3b282dbdab3d5cc1d748863a552444f40a95b69af977c3a',
@@ -265,9 +265,9 @@ return array (
     'soporte/api.php' => '34b5efe8bc335c96f96232e37c112ded93d3ffa8f938e3fe2b54b9c9f5bb7c86',
     'soporte/index.php' => '260879e012f05ce516c0a30487c86c79b9ff99d000882fd1326caef2d1253176',
     'soporte/soporte.js' => '3b8e31ad577b68d48e8b0bf5bfdeb27a310582741459417d91d0f4c00d79d7f3',
-    'stats.php' => 'cbaa1ba6b2aedf5e609e3344aaadfb837b5eef7d92981e5a12a208833386a077',
-    'stats_jira.php' => '0f5e76d496150939b63fb0f801170088f70c3a60b53af203d03ac59aae713a11',
-    'stats_jira_export.php' => 'ce010ac0a38dd73dadef8f5277214edfb638169d3958f328dba331254c05de2b',
+    'stats.php' => '3eb32d87ac91ba831b90a7a38f13a3cc9ee85b62307ecb5e90ec7724832f0d2c',
+    'stats_jira.php' => '24dded6d315b47a683de50c718858b6ef400fe78c87581ed0a65ababdd8d5c5c',
+    'stats_jira_export.php' => '2915528968fcc2c6592fda1f5c23a55ba61cd5a3a913ac9254bf374cf2de406c',
     'stats_minimal.php' => 'f2d54f61e63703e60690d8875240e6a40a0b9bfed5a24e3ad7653259e977aa8d',
     'stats_produccion.php' => '4c9d49e0aff3ab88b327fe3018274c2ab0868bafdaab22f809af405eef533bf3',
     'stats_reporte.php' => '433e61340bb6f4e1bf27a9a298c737adac3819f89f008fb446d86234f0df02fe',

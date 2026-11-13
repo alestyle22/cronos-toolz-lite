@@ -135,8 +135,8 @@ function g7_jira_boards(int $max = 50, int $start = 0, string $projectKey = ''):
  * Una página de incidencias. El JQL tiene que estar acotado (por proyecto o fecha): Jira rechaza las consultas sin límite.
  * Para seguir: pasar el nextPageToken de la respuesta hasta que venga isLast.
  */
-function g7_jira_search(string $jql, array $fields = ['summary', 'status', 'assignee', 'updated'], int $max = 50, string $next = ''): array {
-    return g7_jira_get('/rest/api/3/search/jql', ['jql' => $jql, 'fields' => implode(',', $fields), 'maxResults' => $max] + ($next !== '' ? ['nextPageToken' => $next] : []));
+function g7_jira_search(string $jql, array $fields = ['summary', 'status', 'assignee', 'updated'], int $max = 50, string $next = '', string $expand = ''): array {
+    return g7_jira_get('/rest/api/3/search/jql', ['jql' => $jql, 'fields' => implode(',', $fields), 'maxResults' => $max] + ($next !== '' ? ['nextPageToken' => $next] : []) + ($expand !== '' ? ['expand' => $expand] : []));   // expand=changelog: historial (Estadísticas › Jira)
 }
 /** JQL de un proyecto, con la clave escapada. */
 function g7_jira_jql_project(string $key): string {

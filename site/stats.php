@@ -139,6 +139,16 @@ require_once __DIR__ . '/jira_stats_lib.php';
 if (g7_jira_stats_on()) $navSections['jira'] = ['icon'=>'fa-brands fa-jira','label'=>'Jira'];
 // Exportar el informe de Jira (Excel o PDF) con las opciones elegidas: sale antes de dibujar la página
 if (($_GET['section'] ?? '') === 'jira' && isset($_GET['export']) && g7_jira_stats_on()) { require __DIR__ . '/stats_jira_export.php'; exit; }
+// Qué estados de Jira cuentan como entregado (solo admins): POST JSON con la cabecera X-JS
+if (($_GET['section'] ?? '') === 'jira' && isset($_GET['deliver']) && g7_jira_stats_on()) {
+    header('Content-Type: application/json; charset=utf-8');
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || ($_SERVER['HTTP_X_JS'] ?? '') !== '1') { http_response_code(400); echo '{"error":"Pedido inválido"}'; exit; }
+    if (($currentUser['role'] ?? '') !== 'admin') { http_response_code(403); echo '{"error":"Solo los administradores cambian esto"}'; exit; }
+    $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+    $cfg = g7_jira_stats_cfg_save(($in['mode'] ?? '') === 'auto' ? null : array_map('strval', (array)($in['states'] ?? [])));
+    g7_audit('jira.stats_deliver', $cfg['deliver'] === null ? 'automático' : implode(', ', $cfg['deliver']));
+    echo json_encode(['ok' => true] + $cfg, JSON_UNESCAPED_UNICODE); exit;
+}
 $navSections['changelog'] = ['icon'=>'fa-clock-rotate-left','label'=>'Changelog'];
 // Secciones de módulos ocultos (Admin › Módulos) no se muestran
 $_stUid = (int)$currentUser['id'];

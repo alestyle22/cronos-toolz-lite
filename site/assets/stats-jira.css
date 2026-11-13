@@ -79,3 +79,15 @@
 @media (max-width:520px){.js-range{flex-direction:column;align-items:stretch}.js-dates{justify-content:space-between}}
 .js-sum-help{margin:-4px 0 12px}
 .js-range>*,.js-top>*{min-width:0;max-width:100%}.js-dates label{flex-wrap:wrap}.js-dates input{max-width:100%}
+
+/* Días vs prioridad (matriz) y calendario de pedidos por día */
+.js-mx td.js-hc{background:rgba(236,72,153,var(--a));font-weight:700}.js-mx td.js-hc.on{cursor:pointer}.js-mx td.js-hc.on:hover{outline:2px solid #ec4899;outline-offset:-2px}
+.js-cal-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.js-cal-h{font-weight:800;font-size:13px;margin-bottom:6px}
+.js-cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.js-cdh{font-size:10px;text-transform:uppercase;color:var(--g7-text-4);text-align:center;font-weight:700;padding-bottom:2px}.js-cdh.wk{color:#f59e0b}
+.js-cd{position:relative;aspect-ratio:1;border:0;border-radius:6px;background:rgba(76,154,255,var(--a));color:var(--g7-text);font-family:inherit;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default;min-width:0}
+.js-cd:not(.on){background:var(--g7-bg-3)}.js-cd.wk:not(.on){background:repeating-linear-gradient(135deg,var(--g7-bg-3),var(--g7-bg-3) 4px,var(--g7-bg-4) 4px,var(--g7-bg-4) 8px)}
+.js-cd.wk.on{background:rgba(245,158,11,var(--a))}
+.js-cd.out{opacity:.25}.js-cd.on{cursor:pointer}.js-cd.on:hover{outline:2px solid var(--g7-text-3)}.js-cd.today{box-shadow:inset 0 0 0 2px var(--g7-accent)}
+.js-cd small{font-size:9.5px;color:var(--g7-text-3);line-height:1}.js-cd b{font-size:13px;line-height:1.1}

@@ -9,10 +9,34 @@
   var SIT = R.sit || {}, SIT_OPEN = ['overdue', 'in_progress', 'not_started'], SIT_MAIN = ['on_time', 'late_done', 'overdue', 'in_progress', 'not_started'];
   var PAL = ['#4c9aff', '#a78bfa', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#ec4899', '#94a3b8', '#f97316', '#84cc16', '#06b6d4', '#eab308'];
   var MON = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  var DIMS = { person: 'Persona', type: 'Tipo', priority: 'Prioridad', project: 'Proyecto', status: 'Estado' };
+  var DIMS = { person: 'Persona', reporter: 'Informante (quién lo pidió)', component: 'Componente', label: 'Etiqueta', type: 'Tipo', priority: 'Prioridad', project: 'Proyecto', status: 'Estado' };
   var METRICS = { total: 'Issues en el informe', created: 'Creados', resolved: 'Entregados', open: 'Abiertos', overdue: 'Atrasados', on_time: 'Entregados a tiempo',
-    late_done: 'Entregados tarde', in_progress: 'En curso', not_started: 'Sin empezar', on_time_pct: '% a tiempo', avg_days: 'Días promedio para resolver' };
-  var S = { tab: 'resumen', sit: '', flag: '', who: '', q: '', sort: '', dir: 1, shown: 100, dim: 'person', metric: 'total', chart: 'bar', top: '15' };
+    late_done: 'Entregados tarde', in_progress: 'En curso', not_started: 'Sin empezar', awaiting: 'Esperando aprobación', due_weekend: 'Entrega en fin de semana',
+    on_time_pct: '% a tiempo', avg_days: 'Días promedio hasta entregar', avg_lead: 'Plazo promedio que se da (días)' };
+  var S = { tab: 'resumen', sit: '', flag: '', who: '', q: '', sort: '', dir: 1, shown: 100, dim: 'person', metric: 'total', chart: 'bar', top: '15',
+    prio: '', range: null, dayf: null, dimf: null, mx: 'lead', calMode: 'created' };
+  var OPEN = ['overdue', 'in_progress', 'not_started'];
+  var isOpen = function (i) { return OPEN.indexOf(i.situation) >= 0; };
+  var DOW = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+  var MONL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  // Orden de prioridades de Jira (las que no conoce van al final, por nombre)
+  var PRIO_ORD = ['highest', 'blocker', 'critical', 'crítica', 'urgente', 'high', 'alta', 'major', 'medium', 'media', 'normal', 'low', 'baja', 'minor', 'lowest', 'trivial', 'sin prioridad'];
+  var prioSort = function (a, b) { var x = PRIO_ORD.indexOf(a.toLowerCase()), y = PRIO_ORD.indexOf(b.toLowerCase()); x = x < 0 ? 99 : x; y = y < 0 ? 99 : y; return x - y || a.localeCompare(b); };
+  // Tramos de días para la matriz Días vs prioridad
+  var MX = {
+    lead: { label: 'Plazo que se dio (de creado a la fecha de entrega)', get: function (i) { return i.lead; }, b: [[null, -1, 'Vencido al crearse'], [0, 0, 'Mismo día'], [1, 1, '1 día'], [2, 3, '2–3 d'], [4, 7, '4–7 d'], [8, 14, '8–14 d'], [15, 30, '15–30 d'], [31, null, '+30 d']] },
+    res: { label: 'Días que tardó en entregarse', get: function (i) { return i.res_days; }, b: [[null, 0.999, '< 1 día'], [1, 2.999, '1–3 d'], [3, 6.999, '3–7 d'], [7, 13.999, '1–2 sem'], [14, 29.999, '2–4 sem'], [30, null, '+1 mes']] },
+    age: { label: 'Antigüedad de lo que sigue sin entregar', get: function (i) { return isOpen(i) ? i.age : null; }, b: [[null, 2, '0–2 d'], [3, 7, '3–7 d'], [8, 14, '8–14 d'], [15, 30, '15–30 d'], [31, 60, '1–2 meses'], [61, null, '+2 meses']] },
+    late: { label: 'Días de atraso (atrasados y entregados tarde)', get: function (i) { return i.late > 0 ? i.late : null; }, b: [[1, 1, '1 día'], [2, 3, '2–3 d'], [4, 7, '4–7 d'], [8, 14, '8–14 d'], [15, 30, '15–30 d'], [31, null, '+30 d']] }
+  };
+  var inB = function (v, b) { return v != null && (b[0] == null || v >= b[0]) && (b[1] == null || v <= b[1]); };
+  var dimMatch = function (i, f) {
+    if (f.dim === 'reporter') return (i.reporter || 'Sin informante') === f.name;
+    if (f.dim === 'component') return (i.components && i.components.length ? i.components : ['Sin componente']).indexOf(f.name) >= 0;
+    if (f.dim === 'label') return (i.labels && i.labels.length ? i.labels : ['Sin etiqueta']).indexOf(f.name) >= 0;
+    if (f.dim === 'person') return (i.assignee || 'Sin asignar') === f.name;
+    return String(i[f.dim]) === f.name;
+  };
   var charts = [];
 
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -152,22 +176,102 @@
       });
       draw();
     },
+    plazos: function () {
+      var h = R.lead_hist || {}, hk = R.lead_buckets || Object.keys(h);
+      var pr = (R.groups.priority || []).slice().sort(function (a, b) { return prioSort(a.name, b.name); });
+      V.innerHTML = '<div class="js-g3">' + card('fa-hourglass-half', 'Qué plazo se suele dar <span class="js-mut">· de creado a la fecha de entrega, de lo creado en el rango</span>', canvas('jsLead'))
+        + card('fa-gauge', 'En números', '<div class="js-bars" style="padding-top:8px"><div class="js-bar"><span>Promedio</span><i style="--w:100%;--c:#ec4899"></i><b>' + num(R.kpi.avg_lead) + ' d</b></div><div class="js-bar"><span>Mediana</span><i style="--w:' + (R.kpi.avg_lead ? Math.min(100, Math.round(R.kpi.median_lead / R.kpi.avg_lead * 100)) : 0) + '%;--c:#14b8a6"></i><b>' + num(R.kpi.median_lead) + ' d</b></div></div>'
+          + '<p class="js-mut" style="margin-top:12px">' + (R.kpi.with_due || 0) + ' de ' + (R.kpi.created || 0) + ' pedidos creados en el rango tienen fecha de entrega. ' + (R.kpi.due_weekend ? '<b>' + R.kpi.due_weekend + '</b> tienen la entrega en sábado o domingo.' : 'Ninguno tiene la entrega en fin de semana.') + '</p>') + '</div>'
+        + card('fa-signal', 'Plazo y entrega por prioridad', pr.length ? '<div class="js-tblwrap"><table class="js-tbl" id="jp-t"><tr><th>Prioridad</th><th class="r">Pedidos</th><th class="r">Plazo promedio</th><th class="r">Plazo mediana</th><th class="r">Días hasta entregar</th><th class="r">% a tiempo</th><th class="r">Atrasados</th><th class="r">Entrega en fin de semana</th></tr>'
+          + pr.map(function (p) { return '<tr data-prio="' + esc(p.name) + '" style="cursor:pointer"><td><b>' + esc(p.name) + '</b></td><td class="r">' + p.total + '</td><td class="r">' + num(p.avg_lead) + (p.avg_lead == null ? '' : ' d') + '</td><td class="r">' + num(p.median_lead) + (p.median_lead == null ? '' : ' d') + '</td><td class="r">' + num(p.avg_days) + (p.avg_days == null ? '' : ' d') + '</td><td class="r">' + num(p.on_time_pct) + (p.on_time_pct == null ? '' : '%') + '</td><td class="r' + (p.overdue ? ' js-late' : '') + '">' + p.overdue + '</td><td class="r">' + p.due_weekend + '</td></tr>'; }).join('') + '</table></div>' : empty('Sin datos.'))
+        + '<div class="card"><div class="card-title"><i class="fa-solid fa-table-cells"></i> Días vs prioridad <span class="js-mut">· tocá una celda para ver esos pedidos</span></div><div class="js-ctl"><label class="js-lbl">Qué días<select id="jm-mx">'
+          + Object.keys(MX).map(function (k) { return '<option value="' + k + '"' + (k === S.mx ? ' selected' : '') + '>' + esc(MX[k].label) + '</option>'; }).join('') + '</select></label></div><div class="js-tblwrap" id="jm-out"></div></div>';
+      make('jsLead', { type: 'bar', data: { labels: hk, datasets: [{ label: 'Pedidos', data: hk.map(function (k) { return h[k] || 0; }), backgroundColor: hk.map(function (k, i) { return i === 0 ? '#ef4444cc' : '#ec4899cc'; }), borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: axes() } });
+      var drawM = function () {
+        var m = MX[S.mx], rows = {}, tot = 0, mxv = 1;
+        R.issues.forEach(function (i) { var v = m.get(i); if (v == null) return; var bi = -1; m.b.forEach(function (b, x) { if (bi < 0 && inB(v, b)) bi = x; }); if (bi < 0) return; (rows[i.priority] = rows[i.priority] || m.b.map(function () { return 0; }))[bi]++; tot++; });
+        var names = Object.keys(rows).sort(prioSort);
+        names.forEach(function (n) { rows[n].forEach(function (c) { mxv = Math.max(mxv, c); }); });
+        document.getElementById('jm-out').innerHTML = !tot ? empty('No hay pedidos con ese dato en el rango.') : '<table class="js-tbl js-mx"><tr><th>Prioridad</th>' + m.b.map(function (b) { return '<th class="r">' + esc(b[2]) + '</th>'; }).join('') + '<th class="r">Total</th></tr>'
+          + names.map(function (n) { var sum = rows[n].reduce(function (a, c) { return a + c; }, 0); return '<tr><td><b>' + esc(n) + '</b></td>' + rows[n].map(function (c, x) { return '<td class="r js-hc' + (c ? ' on' : '') + '" style="--a:' + (c ? 0.12 + c / mxv * 0.75 : 0) + '"' + (c ? ' data-mx="' + x + '" data-p="' + esc(n) + '"' : '') + '>' + (c || '') + '</td>'; }).join('') + '<td class="r"><b>' + sum + '</b></td></tr>'; }).join('') + '</table>';
+      };
+      document.getElementById('jm-mx').addEventListener('change', function (e) { S.mx = e.target.value; drawM(); });
+      document.getElementById('jm-out').addEventListener('click', function (e) {
+        var c = e.target.closest('[data-mx]'); if (c) { var b = MX[S.mx].b[+c.dataset.mx]; goList({ prio: c.dataset.p, range: { mx: S.mx, b: b, label: MX[S.mx].label.split(' (')[0] + ': ' + b[2] } }); }
+      });
+      var pt = document.getElementById('jp-t');
+      if (pt) pt.addEventListener('click', function (e) { var r = e.target.closest('tr[data-prio]'); if (r) goList({ prio: r.dataset.prio }); });
+      drawM();
+    },
+    calendario: function () {
+      var modes = { created: ['Pedidos creados', 'created'], due: ['Fechas de entrega pedidas', 'due'], delivered: ['Entregas realizadas', 'delivered_at'] };
+      var cal = R.calendar || {}, ds = Object.keys(cal).sort();
+      var draw = function () {
+        var key = S.calMode, mx = 1, tot = 0, wk = [0, 0, 0, 0, 0, 0, 0], months = {};
+        ds.forEach(function (d) { var v = cal[d][key] || 0; mx = Math.max(mx, v); tot += v; var w = (new Date(d + 'T12:00:00').getDay() + 6) % 7; wk[w] += v; (months[d.slice(0, 7)] = months[d.slice(0, 7)] || []).push(d); });
+        var html = '<div class="js-cal-wrap">' + Object.keys(months).map(function (m) {
+          var first = months[m][0], lead = (new Date(m + '-01T12:00:00').getDay() + 6) % 7, days = new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate(), cells = '';
+          for (var x = 0; x < lead; x++) cells += '<span class="js-cd out"></span>';
+          for (var d = 1; d <= days; d++) {
+            var iso = m + '-' + (d < 10 ? '0' : '') + d, has = cal[iso], v = has ? (cal[iso][key] || 0) : 0, w = (lead + d - 1) % 7;
+            cells += '<button type="button" class="js-cd' + (has ? '' : ' out') + (w >= 5 ? ' wk' : '') + (v ? ' on' : '') + (iso === R.today ? ' today' : '') + '" style="--a:' + (v ? 0.15 + v / mx * 0.8 : 0) + '"' + (has && v ? ' data-day="' + iso + '"' : '') + ' title="' + esc(day(iso)) + ': ' + v + '"><small>' + d + '</small>' + (v ? '<b>' + v + '</b>' : '') + '</button>';
+          }
+          return '<div class="js-cal"><div class="js-cal-h">' + MONL[+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4) + '</div><div class="js-cal-g">' + DOW.map(function (n, i) { return '<span class="js-cdh' + (i >= 5 ? ' wk' : '') + '">' + n + '</span>'; }).join('') + cells + '</div></div>';
+        }).join('') + '</div>';
+        document.getElementById('jc-out').innerHTML = html + '<p class="js-mut" style="margin-top:10px">' + tot + ' en el rango · el más alto: ' + mx + ' en un día · sábados y domingos sombreados.</p>';
+        charts.forEach(function (c) { c.destroy(); }); charts = [];
+        make('jsWk', { type: 'bar', data: { labels: DOW, datasets: [{ label: modes[key][0], data: wk, backgroundColor: DOW.map(function (d, i) { return i >= 5 ? '#f59e0bcc' : '#4c9affcc'; }), borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: axes() } });
+      };
+      V.innerHTML = '<div class="card"><div class="card-title"><i class="fa-regular fa-calendar"></i> Pedidos por día <span class="js-mut">· tocá un día para ver esos pedidos</span></div>'
+        + '<div class="js-ctl"><div class="js-lbl">Qué contar<div class="js-seg" id="jc-mode">' + Object.keys(modes).map(function (k) { return '<button type="button" data-m="' + k + '"' + (k === S.calMode ? ' class="on"' : '') + '>' + modes[k][0] + '</button>'; }).join('') + '</div></div></div><div id="jc-out"></div></div>'
+        + card('fa-calendar-week', 'Por día de la semana', canvas('jsWk', 'sm'));
+      document.getElementById('jc-mode').addEventListener('click', function (e) { var b = e.target.closest('[data-m]'); if (!b) return; S.calMode = b.dataset.m; this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); draw(); });
+      document.getElementById('jc-out').addEventListener('click', function (e) { var c = e.target.closest('[data-day]'); if (c) goList({ dayf: { field: modes[S.calMode][1], date: c.dataset.day, label: modes[S.calMode][0] + ' el ' + day(c.dataset.day) } }); });
+      draw();
+    },
+    origen: function () {
+      var rep = (R.groups.reporter || []).slice(0, 20), comp = (R.groups.component || []).filter(function (x) { return x.total > 0; }), lab = (R.groups.label || []).filter(function (x) { return x.total > 0; });
+      V.innerHTML = card('fa-user-pen', 'Quién genera los pedidos <span class="js-mut">· el informante de cada issue en Jira</span>', rep.length ? '<div class="js-chart" style="height:' + Math.max(220, rep.length * 28 + 60) + 'px"><canvas id="jsRep"></canvas></div>' : empty('Sin datos.'))
+        + card('fa-table', 'Detalle por informante <span class="js-mut">· tocá una fila para ver sus pedidos</span>', rep.length ? '<div class="js-tblwrap"><table class="js-tbl" id="jo-t"><tr><th>Pidió</th><th class="r">Pedidos</th><th class="r">Creados en el rango</th><th class="r">Sin entregar</th><th class="r">Atrasados</th><th class="r">Entregados</th><th class="r">% a tiempo</th><th class="r">Plazo que da</th><th class="r">Entrega en fin de semana</th></tr>'
+          + rep.map(function (p) { return '<tr data-dim="reporter" data-name="' + esc(p.name) + '" style="cursor:pointer"><td><b>' + esc(p.name) + '</b></td><td class="r">' + p.total + '</td><td class="r">' + p.created + '</td><td class="r">' + p.open + '</td><td class="r' + (p.overdue ? ' js-late' : '') + '">' + p.overdue + '</td><td class="r">' + p.resolved + '</td><td class="r">' + num(p.on_time_pct) + (p.on_time_pct == null ? '' : '%') + '</td><td class="r">' + num(p.avg_lead) + (p.avg_lead == null ? '' : ' d') + '</td><td class="r">' + p.due_weekend + '</td></tr>'; }).join('') + '</table></div>' : '')
+        + '<div class="js-g2">' + card('fa-cubes', 'Por componente', canvas('jsComp')) + card('fa-tags', 'Por etiqueta', canvas('jsLab')) + '</div>';
+      make('jsRep', { type: 'bar', data: { labels: rep.map(function (p) { return p.name; }), datasets: SIT_MAIN.map(function (k) { return { label: SIT[k][0], data: rep.map(function (p) { return p[k]; }), backgroundColor: SIT[k][1] + 'dd', borderRadius: 3 }; }) },
+        options: { indexAxis: 'y', interaction: { mode: 'index', intersect: false }, plugins: { legend: legend }, scales: axes(true, true) } });
+      donut('jsComp', comp.map(function (x) { return x.name; }), comp.map(function (x) { return x.total; }));
+      donut('jsLab', lab.map(function (x) { return x.name; }), lab.map(function (x) { return x.total; }));
+      var t = document.getElementById('jo-t');
+      if (t) t.addEventListener('click', function (e) { var tr = e.target.closest('tr[data-dim]'); if (tr) goList({ dimf: { dim: tr.dataset.dim, name: tr.dataset.name } }); });
+    },
     lista: function () {
       var people = (R.groups.person || []).map(function (p) { return p.name; });
       var chips = [['', 'Todos']].concat(Object.keys(SIT).map(function (k) { return [k, SIT[k][0]]; }));
-      var flags = [['due_soon', 'Vencen en 7 días'], ['no_due', 'Sin fecha de entrega'], ['unassigned', 'Sin asignar']];
+      var flags = [['due_soon', 'Vencen en 7 días'], ['no_due', 'Sin fecha de entrega'], ['unassigned', 'Sin asignar'], ['awaiting', 'Esperando aprobación'], ['due_weekend', 'Entrega en fin de semana'], ['created_weekend', 'Pedido un fin de semana']];
+      var prios = (R.groups.priority || []).map(function (p) { return p.name; }).sort(prioSort);
+      var extra = [];
+      if (S.range) extra.push(['range', S.range.label]);
+      if (S.dayf) extra.push(['dayf', S.dayf.label]);
+      if (S.dimf) extra.push(['dimf', DIMS[S.dimf.dim] + ': ' + S.dimf.name]);
       V.innerHTML = '<div class="card"><div class="js-filt" id="jl-sit">' + chips.map(function (c) { return '<button type="button" class="js-chip' + (S.sit === c[0] && !S.flag ? ' on' : '') + '" data-sit="' + c[0] + '">' + esc(c[1]) + '</button>'; }).join('')
         + flags.map(function (f) { return '<button type="button" class="js-chip' + (S.flag === f[0] ? ' on' : '') + '" data-flag="' + f[0] + '">' + esc(f[1]) + '</button>'; }).join('') + '</div>'
         + '<div class="js-ctl"><label class="js-lbl">Buscar<input type="search" id="jl-q" value="' + esc(S.q) + '" placeholder="Clave o título"></label>'
-        + '<label class="js-lbl">Responsable<select id="jl-who"><option value="">Todas las personas</option>' + people.map(function (p) { return '<option' + (p === S.who ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select></label></div>'
+        + '<label class="js-lbl">Responsable<select id="jl-who"><option value="">Todas las personas</option>' + people.map(function (p) { return '<option' + (p === S.who ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select></label>'
+        + '<label class="js-lbl">Prioridad<select id="jl-prio"><option value="">Todas</option>' + prios.map(function (p) { return '<option' + (p === S.prio ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select></label>'
+        + extra.map(function (x) { return '<button type="button" class="js-chip on" data-clear="' + x[0] + '" title="Quitar este filtro">' + esc(x[1]) + ' <i class="fa-solid fa-xmark"></i></button>'; }).join('') + '</div>'
         + '<div class="js-count" id="jl-n"></div><div class="js-tblwrap" id="jl-t"></div></div>';
-      var cols = [['key', 'Clave'], ['summary', 'Título'], ['situation', 'Situación'], ['assignee', 'Responsable'], ['type', 'Tipo'], ['priority', 'Prioridad'], ['created', 'Creado'], ['due', 'Entrega'], ['resolved', 'Resuelto'], ['res_days', 'Días']];
+      var cols = [['key', 'Clave'], ['summary', 'Título'], ['situation', 'Situación'], ['assignee', 'Responsable'], ['reporter', 'Pidió'], ['priority', 'Prioridad'], ['created', 'Creado'], ['due', 'Fecha de entrega'], ['lead', 'Plazo'], ['delivered_at', 'Entregado'], ['res_days', 'Días']];
       var draw = function () {
         var q = S.q.toLowerCase(), list = R.issues.filter(function (i) {
           if (S.sit && i.situation !== S.sit) return false;
-          if (S.flag === 'due_soon' && !(i.cat !== 'done' && i.due && i.due >= R.today && i.due <= addDays(R.today, 7))) return false;
-          if (S.flag === 'no_due' && !(i.cat !== 'done' && !i.due)) return false;
-          if (S.flag === 'unassigned' && !(i.cat !== 'done' && !i.assignee)) return false;
+          if (S.flag === 'due_soon' && !(isOpen(i) && i.due && i.due >= R.today && i.due <= addDays(R.today, 7))) return false;
+          if (S.flag === 'no_due' && !(isOpen(i) && !i.due)) return false;
+          if (S.flag === 'unassigned' && !(isOpen(i) && !i.assignee)) return false;
+          if (S.flag === 'awaiting' && !i.awaiting) return false;
+          if (S.flag === 'due_weekend' && !i.due_weekend) return false;
+          if (S.flag === 'created_weekend' && !i.created_weekend) return false;
+          if (S.prio && i.priority !== S.prio) return false;
+          if (S.range && !inB(MX[S.range.mx].get(i), S.range.b)) return false;
+          if (S.dayf && (i[S.dayf.field] || '').slice(0, 10) !== S.dayf.date) return false;
+          if (S.dimf && !dimMatch(i, S.dimf)) return false;
           if (S.who && (i.assignee || 'Sin asignar') !== S.who) return false;
           return !q || (i.key + ' ' + i.summary).toLowerCase().indexOf(q) >= 0;
         });
@@ -175,9 +279,11 @@
         document.getElementById('jl-n').textContent = list.length === 1 ? '1 issue' : list.length + ' issues';
         var cell = function (i, c) {
           if (c === 'key') return keyLink(i.key);
-          if (c === 'situation') return sitTag(i.situation) + (i.late ? ' <span class="js-late">' + i.late + ' d</span>' : '');
-          if (c === 'created' || c === 'resolved') return esc(day((i[c] || '').slice(0, 10)));
-          if (c === 'due') return esc(day(i.due));
+          if (c === 'situation') return sitTag(i.situation) + (i.late ? ' <span class="js-late">' + i.late + ' d</span>' : '') + (i.awaiting ? ' <span class="js-tag" style="--c:#a78bfa" title="Entregado, todavía sin aprobar"><i class="fa-solid fa-stamp"></i>esperando aprobación</span>' : '');
+          if (c === 'created' || c === 'resolved' || c === 'delivered_at') return esc(day((i[c] || '').slice(0, 10)));
+          if (c === 'due') return esc(day(i.due)) + (i.due_weekend ? ' <i class="fa-solid fa-calendar-week" style="color:#f59e0b" title="Cae en fin de semana"></i>' : '');
+          if (c === 'lead') return i.lead == null ? '' : i.lead + ' d';
+          if (c === 'reporter') return esc(i.reporter || '');
           if (c === 'res_days') return num(i.res_days);
           if (c === 'assignee') return esc(i.assignee || 'Sin asignar');
           return esc(i[c]);
@@ -194,6 +300,8 @@
       });
       document.getElementById('jl-q').addEventListener('input', function (e) { S.q = e.target.value; S.shown = 100; draw(); });
       document.getElementById('jl-who').addEventListener('change', function (e) { S.who = e.target.value; S.shown = 100; draw(); });
+      document.getElementById('jl-prio').addEventListener('change', function (e) { S.prio = e.target.value; S.shown = 100; draw(); });
+      V.querySelectorAll('[data-clear]').forEach(function (b) { b.addEventListener('click', function () { S[b.dataset.clear] = null; b.remove(); S.shown = 100; draw(); }); });
       document.getElementById('jl-t').addEventListener('click', function (e) {
         var th = e.target.closest('th[data-sort]');
         if (th) { S.dir = S.sort === th.dataset.sort ? -S.dir : 1; S.sort = th.dataset.sort; draw(); return; }
@@ -210,12 +318,28 @@
     try { localStorage.setItem('g7_js_tab', tab); } catch (e) {}
     VIEWS[tab]();
   };
-  var goList = function (f) { S.sit = f.sit || ''; S.flag = f.flag || ''; S.who = f.who || ''; S.q = ''; S.shown = 100; show('lista'); document.getElementById('js-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  var goList = function (f) { S.sit = f.sit || ''; S.flag = f.flag || ''; S.who = f.who || ''; S.prio = f.prio || ''; S.range = f.range || null; S.dayf = f.dayf || null; S.dimf = f.dimf || null; S.q = ''; S.shown = 100; show('lista'); document.getElementById('js-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   document.getElementById('js-tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) show(b.dataset.tab); });
   document.querySelectorAll('.js-sit[data-sit]').forEach(function (b) { b.addEventListener('click', function () { goList({ sit: b.dataset.sit }); }); });
   document.querySelectorAll('.js-pill[data-flag]').forEach(function (b) { b.addEventListener('click', function () { goList({ flag: b.dataset.flag }); }); });
   var first = 'resumen'; try { first = localStorage.getItem('g7_js_tab') || 'resumen'; } catch (e) {}
   show(VIEWS[first] ? first : 'resumen');
+
+  // ── Qué cuenta como entregado (solo admins) ─────────────────
+  var dd = document.getElementById('js-deliver'), df = document.getElementById('js-deliver-form'), dOpen = document.getElementById('js-deliver-open');
+  if (dd && df && dOpen) {
+    dOpen.addEventListener('click', function () { dd.showModal(); });
+    dd.addEventListener('click', function (e) { if (e.target === dd || e.target.closest('[data-close]')) dd.close(); });
+    df.addEventListener('change', function (e) { if (e.target.name === 'st') df.querySelector('input[value="pick"]').checked = true; });
+    df.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var mode = df.querySelector('input[name="mode"]:checked').value, states = [].map.call(df.querySelectorAll('input[name="st"]:checked:not(:disabled)'), function (c) { return c.value; });
+      var b = df.querySelector('button[type="submit"]'); b.disabled = true;
+      fetch('?section=jira&deliver=1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-JS': '1' }, body: JSON.stringify({ mode: mode, states: states }) })
+        .then(function (r) { return r.json(); }).then(function (j) { if (j.error) throw new Error(j.error); location.reload(); })
+        .catch(function (er) { b.disabled = false; alert(er.message || 'No se pudo guardar.'); });
+    });
+  }
 
   // ── Exportar ───────────────────────────────────────────────
   var dlg = document.getElementById('js-export'), form = document.getElementById('js-export-form');

@@ -65,7 +65,8 @@ Entra en la Lite, por decisión del usuario. Vive en `trabajo/`, que ya viaja en
 
 ## Repositorio de la Lite (2026-11-13)
 Pedido del usuario: "armemos el repo de cronos toolz lite".
-- **Dónde está:** en `L:\Kenia\cronos-toolz-lite`, con la rama `main`, subido a GitHub como repo **privado** `alestyle22/cronos-toolz-lite`.
+- **Dónde está:** en `L:\Kenia\cronos-toolz-lite`, con la rama `main`, publicado en GitHub como repo **público** `alestyle22/cronos-toolz-lite` (desde la 1.0.57, con historia limpia).
 - **Qué tiene:** la Lite tal como se instala. `site/` es la carpeta `toolz/`, `root/` es lo que va en la raíz del dominio, y `docs/` tiene la documentación de sus módulos, solo la que no menciona a ningún cliente.
 - **Cómo se pone al día:** con `php dev/lite_repo.php X.Y.Z` después de armar cada versión. Toma el instalador Lite firmado, reemplaza `site/` y `root/`, copia la documentación y frena si encuentra una marca de cliente, un secreto o algo de `_private/`. No hace commit: eso se hace a mano después de mirar `git status`.
 - **Finales de línea:** `.gitattributes` con `* -text` deja los archivos byte a byte como en la versión firmada, así coinciden con los hashes de `site/install/release.php`.
+- **Qué queda afuera del repo público:** CARGA.md (la cuenta y los límites del hosting), SEGURIDAD_WAF.md y SEGURIDAD_SAMM.md (qué defensas hay y cuáles faltan). Además, `lite_repo.php` y `release.php` frenan si aparece cualquiera de las marcas de clientes de su lista.
