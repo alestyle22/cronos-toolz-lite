@@ -64,6 +64,7 @@ function notifIcon(type) {
   if (type === 'wk_req') return '<i class="fa-solid fa-inbox" style="color:#a78bfa"></i>';
   if (type === 'wk_tk') return '<i class="fa-solid fa-ticket" style="color:#60a5fa"></i>';
   if (type === 'pt_tk') return '<i class="fa-solid fa-inbox" style="color:#ff7a1a"></i>';
+  if (type === 'login_new') return '<i class="fa-solid fa-user-shield" style="color:#f59e0b"></i>';
   if (type === 'wk_run') return '<i class="fa-solid fa-diagram-next" style="color:#f59e0b"></i>';
   if (type === 'task_auto') return '<i class="fa-solid fa-gears" style="color:#a78bfa"></i>';
   if (type === 'cal_remind') return '<i class="fa-regular fa-calendar" style="color:var(--g7-accent)"></i>';
@@ -79,6 +80,7 @@ function notifText(n) {
   if (n.type === 'wk_req') return n.from_id ? `<strong>${from}</strong> · solicitud` : 'Novedad en una solicitud';
   if (n.type === 'wk_tk') return n.from_id ? `<strong>${from}</strong> · ticket` : 'Aviso de un ticket';
   if (n.type === 'pt_tk') return n.from_id ? `<strong>${from}</strong> · solicitud` : 'Aviso de una solicitud';
+  if (n.type === 'login_new') return 'Nuevo ingreso a tu cuenta';
   if (n.type === 'wk_run') return n.from_id ? `<strong>${from}</strong> · proceso` : 'Novedad en un proceso';
   if (n.type === 'task_auto') return 'Automatización de una tarea';
   if (n.type === 'cal_remind') return 'Recordatorio de tu calendario';
@@ -141,6 +143,7 @@ async function clickNotif(id, profileId, type = '', targetId = 0) {
   await fetch('/toolz/notif.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read_one',id})});
   document.getElementById('notif-dropdown').classList.remove('open');
   notifOpen = false;
+  if (type === 'login_new') { window.location.href = '/toolz/perfil_seguridad.php'; fetchNotifs(true); return; }   // aviso de dispositivo nuevo (login_alert_lib.php)
   if (type === 'pt_tk' && targetId) { window.location.href = '/toolz/solicitudes/#solicitudes/t/' + targetId; fetchNotifs(true); return; }   // Portal de Solicitudes (módulo aparte)
   if ((type === 'wk_req' || type === 'wk_tk' || type === 'wk_run') && targetId) { window.location.href = '/toolz/trabajo/#' + ({ wk_req: 'solicitudes/', wk_tk: 'tickets/', wk_run: 'procesos/run/' })[type] + targetId; fetchNotifs(true); return; }
   if (type === 'pass') { window.location.href = '/toolz/password.php'; fetchNotifs(true); return; }

@@ -84,6 +84,9 @@ function startSecureSession() {
         ini_set('session.cookie_secure', 1);    // la cookie nunca viaja por HTTP
         if (!headers_sent()) header('Strict-Transport-Security: max-age=15552000');
     }
+    // CSP mínima de toda respuesta PHP. Antes la ponía el .htaccess, pero en el hosting (LiteSpeed) "Header always set" PISA la que
+    // manda PHP: la estricta (g7_csp_enforce, login.php) nunca llegaba al navegador. Ahora el .htaccess solo la pone en lo que no es PHP.
+    if (!headers_sent() && !defined('G7_CSP_ENFORCED') && PHP_SAPI !== 'cli') header("Content-Security-Policy: object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
     $life = SESSION_LIFETIME;
     if (function_exists('g7_setting')) {
         $h = (int)g7_setting('session_hours');
@@ -338,6 +341,8 @@ function g7_login_finish(array $user) {
     $_SESSION['g7_role']     = $user['role'];
     $_SESSION['g7_last_regen'] = time();
     if (function_exists('g7_audit')) g7_audit('auth.login', 'user:' . (int)$user['id'], ['ip' => g7_client_ip(), 'ua' => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 120)], (int)$user['id']);
+    // Aviso de ingreso desde un dispositivo nuevo (campana + email). Nunca frena el ingreso.
+    if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_login_device($db, $user); }
     return $user;
 }
 

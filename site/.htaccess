@@ -6,8 +6,12 @@ Options -Indexes
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     # HSTS lo manda PHP (auth.php) solo en conexiones HTTPS: "expr=" no anda igual en todos los servidores
-    # CSP mínima compatible con las páginas actuales: sin plugins, sin <base> ajeno y sin enmarcar desde otros sitios
-    Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    # CSP mínima (sin plugins, sin <base> ajeno, sin enmarcar desde otros sitios) SOLO para lo que no es PHP.
+    # Ojo: en el hosting (LiteSpeed) "Header always set" pisa la CSP que manda PHP. Las páginas PHP mandan la suya:
+    # la mínima desde auth.php y la estricta con g7_csp_enforce() y en login.php. (2026-11-13)
+    <FilesMatch "\.(html?|svg|xml|txt|json|js|css)$">
+        Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    </FilesMatch>
     Header always set Permissions-Policy "geolocation=(), payment=(), usb=()"
 </IfModule>
 

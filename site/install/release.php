@@ -1,11 +1,11 @@
 <?php
 // Versión de este paquete de instalación y sus archivos (los usa instalar.php para el actualizador).
 return array (
-  'version' => '1.0.58',
+  'version' => '1.0.59',
   'edition' => 'lite',
   'files' => 
   array (
-    '.htaccess' => '7128ad59f1340ecdac962bffa95a7fe6f8763b156cdf95eab857091d2b98f92f',
+    '.htaccess' => '4de1ecbf68ebe0dab5a07ab4aebdbbe982ea9d79dc7b110b5ed93b3608a6ffce',
     '_update/editions.php' => 'edf6c2f4375bc77beecbea82ad3aee4535e3f08745c73784eb984fd71d3c607d',
     '_update/feed.php' => 'd77a69d00e26ff92d2bea06bcd10bc561752768b3d95aaa1adab1125c193c858',
     '_update/health.php' => '976ce2c4ad6bf379b68525a4d9fa1a0c30a066190558551845af2b2445486c2a',
@@ -89,12 +89,12 @@ return array (
     'assets/tools/webpmaker.js' => '98b78e415cbd744718bff9f1610fb5f83b871ea5fdfca7037c8adc905a689dea',
     'assets/tools/webpmaker2.js' => '9eb0069aac162384ffee9cd70af8ffa8087a8dc5697af02503236bb3f7293dee',
     'assets/topbar-pal.js' => '34ecae8edb7e9074d2e2375f5585c999942140f23bb38ae7168894b4660bf9ec',
-    'assets/topbar.js' => '461dcd05f394bb0ba650b3a1ea87cc0b0eb5c0ce06abb58fe26bc44af8974364',
+    'assets/topbar.js' => '7222abff831a54454014371e409ac46e24738ed0b616082ba0ead63972e9435d',
     'assets/user-config.js' => 'eb9b0e85805219cf769936e3c2244583f44832f3c5ac83656efeb0677175c790',
     'assets/user-tz.js' => '05537a0e8c1c3334c1b9582387c2ab132edfdf51a33fb770e7ef859c8f7269bf',
     'assets/users-page.js' => '8088d15f1dd72a7f96d26f231f2907c7994e76f742b3c8296eff9add1491164d',
     'assets/vocab.js' => '54d4b1393ac85f94ccc01000cb6a6804c14fa4d578b1f99436fc501e758f8501',
-    'auth.php' => '003a2f20e5f7224442ab98fd4c3da8947c9418a46162b67bc1518715e79093bc',
+    'auth.php' => '4404cc610253a48059ef43736aebf44b1c7b2be13905f3dae82d27e27e8cddc0',
     'base_api.php' => '387449bc0ef51e9ccdb947f09a94cf68b79d5883dfbdbf5ec26b8415f65f2a58',
     'base_client_lib.php' => '991b4ccd8bc64777f2ab69b49e369eedd46ba8ed367a528c7c0ab270c3fbf34f',
     'base_sso.php' => '16259e8748c031cff2b78b9e84b8556b1b7267e600c8cd0a50cb965ede041517',
@@ -132,7 +132,7 @@ return array (
     'clientes_api.php' => '358304da503df9d5fe3d19f2fceb544d909dec577978cce6f43cd342ae9001a2',
     'clientes_lib.php' => '828628a07be83df3fb68bdd381d02caf71f8525b71de2f1e8817b6806eaa176a',
     'comunidad.php' => 'cdf1f0beca42d9d83c18f9fdbf804be6e93d18f332c9f9b79dd7ec5489aeaaf4',
-    'csp_lib.php' => '5dfd21a9529c69e3a07a768628ba6a80844b86a8c4afcd0f664fedc075fb5faf',
+    'csp_lib.php' => 'd61ac6fbc8c8d8d840ed617cad04053699ed3af741cbd3b0fb975a8828a20ac4',
     'csp_report.php' => '1d51c7d88006a0366e105a2d1259686c5423eba647aab884757d42adf92b96fc',
     'custom_fields_lib.php' => 'a61e87e87002da3b1e1557c5b59b9a36f12856b8a3916d5ca000ec805e17fd70',
     'fetch_preview.php' => '85f037f19c95dcde6e60d826ac89f528d85220661034fbbfdd404fdc074cd2ca',
@@ -188,7 +188,8 @@ return array (
     'links/index.php' => '675b16fcd5e0fedd71918843b44316301c8c7a5d0b9805b5bd508e5847461d03',
     'links/links.js' => 'b8de38c962c79416e9c3b0177b7b11dcba35dce98a81bfa70118c97793f7bacd',
     'links/ver.php' => '49dd0ce5d9544f96fa1b2cebbf0e25fcd91652d0db46aacce82a2a30feba6920',
-    'login.php' => '47dfcc56ad4a0c80154638da77d7c9ae9183fab54ef74bcc9fc144f4c5b42fe1',
+    'login.php' => 'cb580cf253072fab3e69eff3f2f31ba1e7afae1fdd32736c93d6a675f156c880',
+    'login_alert_lib.php' => '6737fc68271ac5b33a6082ac37e17c92453c7270d431eb11b6713ac08d329233',
     'logout.php' => '834e9bd5d2c9ff5b527a1e8f50d533b43506e93d69d0e841b63417bb753617cd',
     'mailingmaker/brands.js' => '23eca1cf18bfc21cd52ef5db4a4c83c33d814a4a94398de7dead12787275d648',
     'mailingmaker/brands_inc.php' => '5ba139a7713f707816ddff150cfe1443f91c8c43461d539bd2bc4ffac37e53a4',

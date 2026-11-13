@@ -36,6 +36,12 @@ $lgAcc   = preg_match('/^#[0-9a-fA-F]{6}$/', (string)g7_setting('accent_color'))
 ?>
 <?php
 // CSP estricta en modo BLOQUEO (fase 2, SEC-24): login.php no tiene scripts ni eventos en línea; cualquier script inyectado no corre.
+if (!headers_sent()) {
+    header('Cache-Control: no-store, max-age=0');                 // ni el navegador ni un proxy guardan la página del login
+    header('Cross-Origin-Opener-Policy: same-origin');             // una pestaña abierta desde otro sitio no puede manejar esta
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+}
+if (!defined('G7_CSP_ENFORCED')) define('G7_CSP_ENFORCED', 1);
 if (!headers_sent()) header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
     . "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'");
 ?>

@@ -15,7 +15,7 @@ const G7_CSP_POLICY = "default-src 'self'; "
     . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; "
     . "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; "
     . "img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; worker-src 'self' blob:; "
-    . "object-src 'none'; base-uri 'self'; report-uri /toolz/csp_report.php";
+    . "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; report-uri /toolz/csp_report.php";
 
 function g7_csp_until(): int {
     $r = g7_priv_read(G7_CSP_STATE);
