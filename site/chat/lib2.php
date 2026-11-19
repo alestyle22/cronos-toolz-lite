@@ -176,8 +176,15 @@ function ch_dispatch(): void {
             $ids = array_map('intval', $old->fetchAll(PDO::FETCH_COLUMN));
             if ($ids) {
                 $in = implode(',', $ids);
-                foreach ($db->query("SELECT stored FROM g7_ch_files WHERE message_id IN ($in)") as $f) if (!str_starts_with($f['stored'], 'legacy:')) @unlink(CH_FILES . '/' . $f['stored']);
+                $stored = array_values(array_unique($db->query("SELECT stored FROM g7_ch_files WHERE message_id IN ($in)")->fetchAll(PDO::FETCH_COLUMN)));
                 $db->exec("DELETE FROM g7_ch_files WHERE message_id IN ($in)");
+                // Un reenvío comparte el archivo físico con el original (api2.php forward): solo se borra del disco si ya nadie lo usa
+                $still = $db->prepare('SELECT 1 FROM g7_ch_files WHERE stored = ? LIMIT 1');
+                foreach ($stored as $st) {
+                    if (str_starts_with((string)$st, 'legacy:')) continue;
+                    $still->execute([$st]);
+                    if (!$still->fetchColumn()) @unlink(CH_FILES . '/' . $st);
+                }
                 $db->exec("DELETE FROM g7_ch_reactions WHERE message_id IN ($in)");
                 $db->exec("UPDATE g7_ch_messages SET body = '', meta = NULL, deleted_at = COALESCE(deleted_at, NOW()), pinned_at = NULL WHERE id IN ($in)");
                 ch_audit(0, 'retention', null, count($ids) . ' mensajes', 'Política: ' . $pol['retention_days'] . ' días');

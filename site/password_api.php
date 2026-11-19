@@ -16,6 +16,9 @@ if ($act === 'state') $out(['days' => g7_pass_days(), 'left' => g7_pass_days_lef
 if ($act === 'change') {
     $why = g7_pass_change($db, $uid, (string)($in['current'] ?? ''), (string)($in['new'] ?? ''), (string)($in['confirm'] ?? ''));
     if ($why !== null) $out(['error' => $why], 422);
-    $out(['ok' => true, 'left' => g7_pass_days_left($db, $uid)]);
+    // Con la contraseña nueva, las sesiones abiertas en otros dispositivos se cierran (Mi perfil › Dónde iniciaste sesión)
+    $closed = 0;
+    if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; try { $closed = g7_lh_close_others($db, $uid, (string)($_SESSION['g7_login_sid'] ?? ''), 'password'); g7_td_revoke($db, $uid); } catch (Throwable $e) {} }
+    $out(['ok' => true, 'left' => g7_pass_days_left($db, $uid), 'closed' => $closed]);
 }
 $out(['error' => 'Acción desconocida.'], 400);

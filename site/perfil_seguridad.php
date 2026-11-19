@@ -1,6 +1,8 @@
 <?php
 /* perfil_seguridad.php — Sección "Seguridad" de Mi perfil (user_config.php): verificación en dos pasos (TOTP).
    Habla con totp_api.php. Doc: toolz/SEGURIDAD_2FA.md */
+// Abierta sola (enlaces viejos del aviso de ingreso nuevo) no es una página: se va a Mi perfil › Seguridad
+if (realpath((string)($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__) { header('Location: /toolz/user_config.php#seguridad', true, 302); exit; }
 ?>
 <style>#sec-seguridad .cfg-input{background:var(--g7-bg-4);border:1px solid var(--g7-border-3);color:var(--g7-text);border-radius:8px;padding:8px 10px;font:inherit;width:100%}</style>
 <section class="cfg-section" id="sec-seguridad">

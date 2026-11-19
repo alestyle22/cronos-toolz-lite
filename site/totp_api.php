@@ -76,6 +76,7 @@ try {
         if (!g7_totp_check($db, $uid, (string)($in['code'] ?? ''))) { g7_login_fail('2fa-cfg:' . $uid); $out(['error' => 'El código no es correcto.'], 400); }
         g7_totp_disable($db, $uid);
         g7_audit('auth.2fa_off', 'user:' . $uid, null, $uid);
+        if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_td_revoke($db, $uid); }   // los dispositivos de confianza ya no tienen sentido
         $out(['ok' => true] + $state());
     }
 
@@ -106,6 +107,7 @@ try {
         if (!$t->fetchColumn()) $out(['error' => 'Esa persona no existe.'], 404);
         g7_totp_disable($db, $id);
         g7_audit('auth.2fa_reset', 'user:' . $id, null, $uid);
+        if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_td_revoke($db, $id); }
         $out(['ok' => true] + $state());
     }
 

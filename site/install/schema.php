@@ -402,7 +402,7 @@ SQL,
 CREATE TABLE IF NOT EXISTS `g7_posts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
-  `body` varchar(140) NOT NULL,
+  `body` text NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `img` varchar(500) DEFAULT '',
   `pinned` tinyint(1) NOT NULL DEFAULT 0,

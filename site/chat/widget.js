@@ -216,6 +216,7 @@
     drawMsgs(true);
     try {
       const r = await api('send', { conv, body: m.body, client_id: m.client_id, files: (m.files || []).map(f => f.id) });
+      beep('sent');
       if (S.open !== conv) return;
       const i = S.msgs.indexOf(m);
       if (S.msgs.some(x => x.id === r.message.id)) S.msgs.splice(i, 1); else S.msgs[i] = r.message;
@@ -254,8 +255,10 @@
     timer = setTimeout(sync, failN ? Math.min(60000, base * 2 ** failN) + Math.random() * 2000 : base);
   }
   let audio = null;
-  function beep() {
+  function beep(kind = 'chat') {
     if (S.prefs.sound === false) return;
+    if (window.G7Juice && G7Juice.alert) { G7Juice.alert(kind); return; }   // sonidos de g7-juice.js
+    if (kind === 'sent') return;
     try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.06, audio.currentTime); g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .25); o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + .26); } catch (e) {}
   }
   async function sync() {
@@ -278,7 +281,7 @@
           if (i >= 0) S.msgs[i] = m; else S.msgs.push(m);
         }
         const c = S.convs[m.conv_id];
-        if (m.user_id !== S.me && !m.deleted && c && !c.muted && (m.conv_id !== S.open || $('ccw-panel').hidden || document.hidden) && new Date() - P(m.created_at) < 120000) ding = true;
+        if (m.user_id !== S.me && !m.deleted && c && !c.muted && (m.conv_id !== S.open || $('ccw-panel').hidden || document.hidden) && new Date() - P(m.created_at) < 120000) ding = c.kind === 'dm' ? 'dm' : (ding || 'chat');
       }
       if (r.reads) S.reads = r.reads;
       if (S.open && !$('ccw-panel').hidden) {
@@ -287,7 +290,7 @@
         if (!$('ccw-typing').style.color) $('ccw-typing').textContent = t.length ? t.join(', ') + (t.length > 1 ? ' están escribiendo…' : ' está escribiendo…') : '';
         markRead();
       }
-      if (ding) beep();
+      if (ding) beep(ding);
       drawBadge(); drawHeads();
       if (!$('ccw-panel').hidden && !S.open) drawList();
       if (r.more) { busy = false; return sync(); }

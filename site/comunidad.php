@@ -12,16 +12,107 @@ $coverFolder  = __DIR__ . '/covers/';
 if (!is_dir($avatarFolder)) mkdir($avatarFolder, 0755, true);
 if (!is_dir($coverFolder))  mkdir($coverFolder,  0755, true);
 
-function pushNotif($db,$toId,$fromId,$type,$targetId,$profileId,$body){
-    if($toId==$fromId)return;
-    try{$db->prepare('INSERT INTO g7_notifications (user_id,from_id,type,target_id,profile_id,body) VALUES (?,?,?,?,?,?)')->execute([$toId,$fromId,$type,$targetId,$profileId,mb_substr($body,0,280)]);}catch(Exception $e){}
-}
+require_once __DIR__ . '/comunidad_lib.php';   // reconocimientos, feed, menciones y perfil (Comunidad 2)
+require_once __DIR__ . '/profile_fields_lib.php';   // herramientas, aptitudes y formulario de perfil compartido
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ct=$_SERVER['CONTENT_TYPE']??'';
     $isJson=strpos($ct,'application/json')!==false;
     $input=$isJson?json_decode(file_get_contents('php://input'),true):null;
     $action=$_POST['action']??($input['action']??'');
+    cm_install3($db);
+
+    // ── Comunidad 3: encuestas, café, sincronización ──
+    if ($action==='add_poll') {
+        $qtext = trim((string)($input['body'] ?? '')); $opts = array_values(array_filter(array_map(fn($o) => mb_substr(trim((string)$o), 0, 80), (array)($input['options'] ?? [])), 'strlen'));
+        if (mb_strlen($qtext) < 3 || mb_strlen($qtext) > 280) { echo json_encode(['error' => 'Escribí la pregunta (3 a 280 caracteres).']); exit; }
+        if (count($opts) < 2 || count($opts) > 6) { echo json_encode(['error' => 'La encuesta necesita entre 2 y 6 opciones.']); exit; }
+        if (count(array_unique(array_map('mb_strtolower', $opts))) !== count($opts)) { echo json_encode(['error' => 'Hay opciones repetidas.']); exit; }
+        $id = cm_auto_post($db, (int)$currentUser['id'], 'poll', '', $qtext, '', ['options' => $opts, 'multi' => !empty($input['multi'])]);
+        cm_notify_mentions($db, $qtext, (int)$currentUser['id'], 'mention_post', $id);
+        try { $db->prepare('INSERT INTO g7_activity (user_id,type,target_name,meta) VALUES (?,?,?,?)')->execute([$currentUser['id'], 'poll', mb_substr($qtext, 0, 60), 'poll']); } catch (Throwable $e) {}
+        $row = $db->prepare('SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.id=?'); $row->execute([$id]);
+        echo json_encode(['status' => 'success', 'post' => cm_hydrate($db, [$row->fetch()], (int)$currentUser['id'])[0]]); exit;
+    }
+    if ($action==='vote_poll') {
+        $pid = (int)($input['post_id'] ?? 0); $opt = (int)($input['opt'] ?? -1);
+        $q = $db->prepare("SELECT id,user_id,meta FROM g7_posts WHERE id=? AND kind='poll'"); $q->execute([$pid]); $p = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$p) { echo json_encode(['error' => 'Esa encuesta ya no está.']); exit; }
+        $st = cm_poll_state($db, $p, (int)$currentUser['id']);
+        if ($opt < 0 || $opt >= count($st['options'])) { echo json_encode(['error' => 'Opción inválida']); exit; }
+        $had = in_array($opt, $st['mine'], true); $firstVote = !$st['mine'];
+        if ($had) $db->prepare('DELETE FROM g7_cm_votes WHERE post_id=? AND user_id=? AND opt=?')->execute([$pid, $currentUser['id'], $opt]);
+        else { if (!$st['multi']) $db->prepare('DELETE FROM g7_cm_votes WHERE post_id=? AND user_id=?')->execute([$pid, $currentUser['id']]);
+            $db->prepare('INSERT IGNORE INTO g7_cm_votes (post_id,user_id,opt) VALUES (?,?,?)')->execute([$pid, $currentUser['id'], $opt]); }
+        if ($firstVote && !$had) {
+            if (function_exists('g7AwardXP')) try { g7AwardXP($db, (int)$currentUser['id'], 2, 'encuesta', $pid); } catch (Throwable $e) {}
+            // a quien preguntó le avisa cada 5 votos
+            $nv = (int)$db->query('SELECT COUNT(DISTINCT user_id) FROM g7_cm_votes WHERE post_id=' . $pid)->fetchColumn();
+            if ($nv % 5 === 0) pushNotif($db, (int)$p['user_id'], (int)$currentUser['id'], 'poll_vote', $pid, 0, 'Tu encuesta ya tiene ' . $nv . ' votos');
+        }
+        echo json_encode(['status' => 'success', 'poll' => cm_poll_state($db, $p, (int)$currentUser['id'])]); exit;
+    }
+    if ($action==='coffee_done') {
+        $c = cm_coffee_mine($db, (int)$currentUser['id']); if (!$c) { echo json_encode(['error' => 'No tenés café esta semana.']); exit; }
+        $r = $db->prepare('SELECT a FROM g7_cm_coffee WHERE id=?'); $r->execute([$c['id']]); $isA = (int)$r->fetchColumn() === (int)$currentUser['id'];
+        $db->prepare('UPDATE g7_cm_coffee SET ' . ($isA ? 'done_a' : 'done_b') . ' = 1 WHERE id=?')->execute([$c['id']]);
+        if (!$c['done'] && function_exists('g7AwardXP')) try { g7AwardXP($db, (int)$currentUser['id'], 15, 'cafe', $c['id']); } catch (Throwable $e) {}
+        echo json_encode(['status' => 'success', 'coffee' => cm_coffee_mine($db, (int)$currentUser['id'])]); exit;
+    }
+
+    // ── Comunidad 2 ──
+    if ($action==='feed_page') {
+        try { cm_auto_sync($db); } catch (Throwable $e) {}
+        $f = (string)($input['filter'] ?? 'all'); if (!in_array($f, ['all', 'kudos', 'mentions', 'img', 'mine', 'polls', 'auto'], true)) $f = 'all';
+        echo json_encode(cm_feed($db, $currentUser, $f, mb_substr(trim((string)($input['q'] ?? '')), 0, 60), (int)($input['before'] ?? 0))); exit;
+    }
+    // Para el chat y otras páginas (chat/comm.js): resumen de una persona y vista previa de una publicación
+    if ($action==='mini_profile') {
+        $id = (int)($input['user_id'] ?? 0);
+        $u = $db->prepare('SELECT id,username,display_name,avatar,position FROM g7_users WHERE id=? AND active=1'); $u->execute([$id]); $u = $u->fetch(PDO::FETCH_ASSOC);
+        if (!$u) { echo json_encode(['error' => 'not found']); exit; }
+        $x = cm_profile_extra($db, $id);
+        $pc = $db->prepare('SELECT COUNT(*) FROM g7_posts WHERE user_id=?'); $pc->execute([$id]);
+        echo json_encode(['id' => (int)$u['id'], 'name' => $u['display_name'] ?: $u['username'], 'username' => $u['username'], 'avatar' => (string)$u['avatar'], 'position' => (string)$u['position'],
+            'level' => $x['level'] ? ['label' => $x['level']['label'] ?? '', 'emoji' => $x['level']['emoji'] ?? '', 'color' => $x['level']['color'] ?? ''] : null, 'xp' => $x['xp'], 'medals' => $x['medals'],
+            'kudos_n' => $x['kudos_n'], 'kudos' => array_slice($x['kudos'], 0, 3), 'posts' => (int)$pc->fetchColumn(), 'ach' => array_slice($x['ach'], 0, 4), 'me' => (int)$currentUser['id'], 'kudos_list' => CM_KUDOS]); exit;
+    }
+    // Para la pantalla de inicio del chat (chat/chat-plus.js): cumpleaños, pregunta del día y café de la semana
+    if ($action==='today') {
+        try { cm_auto_sync($db); } catch (Throwable $e) {}
+        echo json_encode(cm_today($db, (int)$currentUser['id'])); exit;
+    }
+    // "Quién sabe qué" (assets/cm-skills.js): todas las personas con sus herramientas y aptitudes, y la afinidad conmigo
+    if ($action==='skills_people') {
+        $all = pf_people($db); $me = null; foreach ($all as $p) if ($p['id'] === (int)$currentUser['id']) $me = $p;
+        foreach ($all as &$p) $p['aff'] = ($me && $p['id'] !== $me['id']) ? pf_affinity($me, $p)['pct'] : null; unset($p);
+        echo json_encode(['people' => $all, 'me' => (int)$currentUser['id']], JSON_UNESCAPED_UNICODE); exit;
+    }
+    if ($action==='mini_post') {
+        $q = $db->prepare('SELECT p.id,p.body,p.img,p.kind,p.badge,p.created_at,p.target_user_id,u.id uid,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.id=?'); $q->execute([(int)($input['post_id'] ?? 0)]);
+        $p = $q->fetch(PDO::FETCH_ASSOC); if (!$p) { echo json_encode(['error' => 'not found']); exit; }
+        $t = null; if ($p['target_user_id']) { $tq = $db->prepare('SELECT COALESCE(NULLIF(display_name,\'\'),username) FROM g7_users WHERE id=?'); $tq->execute([(int)$p['target_user_id']]); $t = $tq->fetchColumn(); }
+        $rx = $db->prepare('SELECT COUNT(*) FROM g7_post_reactions WHERE post_id=?'); $rx->execute([(int)$p['id']]);
+        $rp = $db->prepare('SELECT COUNT(*) FROM g7_post_replies WHERE post_id=?'); $rp->execute([(int)$p['id']]);
+        echo json_encode(['id' => (int)$p['id'], 'body' => mb_substr((string)$p['body'], 0, 220), 'img' => (string)$p['img'], 'kind' => $p['kind'], 'badge' => CM_KUDOS[$p['badge']] ?? null, 'target' => $t, 'created_at' => $p['created_at'],
+            'author' => ['id' => (int)$p['uid'], 'name' => $p['display_name'] ?: $p['username'], 'avatar' => (string)$p['avatar']], 'reactions' => (int)$rx->fetchColumn(), 'replies' => (int)$rp->fetchColumn()]); exit;
+    }
+    if ($action==='edit_post') {
+        $pid = (int)($input['post_id'] ?? 0); $body = trim((string)($input['body'] ?? ''));
+        $row = $db->prepare('SELECT user_id,img FROM g7_posts WHERE id=?'); $row->execute([$pid]); $p = $row->fetch();
+        if (!$p || (int)$p['user_id'] !== (int)$currentUser['id']) { echo json_encode(['error' => 'Solo podés editar tus publicaciones.']); exit; }
+        if (mb_strlen($body) > CM_MAX_POST) { echo json_encode(['error' => 'El texto pasa de ' . CM_MAX_POST . ' caracteres']); exit; }
+        if ($body === '' && !$p['img']) { echo json_encode(['error' => 'La publicación no puede quedar vacía.']); exit; }
+        $db->prepare('UPDATE g7_posts SET body=?,edited_at=NOW() WHERE id=?')->execute([$body, $pid]);
+        echo json_encode(['status' => 'success', 'body' => $body, 'edited_at' => date('Y-m-d H:i:s')]); exit;
+    }
+    if ($action==='give_kudos') {
+        // Reglas, aviso y actividad en comunidad_lib.php (cm_give_kudos): las comparte con Bienestar
+        try { $id = cm_give_kudos($db, (int)$currentUser['id'], (int)($input['user_id'] ?? 0), (string)($input['badge'] ?? ''), (string)($input['reason'] ?? '')); }
+        catch (RuntimeException $e) { echo json_encode(['error' => $e->getMessage()]); exit; }
+        $row = $db->prepare('SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.id=?'); $row->execute([$id]);
+        echo json_encode(['status' => 'success', 'post' => cm_hydrate($db, [$row->fetch()], (int)$currentUser['id'])[0]]); exit;
+    }
 
     if ($action==='save_profile') {
         // Avatar y portada: solo rutas de archivos subidos acá. Cualquier otra cosa (URL externa, comillas, javascript:) deja la que estaba.
@@ -37,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($why = g7_upload_store($_FILES[$fk], $fdir, $nm)) { echo json_encode(['status'=>'error','error'=>$why]); exit; }
             if ($fk === 'avatar') $avatarPath = $furl.$nm; else $coverPath = $furl.$nm;
         }
-        $skillsJson=json_encode(json_decode($_POST['skills_json']??'{}',true));
+        $skillsJson=json_encode((object)pf_clean_tools($_POST['skills_json']??'{}'));   // solo herramientas de la lista (profile_fields_lib.php)
         // Email válido o vacío; portfolio solo http(s); redes sin caracteres que rompan un atributo
         $pfEmail=trim((string)($_POST['email']??''));if($pfEmail!==''&&!filter_var($pfEmail,FILTER_VALIDATE_EMAIL)){echo json_encode(['status'=>'error','error'=>'El email no es válido.']);exit;}
         if($pfEmail!==''){$dup=$db->prepare('SELECT id FROM g7_users WHERE (email=? OR username=?) AND id<>? LIMIT 1');$dup->execute([$pfEmail,$pfEmail,$currentUser['id']]);if($dup->fetch()){echo json_encode(['status'=>'error','error'=>'Ese email ya lo usa otra persona.']);exit;}}
@@ -46,6 +137,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach(['instagram','behance','linkedin'] as $sk)$_POST[$sk]=preg_replace('/[^A-Za-z0-9_.\-@\/:]/','',(string)($_POST[$sk]??''));
         $db->prepare('UPDATE g7_users SET display_name=?,phone=?,bio=?,position=?,location=?,avatar=?,cover=?,email=?,instagram=?,behance=?,linkedin=?,portfolio=?,skills=?,skills_json=? WHERE id=?')
            ->execute([trim($_POST['display_name']??''),trim($_POST['phone']??''),trim($_POST['bio']??''),trim($_POST['position']??''),trim($_POST['location']??''),$avatarPath,$coverPath,trim($_POST['email']??''),trim($_POST['instagram']??''),trim($_POST['behance']??''),trim($_POST['linkedin']??''),trim($_POST['portfolio']??''),trim($_POST['skills']??''),$skillsJson,$currentUser['id']]);
+        // cumpleaños (se usa día y mes) y fecha de ingreso al equipo
+        $okD=fn($v)=>preg_match('/^\d{4}-\d{2}-\d{2}$/',(string)$v)&&strtotime((string)$v)?(string)$v:null;
+        // solo si vinieron en el pedido: cambiar la portada sola no los borra
+        try{if(array_key_exists('birthday',$_POST))$db->prepare('UPDATE g7_users SET birthday=? WHERE id=?')->execute([$okD($_POST['birthday']),$currentUser['id']]);
+            if(array_key_exists('joined',$_POST))$db->prepare('UPDATE g7_users SET joined_at=? WHERE id=?')->execute([$okD($_POST['joined']),$currentUser['id']]);}catch(Throwable $e){}
+        // aptitudes (lo que sabe hacer, más allá de las herramientas)
+        if(array_key_exists('aptitudes_json',$_POST)){pf_install($db);try{$db->prepare('UPDATE g7_users SET aptitudes=? WHERE id=?')->execute([json_encode(pf_clean_aptitudes($_POST['aptitudes_json']),JSON_UNESCAPED_UNICODE),$currentUser['id']]);}catch(Throwable $e){}}
         echo json_encode(['status'=>'success','avatar'=>$avatarPath,'cover'=>$coverPath]); exit;
     }
     if ($action==='get_profile') {
@@ -60,7 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach($postList as &$post){try{$r=$db->prepare("SELECT emoji,COUNT(*) as cnt FROM g7_post_reactions WHERE post_id=? GROUP BY emoji");$r->execute([$post['id']]);$post['reactions']=$r->fetchAll();$mr=$db->prepare("SELECT emoji FROM g7_post_reactions WHERE post_id=? AND user_id=?");$mr->execute([$post['id'],$currentUser['id']]);$post['my_reaction']=$mr->fetchColumn();}catch(Exception $e){$post['reactions']=[];$post['my_reaction']=false;}$post['replies']=[];}
         $work=null; if (is_file(__DIR__.'/trabajo/lib.php')) { try { require_once __DIR__.'/trabajo/user_work_lib.php'; $work=wk_user_work($db,(int)$currentUser['id'],$uid); } catch (Throwable $e) { $work=null; } }   // en qué trabaja (con los permisos de quien mira)
         $profile['loc']=g7_tz_public(g7_tz_row($uid));   // país, zona y hora local (ciudad solo si la comparte): tz_lib.php
-        echo json_encode(['work'=>$work,'profile'=>$profile,'content'=>$items,'comments'=>$crows->fetchAll(),'stats'=>['clicks'=>$s1->fetchColumn(),'content'=>$s2->fetchColumn(),'favs'=>$s3->fetchColumn()],'posts'=>$postList]);exit;
+        $extra = cm_profile_extra($db, $uid);   // estado, rango, logros y reconocimientos (comunidad_lib.php)
+        $pq = $db->prepare('SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.user_id=? ORDER BY p.created_at DESC LIMIT 15'); $pq->execute([$uid]);
+        $postList = cm_hydrate($db, $pq->fetchAll(), (int)$currentUser['id']);
+        echo json_encode(['extra'=>$extra,'work'=>$work,'profile'=>$profile,'content'=>$items,'comments'=>$crows->fetchAll(),'stats'=>['clicks'=>$s1->fetchColumn(),'content'=>$s2->fetchColumn(),'favs'=>$s3->fetchColumn()],'posts'=>$postList]);exit;
     }
     if ($action==='add_post') {
         $body=trim($_POST['body']??($input['body']??''));$imgPath='';
@@ -73,11 +174,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         // Mucho texto que pasa el límite no se corta en silencio: se avisa
-        if (mb_strlen($body) > 140) { echo json_encode(['status'=>'error','error'=>'El texto pasa de 140 caracteres']); exit; }
-        if(($body!==''||$imgPath!=='')&&mb_strlen($body)<=140){
+        if (mb_strlen($body) > CM_MAX_POST) { echo json_encode(['status'=>'error','error'=>'El texto pasa de '.CM_MAX_POST.' caracteres']); exit; }
+        // Doble clic o reenvío: la misma publicación en los últimos 2 minutos no se repite
+        if ($body !== '' && $imgPath === '') { $dq = $db->prepare('SELECT COUNT(*) FROM g7_posts WHERE user_id=? AND body=? AND created_at > DATE_SUB(NOW(), INTERVAL 2 MINUTE)'); $dq->execute([$currentUser['id'], $body]); if ((int)$dq->fetchColumn()) { echo json_encode(['status'=>'error','error'=>'Ya publicaste eso recién.']); exit; } }
+        if(($body!==''||$imgPath!=='')&&mb_strlen($body)<=CM_MAX_POST){
             try{$db->prepare('INSERT INTO g7_posts (user_id,body,img) VALUES (?,?,?)')->execute([$currentUser['id'],$body,$imgPath]);}catch(Exception $e){$db->prepare('INSERT INTO g7_posts (user_id,body) VALUES (?,?)')->execute([$currentUser['id'],$body]);$imgPath='';}
             $newId=$db->lastInsertId();$row=$db->prepare('SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.id=?');$row->execute([$newId]);$post=$row->fetch();$post['img']=$imgPath;$post['replies']=[];$post['reactions']=[];$post['my_reaction']=false;
             try{$db->prepare('INSERT INTO g7_activity (user_id,type,target_name,meta) VALUES (?,?,?,?)')->execute([$currentUser['id'],'post_create',mb_substr($body,0,60),'post']);}catch(Exception $e){}
+            cm_notify_mentions($db, $body, (int)$currentUser['id'], 'mention_post', (int)$newId);
+            $post['kind']='post';$post['target']=null;
             echo json_encode(['status'=>'success','post'=>$post]);exit;
         }
         echo json_encode(['error'=>'invalid']);exit;
@@ -88,17 +193,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         else echo json_encode(['error'=>'forbidden']);exit;
     }
     if ($action==='react') {
-        $pid=(int)($input['post_id']??0);$emoji=trim($input['emoji']??'like');
-        $existing=$db->prepare('SELECT emoji FROM g7_post_reactions WHERE post_id=? AND user_id=?');$existing->execute([$pid,$currentUser['id']]);$cur=$existing->fetchColumn();
-        if($cur===$emoji){$db->prepare('DELETE FROM g7_post_reactions WHERE post_id=? AND user_id=?')->execute([$pid,$currentUser['id']]);$newEmoji=null;}
-        else{$db->prepare('INSERT INTO g7_post_reactions (post_id,user_id,emoji) VALUES (?,?,?) ON DUPLICATE KEY UPDATE emoji=VALUES(emoji)')->execute([$pid,$currentUser['id'],$emoji]);$newEmoji=$emoji;}
-        $r=$db->prepare("SELECT emoji,COUNT(*) as cnt FROM g7_post_reactions WHERE post_id=? GROUP BY emoji");$r->execute([$pid]);
-        echo json_encode(['status'=>'success','reactions'=>$r->fetchAll(),'my_reaction'=>$newEmoji]);exit;
+        try { $r = cm_react($db, (int)$currentUser['id'], (int)($input['post_id'] ?? 0), (string)($input['emoji'] ?? 'like')); }   // comunidad_lib.php (también lo usa Bienestar)
+        catch (RuntimeException $e) { echo json_encode(['error' => $e->getMessage()]); exit; }
+        echo json_encode(['status'=>'success','reactions'=>$r['reactions'],'my_reaction'=>$r['my_reaction']]);exit;
     }
     if ($action==='add_reply') {
-        $pid=(int)($input['post_id']??0);$body=trim($input['body']??'');
-        if($pid&&$body&&mb_strlen($body)<=280){$db->prepare('INSERT INTO g7_post_replies (post_id,user_id,body) VALUES (?,?,?)')->execute([$pid,$currentUser['id'],$body]);$newId=$db->lastInsertId();$row=$db->prepare('SELECT r.*,u.username,u.display_name,u.avatar FROM g7_post_replies r JOIN g7_users u ON u.id=r.user_id WHERE r.id=?');$row->execute([$newId]);echo json_encode(['status'=>'success','reply'=>$row->fetch()]);exit;}
-        echo json_encode(['error'=>'invalid']);exit;
+        try { $reply = cm_add_reply($db, (int)$currentUser['id'], (int)($input['post_id'] ?? 0), (string)($input['body'] ?? '')); }   // comunidad_lib.php: avisa a quien publicó y a los mencionados
+        catch (RuntimeException $e) { echo json_encode(['error'=>$e->getMessage()]); exit; }
+        echo json_encode(['status'=>'success','reply'=>$reply]);exit;
     }
     if ($action==='delete_reply') {
         $rid=(int)($input['reply_id']??0);$row=$db->prepare('SELECT user_id FROM g7_post_replies WHERE id=?');$row->execute([$rid]);$r=$row->fetch();
@@ -106,9 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         else echo json_encode(['error'=>'forbidden']);exit;
     }
     if ($action==='get_posts') {
-        $since=$input['since']??'2000-01-01';$rows=$db->prepare("SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.created_at>? ORDER BY p.created_at DESC LIMIT 20");$rows->execute([$since]);$postList=$rows->fetchAll();
-        foreach($postList as &$post){try{$r=$db->prepare("SELECT emoji,COUNT(*) as cnt FROM g7_post_reactions WHERE post_id=? GROUP BY emoji");$r->execute([$post['id']]);$post['reactions']=$r->fetchAll();$mr=$db->prepare("SELECT emoji FROM g7_post_reactions WHERE post_id=? AND user_id=?");$mr->execute([$post['id'],$currentUser['id']]);$post['my_reaction']=$mr->fetchColumn();}catch(Exception $e){$post['reactions']=[];$post['my_reaction']=false;}$post['replies']=[];}
-        echo json_encode(['posts'=>$postList]);exit;
+        $since=$input['since']??'2000-01-01';$rows=$db->prepare("SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id WHERE p.created_at>? ORDER BY p.created_at DESC LIMIT 20");$rows->execute([$since]);
+        echo json_encode(['posts'=>cm_hydrate($db,$rows->fetchAll(),(int)$currentUser['id'])]);exit;
     }
     if ($action==='add_comment') {
         $profileId=(int)($input['profile_id']??0);$parentId=$input['parent_id']?(int)$input['parent_id']:null;$body=trim($input['body']??'');
@@ -185,27 +286,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action==='get_notifications') {
         try{
-            $rows=$db->prepare("SELECT n.*,u.username,u.display_name,u.avatar FROM g7_notifications n LEFT JOIN g7_users u ON u.id=n.from_id WHERE n.user_id=? ORDER BY n.created_at DESC LIMIT 20");
+            // Solo lo de la Comunidad: los avisos de tickets, ingresos, etc. están en la campanita de arriba
+            $tin="'".implode("','",CM_NOTIF_TYPES)."'";
+            $rows=$db->prepare("SELECT n.*,u.username,u.display_name,u.avatar FROM g7_notifications n LEFT JOIN g7_users u ON u.id=n.from_id WHERE n.user_id=? AND n.type IN ($tin) ORDER BY n.created_at DESC LIMIT 20");
             $rows->execute([$currentUser['id']]);$notifs=$rows->fetchAll();
-            $unread=$db->prepare("SELECT COUNT(*) FROM g7_notifications WHERE user_id=? AND read_at IS NULL");
+            $unread=$db->prepare("SELECT COUNT(*) FROM g7_notifications WHERE user_id=? AND read_at IS NULL AND type IN ($tin)");
             $unread->execute([$currentUser['id']]);
             echo json_encode(['notifications'=>$notifs,'unread'=>(int)$unread->fetchColumn()]);
         }catch(Exception $e){echo json_encode(['notifications'=>[],'unread'=>0]);}
         exit;
     }
     if ($action==='mark_notifications_read') {
-        try{$db->prepare("UPDATE g7_notifications SET read_at=NOW() WHERE user_id=? AND read_at IS NULL")->execute([$currentUser['id']]);}catch(Exception $e){}
+        try{$db->prepare("UPDATE g7_notifications SET read_at=NOW() WHERE user_id=? AND read_at IS NULL AND type IN ('".implode("','",CM_NOTIF_TYPES)."')")->execute([$currentUser['id']]);}catch(Exception $e){}
         echo json_encode(['status'=>'success']); exit;
     }
 }
 
 $meRow=$db->prepare('SELECT * FROM g7_users WHERE id=?');$meRow->execute([$currentUser['id']]);$me=$meRow->fetch()??[];try{$db->prepare('UPDATE g7_users SET last_seen=NOW() WHERE id=?')->execute([$currentUser['id']]);}catch(Exception $e){}
 try{$users=$db->query("SELECT id,username,display_name,email,phone,bio,position,location,avatar,cover,role,last_login,instagram,behance,linkedin,portfolio,skills,skills_json,active,availability,focus_text,mood,last_seen FROM g7_users WHERE active=1 ORDER BY display_name,username")->fetchAll();}catch(Exception $e){$users=$db->query("SELECT id,username,display_name,email,phone,bio,position,location,avatar,cover,role,last_login,instagram,behance,linkedin,portfolio,skills,skills_json,active FROM g7_users WHERE active=1 ORDER BY display_name,username")->fetchAll();foreach($users as &$ur){$ur['availability']='available';$ur['focus_text']='';$ur['mood']='';$ur['last_seen']=null;}}
-try{$feedPosts=$db->query("SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id ORDER BY p.pinned DESC, p.created_at DESC LIMIT 30")->fetchAll();}catch(Exception $e){$feedPosts=$db->query("SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 30")->fetchAll();foreach($feedPosts as &$fp){$fp['pinned']=0;$fp['pin_suggested']=0;}}
-foreach($feedPosts as &$post){try{$r=$db->prepare("SELECT emoji,COUNT(*) as cnt FROM g7_post_reactions WHERE post_id=? GROUP BY emoji");$r->execute([$post['id']]);$post['reactions']=$r->fetchAll();$mr=$db->prepare("SELECT emoji FROM g7_post_reactions WHERE post_id=? AND user_id=?");$mr->execute([$post['id'],$currentUser['id']]);$post['my_reaction']=$mr->fetchColumn();}catch(Exception $e){$post['reactions']=[];$post['my_reaction']=false;}try{$reps=$db->prepare("SELECT r.*,u.username,u.display_name,u.avatar FROM g7_post_replies r JOIN g7_users u ON u.id=r.user_id WHERE r.post_id=? ORDER BY r.created_at ASC");$reps->execute([$post['id']]);$post['replies']=$reps->fetchAll();}catch(Exception $e){$post['replies']=[];}}
+cm_install3($db); try { cm_auto_sync($db); } catch (Throwable $e) {} $cmFirst = cm_feed($db, $currentUser); $feedPosts = $cmFirst['posts'];
 $activity = g7GetRecentActivity($db, 30);
 $userStats=[];foreach($users as $u){try{$s1=$db->prepare("SELECT COUNT(*) FROM g7_link_clicks WHERE user_id=? AND clicked_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)");$s1->execute([$u['id']]);$s2=$db->prepare("SELECT COUNT(*) FROM g7_content WHERE author=?");$s2->execute([$u['username']]);$userStats[$u['id']]=['clicks'=>$s1->fetchColumn(),'content'=>$s2->fetchColumn()];}catch(Exception $e){$userStats[$u['id']]=['clicks'=>0,'content'=>0];}}
-$SKILLS_LIST=["Adobe Photoshop", "Adobe Illustrator", "Adobe InDesign", "Affinity Designer", "Affinity Photo", "CorelDRAW", "Figma", "Procreate", "HTML5", "CSS3", "JavaScript", "TypeScript", "React", "Vue.js", "Angular", "Svelte", "Node.js", "PHP", "Python", "Ruby", "Go", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Visual Studio Code", "Git", "GitHub", "Docker", "Tailwind CSS", "SASS", "Webpack", "Adobe Premiere Pro", "DaVinci Resolve", "Final Cut Pro", "Avid Media Composer", "Adobe After Effects", "Cinema 4D", "Blender", "Nuke", "Mocha Pro", "Adobe Lightroom", "Capture One Pro", "Photo Mechanic", "Unreal Engine", "Unity", "Godot", "C++", "C#", "GDScript", "HLSL", "GLSL", "Autodesk Maya", "3ds Max", "ZBrush", "Substance Painter", "Houdini", "Visual Studio"];
+$SKILLS_LIST=pf_tools_flat();   // profile_fields_lib.php
 $mySkillsJson=json_decode($me['skills_json']??'{}',true)??[];
 $myClicksStat=$db->prepare("SELECT COUNT(*) FROM g7_link_clicks WHERE user_id=? AND clicked_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)");$myClicksStat->execute([$currentUser['id']]);
 $myContentStat=$db->prepare("SELECT COUNT(*) FROM g7_content WHERE author=?");$myContentStat->execute([$currentUser['username']]);
@@ -475,6 +577,9 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
 [data-hov="ul"]:hover{text-decoration-color:#60a5fa!important}
 </style>
 <script src="/toolz/assets/g7-imgprep.js?v=1"></script>
+<link rel="stylesheet" href="/toolz/assets/cm-kudos.css?v=<?= (int)@filemtime(__DIR__ . '/assets/cm-kudos.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/comunidad-plus.css?v=<?= (int)@filemtime(__DIR__ . '/assets/comunidad-plus.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/comunidad-epic.css?v=<?= (int)@filemtime(__DIR__ . '/assets/comunidad-epic.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/topbar.php'; ?>
@@ -526,7 +631,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
         </select>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
-        <input type="text" id="my-focus" value="<?= htmlspecialchars($me['focus_text']??'') ?>" placeholder="¿En qué estás trabajando?" maxlength="140" style="flex:1;background:#18181b;border:1px solid #27272a;color:#e4e4e7;border-radius:7px;padding:5px 8px;font-size:11px;outline:none" data-on-keydown="updateMyStatus" data-keydown-key="Enter">
+        <input type="text" id="my-focus" value="<?= htmlspecialchars($me['focus_text']??'') ?>" placeholder="¿En qué estás trabajando?" maxlength="500" style="flex:1;background:#18181b;border:1px solid #27272a;color:#e4e4e7;border-radius:7px;padding:5px 8px;font-size:11px;outline:none" data-on-keydown="updateMyStatus" data-keydown-key="Enter">
         <button data-on-click="updateMyStatus" style="background:#ff6600;border:none;color:#000;border-radius:6px;padding:5px 8px;font-size:10px;font-weight:700;cursor:pointer">✓</button>
       </div>
     </div>
@@ -598,7 +703,8 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
       <div class="comp-footer">
         <div class="comp-actions">
           <button class="comp-action-btn" data-on-click="cmPick" data-click-1="s:post-img-input" title="Agregar imagen"><i class="fa-solid fa-image"></i></button>
-          <span class="char-count" id="char-count">140</span>
+          <button class="comp-action-btn cm-kudos-btn" type="button" id="cm-kudos-open" title="Reconocer a alguien del equipo"><i class="fa-solid fa-award"></i> Reconocer</button>
+          <span class="char-count" id="char-count">500</span>
         </div>
         <button class="pub-btn" id="pub-btn" data-on-click="submitPost" disabled>Publicar</button>
       </div>
@@ -613,82 +719,9 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
     </div>
 
     <!-- POSTS -->
-    <div id="feed-posts">
-      <?php foreach($feedPosts as $post):
-        $pname=$post['display_name']?:$post['username'];
-        $canDel=($post['user_id']==$currentUser['id']||$isAdmin);
-        $reactionMap=[];foreach($post['reactions'] as $r)$reactionMap[$r['emoji']]=$r['cnt'];
-        $emojis=['like'=>'👍','fire'=>'🔥','heart'=>'❤️','wow'=>'😮','clap'=>'👏'];
-        $replies=$post['replies']??[];
-      ?>
-      <div class="post-card" id="post-<?= $post['id'] ?>">
-        <div class="post-header">
-          <?= avHtml($post['avatar']??'',$pname,38) ?>
-          <div style="flex:1;min-width:0">
-            <div class="post-author-name" data-on-click="openProfile" data-click-1="n:<?= (int)$post['user_id'] ?>"><?= htmlspecialchars($pname) ?></div>
-            <div class="post-handle">@<?= htmlspecialchars($post['username']) ?> · <?= timeAgo($post['created_at']) ?></div>
-          </div>
-          <?php if($post['pinned']??0): ?><span title="Post fijado" style="color:#f59e0b;font-size:11px">📌</span><?php endif; ?>
-          <?php if($canDel): ?><button class="post-del" data-on-click="deletePost" data-click-1="n:<?= (int)$post['id'] ?>" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button><?php endif; ?>
-          <?php if($isAdmin): $pinTitle=($post['pinned']??0)?'Desfijar':'Fijar'; $pinColor=($post['pinned']??0)?'#f59e0b':'#3f3f46'; ?><button class="post-del" data-on-click="pinPost" data-click-1="n:<?= (int)$post['id'] ?>" data-click-2="this" title="<?= $pinTitle ?>" style="color:<?= $pinColor ?>"><i class="fa-solid fa-thumbtack"></i></button><?php endif; ?>
-          <?php if(!$isAdmin): ?><button class="post-del" data-on-click="suggestPin" data-click-1="n:<?= (int)$post['id'] ?>" data-click-2="this" title="Sugerir fijar"><i class="fa-solid fa-thumbtack" style="color:#3f3f46"></i></button><?php endif; ?>
-        </div>
-        <?php
-        // Step 1: linkify URLs on raw body using placeholder
-        $rawBody = $post['body'];
-        $pbHtml = preg_replace_callback('/https?:\/\/[^\s]+/', function($m){
-            $url = htmlspecialchars($m[0]);
-            $display = mb_strlen($url)>50 ? mb_substr($url,0,50).'...' : $url;
-            return "\x03".$url."\x03";
-        }, $rawBody);
-        // Step 2: htmlspecialchars on remaining text
-        $pbHtml = htmlspecialchars($pbHtml);
-        // Step 3: restore URL placeholders as links
-        $pbHtml = preg_replace_callback('/\x03(.*?)\x03/', function($m){
-            $url = $m[1];
-            $display = mb_strlen($url)>50 ? mb_substr($url,0,50).'...' : $url;
-            return '<a href="'.$url.'" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:underline;word-break:break-all">'.$display.'</a>';
-        }, $pbHtml);
-        // Step 4: @mention replacement
-        $pbHtml = preg_replace_callback('/@(\w+)/', function($m) use ($db){
-            $u=$db->prepare('SELECT id FROM g7_users WHERE username=?');
-            $u->execute([$m[1]]); $row=$u->fetch();
-            if($row) return '<span class="pm-tag" data-uid="'.$row['id'].'" style="color:#ff6600;font-weight:700;cursor:pointer">@'.htmlspecialchars($m[1]).'</span>';
-            return '@'.htmlspecialchars($m[1]);
-        }, $pbHtml);
-        ?>
-        <div class="post-body"><?= nl2br($pbHtml) ?></div>
-        <?php $postImg=$post['img']??''; if($postImg): ?><img src="<?= htmlspecialchars($postImg) ?>" class="post-img" data-on-click="openLightbox" data-click-1="s:<?= htmlspecialchars($postImg) ?>" data-on-error="cmHide" data-error-1="this"><?php endif; ?>
-        <div class="post-reactions" id="reactions-<?= $post['id'] ?>">
-          <?php foreach($emojis as $key=>$em): $cnt=$reactionMap[$key]??0; $active=$post['my_reaction']===$key; ?>
-          <button class="rxn-btn <?= $active?'active':'' ?>" data-on-click="reactToPost" data-click-1="n:<?= (int)$post['id'] ?>" data-click-2="s:<?= $key ?>"><?= $em ?><?php if($cnt>0): ?><span class="rxn-cnt"><?= $cnt ?></span><?php endif; ?></button>
-          <?php endforeach; ?>
-        </div>
-        <div class="post-replies">
-          <?php $repMb=count($replies)>0?'margin-bottom:8px':''; ?>
-          <div id="post-replies-<?= $post['id'] ?>" style="display:flex;flex-direction:column;gap:7px;<?= $repMb ?>">
-            <?php foreach($replies as $rep): $rname=$rep['display_name']?:$rep['username']; $canDelR=($rep['user_id']==$currentUser['id']||$isAdmin); ?>
-            <div class="reply-item" id="reply-<?= $rep['id'] ?>">
-              <?= avHtml($rep['avatar']??'',$rname,26) ?>
-              <div class="reply-bubble">
-                <div><span class="reply-author" data-on-click="openProfile" data-click-1="n:<?= (int)$rep['user_id'] ?>"><?= htmlspecialchars($rname) ?></span><span class="reply-time"><?= timeAgo($rep['created_at']) ?></span><?php if($canDelR): ?><button class="reply-del" data-on-click="deleteReply" data-click-1="n:<?= (int)$rep['id'] ?>"><i class="fa-solid fa-trash-can"></i></button><?php endif; ?></div>
-                <div class="reply-body"><?= htmlspecialchars($rep['body']) ?></div>
-              </div>
-            </div>
-            <?php endforeach; ?>
-          </div>
-          <button class="reply-toggle" data-on-click="toggleReplyBox" data-click-1="n:<?= (int)$post['id'] ?>"><i class="fa-solid fa-reply" style="font-size:10px"></i><?= count($replies)>0?count($replies).' respuesta'.(count($replies)>1?'s':'').' · ':'' ?>Responder</button>
-          <div class="reply-form" id="reply-box-<?= $post['id'] ?>">
-            <textarea class="reply-input" id="reply-input-<?= $post['id'] ?>" placeholder="Escribe una respuesta..." data-on-keydown="cmReplyKey" data-keydown-1="event" data-keydown-2="n:<?= (int)$post['id'] ?>"></textarea>
-            <button class="reply-send" data-on-click="submitReplyToPost" data-click-1="n:<?= (int)$post['id'] ?>"><i class="fa-solid fa-paper-plane"></i></button>
-          </div>
-        </div>
-      </div>
-      <?php endforeach; ?>
-      <?php if(empty($feedPosts)): ?>
-      <div style="text-align:center;color:#3f3f46;padding:40px;font-size:13px"><i class="fa-solid fa-pen-nib" style="display:block;font-size:24px;margin-bottom:10px;opacity:.3"></i>Sin publicaciones aún. ¡Sé el primero!</div>
-      <?php endif; ?>
-    </div>
+    <div class="cm-bar" id="cm-bar"></div>
+    <div id="feed-posts" aria-live="polite"></div>
+    <div class="cm-more-wrap"><button type="button" class="cm-more" id="cm-more" hidden>Cargar más</button></div>
 
     <!-- ACTIVITY (hidden by default) -->
     <div id="feed-activity" style="display:none">
@@ -781,6 +814,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
       <button id="team-toggle-btn" data-on-click="toggleFullTeam" style="background:none;border:none;color:#52525b;font-size:10px;cursor:pointer;font-weight:600;transition:color .15s" data-hov="fg">Ver todos</button>
     </div>
     <!-- Compact list -->
+    <label class="cm-team-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="cm-team-q" placeholder="Buscar en el equipo…" autocomplete="off"></label>
     <div id="team-compact">
       <?php foreach($users as $u): if($u['id']==$currentUser['id'])continue; $st=$userStats[$u['id']]??['clicks'=>0,'content'=>0]; ?>
       <?php
@@ -849,6 +883,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
         <div class="eg"><label>Email</label><input type="email" id="pf-email" value="<?= htmlspecialchars($me['email']??'') ?>"></div>
         <div class="eg"><label>Teléfono</label><input id="pf-phone" value="<?= htmlspecialchars($me['phone']??'') ?>"></div>
       </div>
+      <div class="eg2"><div class="eg"><label>🎂 Cumpleaños <small style="font-weight:400;opacity:.7">(solo se muestra día y mes)</small></label><input type="date" id="pf-birthday" value="<?= htmlspecialchars((string)($me['birthday'] ?? '')) ?>"></div><div class="eg"><label>🥂 En el equipo desde</label><input type="date" id="pf-joined" value="<?= htmlspecialchars((string)($me['joined_at'] ?? '')) ?>"></div></div>
       <div class="eg"><label>Ubicación</label><input id="pf-location" value="<?= htmlspecialchars($me['location']??'') ?>" placeholder="Ciudad, País"></div>
       <div class="eg"><label>Bio</label><textarea id="pf-bio"><?= htmlspecialchars($me['bio']??'') ?></textarea></div>
       <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.08em;margin:12px 0 10px;padding-top:10px;border-top:1px solid #1f1f23">Habilidades</div>
@@ -905,13 +940,42 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
 <?php
   $__cmSkills = [];
   foreach ($SKILLS_LIST as $sk) $__cmSkills[$sk] = !empty($mySkillsJson[$sk]) ? 1 : 0;
+  // Comunidad 3: "Hoy en el equipo" (pregunta del día, cumpleaños, café de la semana)
+  $__today = cm_today($db, (int)$currentUser['id']);
+  // Pulso de la Comunidad (encabezado, tendencias y ranking de la semana)
+  $__pulse = ['online' => 0, 'posts_today' => 0, 'kudos_week' => 0, 'trending' => [], 'leaders' => []];
+  try {
+    $__pulse['online'] = (int)$db->query('SELECT COUNT(*) FROM g7_users WHERE active = 1 AND last_seen > DATE_SUB(NOW(), INTERVAL 5 MINUTE)')->fetchColumn();
+    $__pulse['posts_today'] = (int)$db->query("SELECT COUNT(*) FROM g7_posts WHERE DATE(created_at) = CURDATE() AND kind <> 'qotd'")->fetchColumn();
+    $__pulse['kudos_week'] = (int)$db->query("SELECT COUNT(*) FROM g7_posts WHERE kind = 'kudos' AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
+    $__pulse['trending'] = $db->query("SELECT p.id, p.body, p.kind, p.img, u.id uid, COALESCE(NULLIF(u.display_name,''),u.username) name, u.avatar,
+        (SELECT COUNT(*) FROM g7_post_reactions r WHERE r.post_id = p.id) + 2 * (SELECT COUNT(*) FROM g7_post_replies r WHERE r.post_id = p.id) score
+        FROM g7_posts p JOIN g7_users u ON u.id = p.user_id WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) AND p.kind <> 'qotd' HAVING score > 0 ORDER BY score DESC, p.id DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
+    $__pulse['leaders'] = $db->query("SELECT u.id, COALESCE(NULLIF(u.display_name,''),u.username) name, u.avatar, COUNT(*) n FROM g7_posts p JOIN g7_users u ON u.id = p.target_user_id
+        WHERE p.kind = 'kudos' AND p.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY u.id ORDER BY n DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
+  } catch (Throwable $e) {}
   $__cmCfg = [
+    'pulse' => $__pulse,
+    'today' => $__today,
     'users' => array_values($users), 'me' => (int)$currentUser['id'], 'isAdmin' => (bool)$isAdmin, 'skillsList' => $SKILLS_LIST, 'skills' => (object)$__cmSkills,
-    'lastPostTime' => $feedPosts ? date('Y-m-d H:i:s', strtotime($feedPosts[0]['created_at'])) : '2000-01-01',
+    // la más nueva (no la primera: la fijada puede ser vieja y el sondeo volvía a traer las nuevas, duplicadas)
+    'lastPostTime' => $feedPosts ? date('Y-m-d H:i:s', max(array_map(fn($p) => strtotime($p['created_at']), $feedPosts))) : '2000-01-01',
     'lastActivity' => $activity ? date('Y-m-d H:i:s', strtotime($activity[0]['created_at'])) : '2000-01-01',
+    'feed' => $cmFirst, 'maxPost' => CM_MAX_POST, 'kudos' => CM_KUDOS, 'meUser' => $currentUser['username'],
   ];
 ?>
 <script type="application/json" id="cm-cfg"><?= json_encode($__cmCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 <script src="/toolz/assets/comunidad-page.js?v=<?= (int)@filemtime(__DIR__ . '/assets/comunidad-page.js') ?>"></script>
+<script src="/toolz/assets/cm-kudos.js?v=<?= (int)@filemtime(__DIR__ . '/assets/cm-kudos.js') ?>"></script>
+<script src="/toolz/assets/comunidad-plus.js?v=<?= (int)@filemtime(__DIR__ . '/assets/comunidad-plus.js') ?>"></script>
+<script src="/toolz/assets/comunidad-epic.js?v=<?= (int)@filemtime(__DIR__ . '/assets/comunidad-epic.js') ?>"></script>
+<!-- Editar perfil: formulario compartido con Mi perfil (profile-edit.js, profile_fields_lib.php) -->
+<script type="application/json" id="pe-data"><?= json_encode(pf_edit_data($db, (int)$currentUser['id']) + ['save_url' => '/toolz/comunidad.php'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+<link rel="stylesheet" href="/toolz/assets/profile-edit.css?v=<?= (int)@filemtime(__DIR__ . '/assets/profile-edit.css') ?>">
+<script src="/toolz/assets/profile-picker.js?v=<?= (int)@filemtime(__DIR__ . '/assets/profile-picker.js') ?>"></script>
+<script src="/toolz/assets/profile-edit.js?v=<?= (int)@filemtime(__DIR__ . '/assets/profile-edit.js') ?>"></script>
+<!-- Quién sabe qué: personas por herramientas y aptitudes (cm-skills.js) -->
+<link rel="stylesheet" href="/toolz/assets/cm-skills.css?v=<?= (int)@filemtime(__DIR__ . '/assets/cm-skills.css') ?>">
+<script src="/toolz/assets/cm-skills.js?v=<?= (int)@filemtime(__DIR__ . '/assets/cm-skills.js') ?>"></script>
 </body>
 </html>

@@ -19,7 +19,7 @@ const LIC_USAGE_TTL = 3600;   // el espacio usado se recalcula a lo sumo una vez
 const LIC_SIGNED_MARK = LIC_ROOT . '/_private/license_signed.json';   // desde que llegó la primera licencia firmada: {issued, at}
 /** Clave pública del sitio base para verificar las licencias. La privada vive solo en el base (_private/license_sign.pem). */
 const LIC_PUBKEY = "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEApHPDPMmwot2vRqgLHq1S\n/XIg0AKiFI4vcnlKOMe4jlAi4zo8nZt4hVsW2DVzzohgjZQM6GxLxFHHZI/erd1z\nPzHhTIVbYvEL5Tu8W6/y0zO1gK9alzDuO3C/goSRSe0BC5sCHRj6MbyRWNwYeaZy\nXkxWIAMaE44FlAiFmgkSgu+JJtv4Mn1QHS3g4KtXbrubV2bqX76JvKxa05KyHjlC\nep3c0gPTRuE2ybpfNgmfItKlac2o05i/Te7G8zDt7v9n7nomCojdVVQhLIYYx/5W\nqUol4TFLWVOiqQp+oDNyrp/LL8aywu9xwh5E3mE7eYfcwIz4BLNuxBX7GH78GSGP\nusEfDj8O7T1yqyZm/4G702l7XVsgHYmUs4sgEgY8F87tiL7ylucIAjxx4kEtGHIV\nwjOJ6hIvgYJuhoUeRnRMhRFhm+DDH0xdhPcsElbtaUuhT9hxXJ8iqUgeXisnV7AP\nDgtCuzd2o4XDBED+gChhWLestFJLOMzA+CbmhTgTO6h7AgMBAAE=\n-----END PUBLIC KEY-----\n";
-const LIC_KEEP = ['plan', 'plan_id', 'expires', 'status', 'users', 'clients', 'storage_gb', 'modules_off', 'modules_on', 'renew', 'issued', 'notes_public', 'client_types', 'rubro', 'extras'];
+const LIC_KEEP = ['plan', 'plan_id', 'expires', 'status', 'users', 'clients', 'storage_gb', 'modules_off', 'modules_on', 'renew', 'issued', 'notes_public', 'client_types', 'rubro', 'extras', 'limits'];
 
 /** Id de este sitio (el que va dentro de la firma). */
 function lic_site_id(): string {
@@ -48,8 +48,53 @@ function lic_clean(array $l): array {
     if (isset($l['rubro'])) $l['rubro'] = preg_replace('/[^a-z0-9_]/', '', strtolower((string)$l['rubro']));
     if (isset($l['extras'])) $l['extras'] = array_values(array_filter(array_map(fn($x) => preg_replace('/[^a-z0-9_]/', '', strtolower((string)$x)), (array)$l['extras'])));
     $l['status'] = ($l['status'] ?? '') === 'suspendida' ? 'suspendida' : 'activa';
+    if (isset($l['limits'])) $l['limits'] = lic_limits_clean((array)$l['limits']);
     return $l;
 }
+
+// ── Limits inside the modules (2026-11-18) ─────────────
+/**
+ * What a plan can limit inside each module: key => [module, label, type (num|bool|list), options of a list].
+ * Missing in the license = no limit. num = maximum; bool false = not included; list = only those values.
+ * The base (Red Cronos › Planes) edits them with this same list (B_LIMITS); they travel inside the signed license. Doc: toolz/LICENCIAS.md
+ */
+const LIC_LIMITS = [
+    'social_accounts'     => ['social', 'Cuentas de redes conectadas', 'num', []],
+    'social_networks'     => ['social', 'Redes que se pueden conectar', 'list', ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'tiktok' => 'TikTok', 'linkedin' => 'LinkedIn', 'x' => 'X', 'youtube' => 'YouTube']],
+    'social_publish'      => ['social', 'Publicar y programar en las redes', 'bool', []],
+    'social_inbox'        => ['social', 'Inbox (mensajes y comentarios)', 'bool', []],
+    'social_analytics'    => ['social', 'Métricas de las redes', 'bool', []],
+    'social_reports'      => ['social', 'Informes para clientes', 'bool', []],
+    'social_reports_auto' => ['social', 'Informes automáticos mensuales', 'bool', []],
+    'social_ai'           => ['social', 'Sugerencias con IA en Social Studio', 'bool', []],
+    'social_central'      => ['social', 'Conexión central de Cronos', 'bool', []],
+    'social_profiles'     => ['social', 'Profile Studio (imágenes de perfil)', 'bool', []],
+    'social_profiles_ai'  => ['social', 'IA en Profile Studio', 'bool', []],
+    'social_profiles_ai_month' => ['social', 'Imágenes con IA por mes (Profile Studio)', 'num', []],
+];
+function lic_limits_clean(array $in): array {
+    $o = [];
+    foreach (LIC_LIMITS as $k => [, , $type, $opts]) {
+        if (!array_key_exists($k, $in) || $in[$k] === null || $in[$k] === '') continue;
+        $v = $in[$k];
+        if ($type === 'num') { if (is_numeric($v) && (int)$v >= 0) $o[$k] = (int)$v; }
+        elseif ($type === 'bool') $o[$k] = (bool)$v;
+        else $o[$k] = array_values(array_intersect(array_keys($opts), array_map('strval', (array)$v)));
+    }
+    return $o;
+}
+/** A limit of the license: null = no limit (or no license). */
+function lic_cap(string $key) {
+    $l = lic_get();
+    if (!$l || !isset(LIC_LIMITS[$key])) return null;
+    return array_key_exists($key, (array)($l['limits'] ?? [])) ? $l['limits'][$key] : null;
+}
+/** Is something included in the plan? (bool limits; no license or no limit = yes) */
+function lic_allows(string $key): bool { $v = lic_cap($key); return $v === null || $v === true; }
+/** Is this value of a list limit included? */
+function lic_allows_item(string $key, string $item): bool { $v = lic_cap($key); return !is_array($v) || in_array($item, $v, true); }
+/** Message when the plan does not include something (the agency sees it as is). */
+function lic_plan_msg(string $what): string { return 'Tu plan no incluye ' . $what . '. Para sumarlo, mejorá el plan desde Admin › Licencia.'; }
 /**
  * Lee y valida la licencia guardada. integrity:
  *   ok (firmada y válida) · legacy (sin firma, de antes de la primera firmada) · none (no hay y nunca hubo firmada)

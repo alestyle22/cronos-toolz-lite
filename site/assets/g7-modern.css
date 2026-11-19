@@ -1,0 +1,46 @@
+/* assets/g7-modern.css — Acabado moderno para las páginas viejas (marcas de g7-modern.js). Solo con html.g7m.
+ * Toca forma, profundidad y movimiento; los colores siguen siendo los del tema de cada persona. */
+
+/* Título de la página con el ícono de la sección */
+html.g7m .g7m-title{letter-spacing:-.02em}
+html.g7m .g7m-hico{width:42px;height:42px;border-radius:13px;display:inline-grid;place-items:center;flex-shrink:0;vertical-align:middle;margin-right:12px;font-size:17px;color:var(--g7-accent);
+  border:1px solid var(--g7-accent-border);background:linear-gradient(145deg,var(--g7-accent-muted),color-mix(in srgb,var(--g7-accent) 4%,transparent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+html.g7-move.g7m .g7m-hico{animation:g7m-badge .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes g7m-badge{0%{scale:.6;rotate:-12deg}60%{scale:1.12;rotate:4deg}100%{scale:1;rotate:0deg}}
+
+/* Tarjetas */
+html.g7m .g7m-card,html.g7m .g7m-card-s{border-radius:16px!important;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 28px -20px rgba(0,0,0,.6);transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,border-color .2s}
+html.g7m .g7m-card:hover{border-color:var(--g7-border-3)}
+html.g7m .g7m-card-s:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--g7-accent) 35%,var(--g7-border-3))!important;box-shadow:0 16px 34px -18px rgba(0,0,0,.7),0 0 0 1px color-mix(in srgb,var(--g7-accent) 12%,transparent)}
+
+/* Botones */
+html.g7m .g7m-btn{border-radius:10px;transition:transform .15s,filter .15s,border-color .15s,background .15s,box-shadow .2s}
+html.g7m .g7m-btn:active,html.g7m .g7m-pri:active{transform:scale(.96)}
+html.g7m .g7m-pri{position:relative;overflow:hidden;border-radius:11px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--g7-accent) 88%,#fff),var(--g7-accent))!important;
+  box-shadow:0 8px 20px -10px var(--g7-accent),inset 0 1px 0 rgba(255,255,255,.35)!important;transition:transform .15s,filter .15s,box-shadow .2s}
+html.g7m .g7m-pri:hover:not(:disabled){filter:brightness(1.07);box-shadow:0 10px 26px -10px var(--g7-accent),inset 0 1px 0 rgba(255,255,255,.35)!important}
+html.g7m .g7m-pri::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);transform:translateX(-120%)}
+html.g7-move.g7m .g7m-pri:hover::after{transition:transform .7s ease-out;transform:translateX(120%)}
+
+/* Campos */
+html.g7m .g7m-in{border-radius:10px!important;transition:border-color .15s,box-shadow .15s,background .15s}
+html.g7m .g7m-in:hover{border-color:color-mix(in srgb,var(--g7-accent) 30%,var(--g7-border-3))}
+html.g7m .g7m-in:focus{border-color:var(--g7-accent)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--g7-accent) 16%,transparent)!important;outline:none}
+
+/* Tablas */
+html.g7m .g7m-table tbody tr{transition:background .12s}
+html.g7m .g7m-table tbody tr:hover > *{background:color-mix(in srgb,var(--g7-accent) 4%,var(--g7-bg-4))}
+html.g7m .g7m-table tbody tr:hover > :first-child{box-shadow:inset 3px 0 0 var(--g7-accent)}
+
+/* Estados vacíos */
+html.g7m .g7m-empty{border-radius:16px}
+html.g7m .g7m-empty i:first-child{display:inline-grid;place-items:center;width:58px;height:58px;border-radius:18px;font-size:24px!important;margin-bottom:6px;color:var(--g7-accent)!important;
+  background:linear-gradient(145deg,var(--g7-accent-muted),transparent);border:1px solid var(--g7-accent-border)}
+html.g7-move.g7m .g7m-empty i:first-child{animation:g7m-bob 2.6s ease-in-out infinite}
+@keyframes g7m-bob{0%,100%{translate:0 0}50%{translate:0 -5px}}
+
+/* Fondo con un brillo suave del acento, como el resto de Cronos */
+html.g7m body{background:radial-gradient(900px 420px at 100% -10%,color-mix(in srgb,var(--g7-accent) 6%,transparent),transparent 70%) fixed,var(--g7-bg)}
+/* Comunicaciones: "Formularios" es un botón suave (fondo apenas teñido); el pintado de botones principales lo dejaba con letra del mismo color que el fondo */
+html.g7m .pf-admin-btn.g7m-pri{background:rgba(var(--g7-accent-rgb),.1)!important;box-shadow:none!important;color:var(--g7-accent)}

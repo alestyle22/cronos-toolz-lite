@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                ->execute([$me,$title,$desc,$proj,$sortOrder]);
             $id = (int)$db->lastInsertId();
         }
-        $q = $db->prepare("SELECT * FROM g7_todos WHERE id=?"); $q->execute([$id]);
+        $q = $db->prepare("SELECT * FROM g7_todos WHERE id=? AND user_id=?"); $q->execute([$id, $me]);   // solo los propios
         echo json_encode(['ok'=>true,'todo'=>$q->fetch()]);
         exit;
     }
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)($input['id'] ?? 0);
         $db->prepare("UPDATE g7_todos SET status='done', completed_at=NOW() WHERE id=? AND user_id=?")
            ->execute([$id, $me]);
-        $q = $db->prepare("SELECT * FROM g7_todos WHERE id=?"); $q->execute([$id]);
+        $q = $db->prepare("SELECT * FROM g7_todos WHERE id=? AND user_id=?"); $q->execute([$id, $me]);   // solo los propios
         echo json_encode(['ok'=>true,'todo'=>$q->fetch()]);
         exit;
     }

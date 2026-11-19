@@ -118,9 +118,11 @@ async function admLoadContentStats(){
       {label:'Mensajes chat',val:s.chat_msgs||0,icon:'fa-comment'},
       {label:'Grupos chat',val:s.chat_groups||0,icon:'fa-people-group'},
     ];
-    const html=items.map(i=>`<div class="adm-stat"><div style="font-size:18px;color:var(--g7-accent);margin-bottom:4px"><i class="fa-solid ${i.icon}"></i></div><div class="adm-stat-val" style="font-size:22px">${i.val.toLocaleString()}</div><div class="adm-stat-label">${i.label}</div></div>`).join('');
+    const card=i=>`<div class="adm-stat"><div style="font-size:18px;color:var(--g7-accent);margin-bottom:4px"><i class="fa-solid ${i.icon}"></i></div><div class="adm-stat-val" style="font-size:22px">${i.val.toLocaleString()}</div><div class="adm-stat-label">${i.label}</div></div>`;
+    const html=items.map(card).join('');
     const el=$('adm-content-stats'); if(el) el.innerHTML=html;
-    const el2=$('content-stats-grid'); if(el2) el2.innerHTML=html;
+    // En el Resumen, contenido y mensajes ya están arriba: acá van los otros cuatro
+    const el2=$('content-stats-grid'); if(el2) el2.innerHTML=items.filter(i=>!/^(Promos|Mensajes)/.test(i.label)).map(card).join('');
   }catch(e){}
 }
 

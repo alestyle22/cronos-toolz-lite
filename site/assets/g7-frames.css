@@ -1,0 +1,49 @@
+/* assets/g7-frames.css — Marco de la foto de perfil (avatar_frame_lib.php, g7-frames.js). Los tipos son los de Profile Studio.
+ * Se dibuja con sombras alrededor de la foto: no envuelve nada ni cambia el tamaño, así no mueve ningún diseño.
+ * Con !important: algunas pantallas ponen su propia sombra en la foto (el chat, por ejemplo) y el marco elegido tiene que ganar.
+ * Gamer gira con una animación (que le gana a las sombras comunes); sin movimiento queda fijo, también con !important.
+ * Variables que pone g7-frames.js en cada foto: --fr-c (color), --fr-c2 (segundo color), --fr-w (grosor en px, según el tamaño).
+ * Doc: toolz/MARCOS.md */
+.g7-fr{--fr-gap:var(--g7-bg,#0a0a0a)}   /* la forma es la de cada foto: el marco sigue su borde */
+/* Aro */
+.g7-fr-ring{box-shadow:0 0 0 calc(var(--fr-w)*.55) var(--fr-gap),0 0 0 calc(var(--fr-w)*1.55) var(--fr-c)!important}
+/* Doble aro */
+.g7-fr-double{box-shadow:0 0 0 calc(var(--fr-w)*.45) var(--fr-c),0 0 0 calc(var(--fr-w)*.95) var(--fr-gap),0 0 0 calc(var(--fr-w)*1.45) var(--fr-c)!important}
+/* Punteado */
+.g7-fr-dashed{outline:calc(var(--fr-w)*.8) dashed var(--fr-c)!important;outline-offset:calc(var(--fr-w)*.5)!important}
+/* Degradado: los dos colores en diagonal */
+.g7-fr-gradient{box-shadow:0 0 0 calc(var(--fr-w)*.5) var(--fr-gap),calc(var(--fr-w)*-.45) calc(var(--fr-w)*-.45) 0 calc(var(--fr-w)*1.1) var(--fr-c),calc(var(--fr-w)*.45) calc(var(--fr-w)*.45) 0 calc(var(--fr-w)*1.1) var(--fr-c2)!important}
+/* Neón: línea clara con brillo del color */
+.g7-fr-neon{box-shadow:0 0 0 calc(var(--fr-w)*.35) #fff,0 0 0 calc(var(--fr-w)*.9) var(--fr-c),0 0 calc(var(--fr-w)*2.6) calc(var(--fr-w)*.9) var(--fr-c)!important}
+/* Luminoso: halo suave de los dos colores */
+.g7-fr-glow{box-shadow:0 0 0 calc(var(--fr-w)*.7) var(--fr-c),0 0 calc(var(--fr-w)*3.2) calc(var(--fr-w)*1.1) var(--fr-c2)!important}
+/* Gamer: degradado con brillo que gira */
+.g7-fr-gamer{box-shadow:calc(var(--fr-w)*-.5) 0 0 calc(var(--fr-w)*1) var(--fr-c),calc(var(--fr-w)*.5) 0 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c);animation:g7frSpin 2.8s linear infinite!important}
+@keyframes g7frSpin{
+  0%  {box-shadow:calc(var(--fr-w)*-.5) 0 0 calc(var(--fr-w)*1) var(--fr-c),calc(var(--fr-w)*.5) 0 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c)}
+  25% {box-shadow:0 calc(var(--fr-w)*-.5) 0 calc(var(--fr-w)*1) var(--fr-c),0 calc(var(--fr-w)*.5) 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c2)}
+  50% {box-shadow:calc(var(--fr-w)*.5) 0 0 calc(var(--fr-w)*1) var(--fr-c),calc(var(--fr-w)*-.5) 0 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c)}
+  75% {box-shadow:0 calc(var(--fr-w)*.5) 0 calc(var(--fr-w)*1) var(--fr-c),0 calc(var(--fr-w)*-.5) 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c2)}
+  100%{box-shadow:calc(var(--fr-w)*-.5) 0 0 calc(var(--fr-w)*1) var(--fr-c),calc(var(--fr-w)*.5) 0 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c)}
+}
+/* Minimalista: línea fina separada de la foto */
+.g7-fr-minimal{box-shadow:0 0 0 calc(var(--fr-w)*.8) var(--fr-gap),0 0 0 calc(var(--fr-w)*1.3) var(--fr-c)!important}
+/* Sin movimiento si la persona lo apagó (g7-juice pone html.g7-move) o el sistema lo pide */
+html:not(.g7-move) .g7-fr-gamer{animation:none!important;box-shadow:calc(var(--fr-w)*-.5) 0 0 calc(var(--fr-w)*1) var(--fr-c),calc(var(--fr-w)*.5) 0 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c)!important}
+@media (prefers-reduced-motion:reduce){.g7-fr-gamer{animation:none!important;box-shadow:calc(var(--fr-w)*-.5) 0 0 calc(var(--fr-w)*1) var(--fr-c),calc(var(--fr-w)*.5) 0 0 calc(var(--fr-w)*1) var(--fr-c2),0 0 calc(var(--fr-w)*2.4) calc(var(--fr-w)*.6) var(--fr-c)!important}}
+
+/* Elegir el marco (Mi configuración › Mi perfil y el paso de la foto del onboarding) */
+.g7fp{display:grid;gap:12px}
+.g7fp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
+.g7fp-opt{display:grid;justify-items:center;gap:7px;padding:12px 6px 9px;border-radius:14px;border:1px solid var(--g7-border-2,rgba(255,255,255,.08));background:var(--g7-bg-3,#17181c);color:var(--g7-text-2,#d4d4d8);font:600 11.5px var(--g7-font,inherit);cursor:pointer;transition:border-color .15s,background .15s,transform .2s}
+.g7fp-opt:hover{border-color:var(--g7-border,rgba(255,255,255,.2));transform:translateY(-1px)}
+.g7fp-opt.on{border-color:var(--g7-accent,#ff6600);background:var(--g7-accent-muted,rgba(255,102,0,.12));color:var(--g7-text,#fff)}
+.g7fp-opt:focus-visible{outline:2px solid var(--g7-accent,#ff6600);outline-offset:2px}
+.g7fp-dot{width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,var(--g7-bg-5,#2a2a30),var(--g7-bg-4,#1f1f24));display:grid;place-items:center;color:var(--g7-text-4,#888);font-size:13px}
+.g7fp-colors{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12.5px;color:var(--g7-text-3,#a1a1aa)}
+.g7fp-colors label{display:inline-flex;align-items:center;gap:8px}
+.g7fp-colors input[type=color]{width:40px;height:30px;padding:2px;border:1px solid var(--g7-border-2,rgba(255,255,255,.1));border-radius:8px;background:var(--g7-bg-4,#1f1f24);cursor:pointer}
+.g7fp-colors[hidden]{display:none}
+.g7fp-sw{display:flex;gap:6px;flex-wrap:wrap}
+.g7fp-sw button{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;background:linear-gradient(135deg,var(--a),var(--b));padding:0}
+.g7fp-sw button:hover{border-color:var(--g7-text-3,#aaa)}

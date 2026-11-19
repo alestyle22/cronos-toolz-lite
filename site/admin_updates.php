@@ -20,6 +20,7 @@
 .upd-plan summary{cursor:pointer;color:var(--g7-text-3)}
 .upd-plan ul{margin:6px 0 0 18px;max-height:220px;overflow:auto;font-family:var(--g7-font-mono,monospace);font-size:11px;color:var(--g7-text-3)}
 .upd-warn{color:#fbbf24}
+.upd-err{grid-column:1/-1;color:#f87171;font-size:12px;padding:6px 10px;border-radius:8px;background:rgba(248,113,113,.08)}
 .upd-log{padding:9px 16px;border-top:1px solid var(--g7-border-3);font-size:11.5px;color:var(--g7-text-3)}
 .upd-log:first-child{border-top:none}
 @media (max-width:760px){.upd-row{grid-template-columns:1fr}.upd-act{justify-content:flex-start}}
@@ -29,4 +30,4 @@
   <div class="adm-sub">Instala versiones firmadas de Toolz. Antes de instalar se respalda lo que cambia y, si el sitio no responde bien después, vuelve solo a la versión anterior. Las claves, la base y los archivos subidos de cada sitio no se tocan.</div>
   <div id="upd-body"><div class="adm-card"><div class="upd-log">Cargando…</div></div></div>
 </section>
-<script src="/toolz/admin_updates.js?v=2" defer></script>
+<script src="/toolz/admin_updates.js?v=<?= (int)@filemtime(__DIR__ . '/admin_updates.js') ?>" defer></script>

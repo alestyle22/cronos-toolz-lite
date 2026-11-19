@@ -81,9 +81,21 @@ function g7_csp_summary(int $limit = 80): array {
 }
 function g7_csp_clear(): void { @unlink(G7_CSP_REPORTS); }
 
+/** Perfiles que suman a script-src solo en las páginas que los piden. 'ml': modelos en el navegador (Transformers.js /
+ *  onnxruntime-web, p. ej. quitar fondo en sport_placas.php): carga su módulo de WebAssembly desde blob: y compila WASM.
+ *  'wasm-unsafe-eval' permite solo compilar WebAssembly (no eval de JS); connect-src data: es para que lea la imagen
+ *  (RawImage.fromURL hace fetch de un data:). 2026-11-16 */
+const G7_CSP_EXTRA = ['ml' => ['script-src' => "blob: 'wasm-unsafe-eval'", 'connect-src' => 'data:']];
+/** La política con lo del perfil sumado a cada directiva ('' = la de siempre). */
+function g7_csp_policy(string $profile = ''): string {
+    $p = G7_CSP_POLICY;
+    foreach (G7_CSP_EXTRA[$profile] ?? [] as $dir => $add) $p = str_replace("$dir 'self' ", "$dir 'self' $add ", $p);
+    return $p;
+}
+
 /** Fase 2: aplica la política en modo BLOQUEO en una página que ya no tiene código en línea (se llama después de requireLogin()). */
-function g7_csp_enforce(): void {
+function g7_csp_enforce(string $profile = ''): void {
     if (PHP_SAPI === 'cli' || headers_sent()) return;
-    header('Content-Security-Policy: ' . G7_CSP_POLICY);
+    header('Content-Security-Policy: ' . g7_csp_policy($profile));
     if (!defined('G7_CSP_ENFORCED')) define('G7_CSP_ENFORCED', 1);
 }

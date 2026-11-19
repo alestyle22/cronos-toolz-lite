@@ -80,6 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Ocultar plataformas de marcas que el usuario no ve (Admin › Marcas)
     $bjs = mm_brand_tags((int)$currentUser['id']);   // antes g7_brand_js(), que imprime un script en línea
     if ($bjs !== '' && ($bpos = strrpos($html, '</body>')) !== false) $html = substr($html, 0, $bpos) . $bjs . substr($html, $bpos);
+    // Piel estudio (assets/tool-studio.css/js), 2026-11-14
+    $tsV = fn($f) => (int)@filemtime(__DIR__ . '/../assets/' . $f);
+    $html = str_replace('</head>', '<link rel="stylesheet" href="/toolz/assets/tool-studio.css?v=' . $tsV('tool-studio.css') . '"></head>', $html);
+    $tsJs = '<script src="/toolz/assets/tool-studio.js?v=' . $tsV('tool-studio.js') . '" data-ts="mailing" data-ts-name="Mailing Maker" data-ts-desc="Campañas de mail listas para enviar" data-ts-icon="fa-envelope-open-text" data-ts-grad="#f472b6,#a855f7" data-ts-head=".sb-head" data-ts-icons=".sec-lbl > i" data-ts-stage=".main"></script>';
+    if (($tp = strrpos($html, '</body>')) !== false) $html = substr($html, 0, $tp) . $tsJs . substr($html, $tp);
     echo $html;
 
 } catch (Throwable $e) {

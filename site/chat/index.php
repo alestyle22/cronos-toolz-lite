@@ -23,6 +23,8 @@ define('CH_PAGE_IS_CHAT', 1);
 <link rel="stylesheet" href="chat.css?v=<?= $v('chat.css') ?>">
 <link rel="stylesheet" href="refs.css?v=<?= $v('refs.css') ?>">
 <link rel="stylesheet" href="chat2.css?v=<?= $v('chat2.css') ?>">
+<link rel="stylesheet" href="chat-plus.css?v=<?= $v('chat-plus.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/cm-kudos.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/cm-kudos.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/../topbar.php'; ?>
@@ -69,5 +71,8 @@ define('CH_PAGE_IS_CHAT', 1);
 <script src="emoji.js?v=<?= $v('emoji.js') ?>"></script>
 <script src="refs.js?v=<?= $v('refs.js') ?>"></script>
 <script src="chat.js?v=<?= $v('chat.js') ?>"></script>
+<script src="/toolz/assets/cm-kudos.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/cm-kudos.js') ?>"></script>
+<script src="comm.js?v=<?= $v('comm.js') ?>"></script>
+<script src="chat-plus.js?v=<?= $v('chat-plus.js') ?>"></script>
 </body>
 </html>

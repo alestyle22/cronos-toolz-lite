@@ -1,0 +1,96 @@
+/* assets/promos-look.css — Look nuevo de Promos CMS (promos/index.php). Encabezado con ícono y pulso,
+   filtros como píldoras, sidebar por grupos con color, tarjetas con color por tipo, zoom y brillo.
+   El comportamiento lo pone assets/promos-look.js. Doc: toolz/MOVIMIENTO.md (Promos). */
+
+/* color por tipo */
+.item-card{--pt:var(--g7-accent);--pt-rgb:var(--g7-accent-rgb)}
+.item-card[data-type="launch"]{--pt:#a78bfa;--pt-rgb:167,139,250}
+.item-card[data-type="paid"]{--pt:#4ade80;--pt-rgb:74,222,128}
+.item-card[data-type="social"]{--pt:#60a5fa;--pt-rgb:96,165,250}
+.item-card[data-type="otro"],.item-card[data-type="custom"]{--pt:#a1a1aa;--pt-rgb:161,161,170}
+.item-card[data-type="tarea"]{--pt:#fbbf24;--pt-rgb:251,191,36}
+.item-card[data-type="mailings"]{--pt:#f472b6;--pt-rgb:244,114,182}
+
+/* ── encabezado ───────────────────────────────── */
+.inner-bar{padding:12px 20px;gap:12px;background:linear-gradient(90deg,rgba(var(--g7-accent-rgb),.07),transparent 45%),var(--g7-bg-2)}
+.inner-bar .g7m-hico{display:none}
+.pl-ico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;color:#fff;font-size:15px;
+  background:linear-gradient(135deg,var(--g7-accent),color-mix(in srgb,var(--g7-accent) 55%,#a855f7));box-shadow:0 6px 18px -6px rgba(var(--g7-accent-rgb),.7)}
+.inner-bar h2{flex:0 0 auto;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.inner-bar .pr-results{flex:0 0 auto;font-size:11px;font-weight:700;color:var(--g7-text-2);background:var(--g7-bg-4);border:1px solid var(--g7-border-3);border-radius:999px;padding:3px 10px}
+.pl-pulse{flex:1;display:flex;gap:6px;align-items:center;min-width:0;overflow:hidden}
+.pl-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--g7-text-3);padding:4px 10px;border-radius:999px;background:rgba(var(--pc-rgb),.08);border:1px solid rgba(var(--pc-rgb),.2);white-space:nowrap}
+.pl-pill b{color:rgb(var(--pc-rgb));font-size:12.5px;font-variant-numeric:tabular-nums}
+.pl-pill i{color:rgb(var(--pc-rgb));font-size:10px}
+.pl-pill.live i{animation:pl-blink 1.6s ease-in-out infinite}
+@keyframes pl-blink{50%{opacity:.35}}
+.search-input{width:240px;height:34px;border-radius:10px!important;background:var(--g7-bg-3)!important;border-color:var(--g7-border-3)!important;transition:width .25s,border-color .15s,box-shadow .15s}
+.search-input:focus{width:300px;box-shadow:0 0 0 3px rgba(var(--g7-accent-rgb),.15)}
+.view-toggle{border-radius:10px;border-color:var(--g7-border-3);background:var(--g7-bg-3)}
+.view-toggle button{padding:8px 11px}
+.view-toggle button.active{background:rgba(var(--g7-accent-rgb),.15);color:var(--g7-accent)}
+
+/* ── filtros ──────────────────────────────────── */
+.filter-bar{gap:8px;background:var(--g7-bg)}
+.filter-bar .flt,.filter-bar .dflt{border-radius:999px!important;padding:0 12px;background:var(--g7-bg-3);border-color:var(--g7-border-3);color:var(--g7-text-2);cursor:pointer;transition:border-color .15s,background .15s,color .15s,transform .15s}
+.filter-bar .flt:hover,.filter-bar .dflt:hover{border-color:var(--g7-border-1,var(--g7-text-4));color:var(--g7-text)}
+.filter-bar .flt.pl-on,.filter-bar .dflt.pl-on{border-color:rgba(var(--g7-accent-rgb),.55);background:rgba(var(--g7-accent-rgb),.1);color:var(--g7-accent);font-weight:600}
+.filter-bar .clear-btn{border-radius:999px;height:32px;padding:0 12px;display:inline-flex;align-items:center;gap:6px}
+.filter-bar .clear-btn.pl-on{border-color:rgba(var(--g7-accent-rgb),.5);color:var(--g7-accent)}
+.pl-nf{font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:inline-grid;place-items:center;background:var(--g7-accent);color:#fff;padding:0 4px}
+
+/* ── sidebar ──────────────────────────────────── */
+.sidebar{padding:12px 10px}
+.sb-section{--sc:var(--g7-text-4);color:var(--g7-text-3);padding:16px 8px 6px}
+.sb-section::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--sc);box-shadow:0 0 8px var(--sc);flex-shrink:0}
+.sb-btn{position:relative;padding:7px 9px;border-radius:9px;transition:background .15s,color .15s,transform .15s}
+.sb-btn:hover{transform:translateX(2px)}
+.sb-btn.active{background:linear-gradient(90deg,rgba(var(--g7-accent-rgb),.16),rgba(var(--g7-accent-rgb),.04));box-shadow:inset 0 0 0 1px rgba(var(--g7-accent-rgb),.18)}
+.sb-btn.active::before{content:'';position:absolute;left:-10px;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:var(--g7-accent);box-shadow:0 0 10px var(--g7-accent)}
+.sb-btn .sb-label{flex:1}
+.sb-btn .badge{margin-left:auto;font-variant-numeric:tabular-nums;transition:background .2s,color .2s}
+.sb-btn.active .badge{background:var(--g7-accent);border-color:transparent;color:#fff}
+.badge.pl-bump{animation:pl-bump .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pl-bump{40%{transform:scale(1.35)}}
+.new-content-btn{background:linear-gradient(135deg,var(--g7-accent),color-mix(in srgb,var(--g7-accent) 60%,#a855f7))!important;color:#fff!important;border:none!important;padding:11px 10px!important;border-radius:11px!important;font-size:12px!important;box-shadow:0 8px 20px -8px rgba(var(--g7-accent-rgb),.8);transition:transform .15s,box-shadow .15s!important}
+.new-content-btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px -8px rgba(var(--g7-accent-rgb),.9)}
+
+/* ── tarjetas (grilla) ────────────────────────── */
+.grid-view{grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.grid-view .item-card,.grid-view .item-card[data-type]{position:relative;border:1px solid var(--g7-border-3)!important;border-radius:16px;background:var(--g7-bg-3);
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s,border-color .25s}
+.grid-view .item-card::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .25s;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(var(--pt-rgb),.13),transparent 60%)}
+.grid-view .item-card:hover{transform:translateY(-4px);border-color:rgba(var(--pt-rgb),.55)!important;box-shadow:0 16px 34px -14px rgba(var(--pt-rgb),.55),0 2px 6px rgba(0,0,0,.2)}
+.grid-view .item-card:hover::after{opacity:1}
+.grid-view .card-img-g{height:150px;background:linear-gradient(135deg,rgba(var(--pt-rgb),.14),var(--g7-bg-2))}
+.grid-view .card-img-g img{transition:transform .5s cubic-bezier(.2,.8,.2,1),filter .3s}
+.grid-view .item-card:hover .card-img-g img{transform:scale(1.07)}
+.grid-view .card-img-g::before{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;z-index:2;background:linear-gradient(90deg,var(--pt),transparent)}
+.grid-view .card-img-g::after{content:'';position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(to top,rgba(0,0,0,.35),transparent);pointer-events:none}
+.grid-view .pr-noimg{color:rgba(var(--pt-rgb),.5);font-size:26px}
+.grid-view .card-body-g{padding:12px 14px 13px}
+.grid-view .card-body-g > div:nth-child(2){font-size:14.5px!important;font-weight:800!important;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.grid-view .item-card .type-tag{background:rgba(var(--pt-rgb),.14)!important;color:var(--pt)!important;border:1px solid rgba(var(--pt-rgb),.3)!important;font-weight:800}
+.grid-view .item-card.inactive{opacity:.62;border-style:dashed!important}
+.grid-view .item-card.inactive .card-img-g img{filter:grayscale(.85)}
+.grid-view .item-card.inactive:hover{opacity:.9}
+.grid-view .item-card.inactive:hover .card-img-g img{filter:none}
+.status-pill.on .sdot{box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pl-ping 2s ease-out infinite}
+@keyframes pl-ping{70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.card-dates{border-radius:7px;padding:3px 8px}
+.link-chip{display:inline-flex;align-items:center;gap:4px;transition:transform .15s,background .15s}
+.link-chip:hover{transform:translateY(-1px)}
+.like-btn.pl-pop i{animation:pl-heart .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pl-heart{40%{transform:scale(1.5)}}
+/* lista */
+.list-view .item-card{border-radius:12px;border-left:3px solid var(--pt)!important;transition:transform .2s,background .2s}
+.list-view .item-card:hover{transform:translateX(3px);background:color-mix(in srgb,var(--g7-bg-3) 85%,var(--pt))}
+/* vacío */
+.content .empty{border:1px dashed var(--g7-border-3);border-radius:18px;padding:48px 20px;background:var(--g7-bg-2)}
+
+/* sin movimiento */
+html:not(.g7-move) .status-pill.on .sdot,html:not(.g7-move) .pl-pill.live i{animation:none}
+html:not(.g7-move) .grid-view .item-card:hover .card-img-g img{transform:none}
+
+@media (max-width:900px){.pl-pulse{display:none}.search-input,.search-input:focus{width:160px}}

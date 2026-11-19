@@ -1,0 +1,50 @@
+/* Constructor de formularios · experiencia "juicy" (ver builder-juice.js). Todo depende de html.g7-move. */
+.bdj-spark{ position: fixed; z-index: 1000; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--g7-accent); pointer-events: none; }
+.bdj-fly{ box-shadow: 0 16px 34px rgba(0,0,0,.45), 0 0 0 2px rgba(var(--g7-accent-rgb,255,102,0),.35) !important; }
+
+html.g7-move .bd-ghost.bdj-lift{ animation: bdjLift .28s cubic-bezier(.34,1.56,.64,1) both; box-shadow: 0 18px 40px rgba(0,0,0,.5), 0 0 0 2px rgba(var(--g7-accent-rgb,255,102,0),.35); }
+@keyframes bdjLift{ from{ scale: .7; opacity: 0; } to{ scale: 1.06; rotate: -3deg; } }
+
+/* Paleta: cada elemento se levanta y su ícono hace un guiño */
+html.g7-move .bd-pal-i{ transition: transform .3s cubic-bezier(.34,1.56,.64,1), border-color .15s, box-shadow .2s, background .15s; }
+html.g7-move .bd-pal-i:hover{ transform: translateY(-3px) scale(1.03); background: color-mix(in srgb, var(--g7-accent) 6%, var(--g7-bg)); box-shadow: 0 10px 22px -12px rgba(0,0,0,.7), 0 0 0 1px rgba(var(--g7-accent-rgb,255,102,0),.25); }
+html.g7-move .bd-pal-i:hover i{ animation: bdjWiggle .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes bdjWiggle{ 30%{ transform: scale(1.3) rotate(-12deg); } 60%{ transform: scale(1.1) rotate(8deg); } }
+
+/* Lienzo */
+html.g7-move .bd-it{ transition: border-color .15s, background .15s, box-shadow .25s, opacity .15s; }
+html.g7-move .bd-it:hover{ box-shadow: 0 8px 22px -14px rgba(0,0,0,.8); }
+html.g7-move .bd-it.sel{ box-shadow: 0 0 0 4px rgba(var(--g7-accent-rgb,255,102,0),.1), 0 12px 28px -16px rgba(var(--g7-accent-rgb,255,102,0),.6); }
+html.g7-move .bd-it.bd-dragging{ opacity: .25; filter: grayscale(1); transform: scale(.98); }
+html.g7-move .bd-it > .bd-tools{ transition: opacity .18s, transform .3s cubic-bezier(.34,1.56,.64,1); }
+html.g7-move .bd-it > .bd-tools button{ transition: transform .25s cubic-bezier(.34,1.56,.64,1), color .15s, background .15s; }
+html.g7-move .bd-it > .bd-tools button:hover{ transform: scale(1.18); }
+html.g7-move .bd-it > .bd-tools [data-del]:hover{ color: #ef4444; transform: scale(1.18) rotate(-10deg); }
+.bdj-live{ animation: bdjLive .7s ease-out; }
+@keyframes bdjLive{ 0%{ box-shadow: 0 0 0 0 rgba(var(--g7-accent-rgb,255,102,0),.55); } 100%{ box-shadow: 0 0 0 12px rgba(var(--g7-accent-rgb,255,102,0),0); } }
+.bdj-gone{ border-color: rgba(239,68,68,.6) !important; background: rgba(239,68,68,.06) !important; }
+
+/* Línea donde cae lo que se arrastra: late */
+html.g7-move .bd-line{ animation: bdjLine .9s ease-in-out infinite; }
+@keyframes bdjLine{ 50%{ box-shadow: 0 0 0 6px rgba(var(--g7-accent-rgb,255,102,0),.12), 0 0 14px rgba(var(--g7-accent-rgb,255,102,0),.6); } }
+html.g7-move .bd-grid.bd-over{ animation: bdjOver 1s ease-in-out infinite; }
+@keyframes bdjOver{ 50%{ background: rgba(var(--g7-accent-rgb,255,102,0),.07); } }
+html.g7-move .bd-empty i{ display: inline-block; animation: bdjPoint 1.6s ease-in-out infinite; }
+@keyframes bdjPoint{ 50%{ transform: translateY(-4px) rotate(-8deg); } }
+html.g7-move .bd-addsec{ transition: transform .3s cubic-bezier(.34,1.56,.64,1), border-color .15s, color .15s; }
+html.g7-move .bd-addsec:hover{ transform: scale(1.02); }
+html.g7-move .bd-addsec:hover i{ animation: bdjSpin .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes bdjSpin{ from{ transform: rotate(-90deg) scale(.6); } }
+html.g7-move .bd-step{ transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+html.g7-move .bd-sec:hover .bd-step{ transform: scale(1.12) rotate(-6deg); }
+
+/* Indicador deslizante en "Completo / Por pasos" y en el dispositivo de la vista previa */
+.bd-seg{ position: relative; }
+.bdj-ind{ position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 8px; background: var(--g7-bg-5, #26262b); box-shadow: 0 2px 8px rgba(0,0,0,.25); z-index: 0; pointer-events: none;
+  transition: left .38s cubic-bezier(.34,1.56,.64,1), width .38s cubic-bezier(.34,1.56,.64,1), opacity .2s; }
+.bd-seg:has(.bdj-ind) > button{ position: relative; z-index: 1; }
+.bd-seg:has(.bdj-ind) > button.on{ background: transparent !important; }
+
+/* Pestañas de Propiedades */
+html.g7-move .bd-tabs button.on{ animation: bdjTab .35s cubic-bezier(.34,1.56,.64,1); }
+@keyframes bdjTab{ from{ transform: scale(.9); } }

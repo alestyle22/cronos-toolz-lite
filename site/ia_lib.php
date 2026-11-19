@@ -87,7 +87,7 @@ function g7_claude_check_stop(?string $stop): void {
 }
 /**
  * Texto libre (respuestas largas, por ejemplo una landing entera): va por streaming para no cortar por tiempo.
- * $opts: maxTokens, effort ('low'|'medium'|'high').
+ * $opts: maxTokens, effort ('low'|'medium'|'high'), tick (callable sin argumentos, en cada evento del streaming).
  */
 function g7_claude_text(string $system, string $user, array $opts = []): string {
     try {
@@ -99,7 +99,9 @@ function g7_claude_text(string $system, string $user, array $opts = []): string 
             'outputConfig' => ['effort' => $opts['effort'] ?? 'medium'],
         ]);
         $text = ''; $stop = null;
+        $tick = $opts['tick'] ?? null;   // opcional: se llama con cada evento (por ejemplo, para mandar un latido al navegador)
         foreach ($stream as $ev) {
+            if ($tick) $tick();
             if (($ev->type ?? '') === 'content_block_delta' && ($ev->delta->type ?? '') === 'text_delta') $text .= $ev->delta->text;
             if (($ev->type ?? '') === 'message_delta') $stop = $ev->delta->stopReason ?? $stop;
         }

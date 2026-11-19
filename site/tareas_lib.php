@@ -247,13 +247,16 @@ function tk_mail_flush(): void {
     if (!$q) return;
     if (function_exists('litespeed_finish_request')) litespeed_finish_request();
     elseif (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
-    foreach ($q as $m) @tk_mail_send($m['to'], $m['subject'], $m['html'], $m['from_name']);
+    foreach ($q as $m) { $GLOBALS['g7_mail_key'] = $m['key'] ?? ''; @tk_mail_send($m['to'], $m['subject'], $m['html'], $m['from_name']); }
+    unset($GLOBALS['g7_mail_key']);
     $q = [];
 }
 
 function tk_mail_send(string $to, string $subject, string $html, string $fromName = ''): bool {
-    if ($fromName === '') $fromName = (string)g7_site('name');
+    require_once __DIR__ . '/mail_tpl_lib.php';   // remitente por defecto (Admin › Mails › Diseño) y registro de envíos
+    if ($fromName === '') $fromName = g7_mail_layout()['from_name'] ?: (string)g7_site('name');
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+    if (defined('G7_MAIL_FAKE')) { g7_mail_log_add($to, $subject, (string)($GLOBALS['g7_mail_key'] ?? ''), true); return true; }   // pruebas: no sale nada, solo se anota
     $host = g7_site_mail_host();
     $from = 'no-reply@' . $host;
     $headers = [
@@ -262,7 +265,9 @@ function tk_mail_send(string $to, string $subject, string $html, string $fromNam
         'From: =?UTF-8?B?' . base64_encode($fromName) . "?= <$from>",
         'X-Mailer: Toolz',
     ];
-    return mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $html, implode("\r\n", $headers), '-f' . $from);
+    $ok = mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $html, implode("\r\n", $headers), '-f' . $from);
+    g7_mail_log_add($to, $subject, (string)($GLOBALS['g7_mail_key'] ?? ''), $ok);   // Admin › Mails › Enviados
+    return $ok;
 }
 
 function tk_task_url(int $id): string {
@@ -297,7 +302,7 @@ function tk_notify(PDO $db, string $event, array $userIds, array $task, ?int $fr
     $from = '';
     if ($fromId) { $q = $db->prepare('SELECT COALESCE(NULLIF(display_name, \'\'), username) FROM g7_users WHERE id = ?'); $q->execute([$fromId]); $from = (string)$q->fetchColumn(); }
     $in = implode(',', $userIds);
-    $users = $db->query("SELECT id, email FROM g7_users WHERE active = 1 AND id IN ($in)")->fetchAll(PDO::FETCH_ASSOC);
+    $users = $db->query("SELECT id, email, COALESCE(NULLIF(display_name, ''), username) name FROM g7_users WHERE active = 1 AND id IN ($in)")->fetchAll(PDO::FETCH_ASSOC);
     $titles = [
         'assigned' => [$from . ' te asignó una tarea', 'Te sumaron como responsable.'],
         'mention'  => [$from . ' te mencionó', 'Te nombraron en una tarea.'],
@@ -339,8 +344,14 @@ function tk_notify(PDO $db, string $event, array $userIds, array $task, ?int $fr
         if (!empty($p['events'][$event]['email']) && $u['email']) {
             $q = &tk__mail_queue();
             if (!$q) register_shutdown_function('tk_mail_flush');
-            $q[] = ['to' => $u['email'], 'subject' => trim($titles[0]) . ': ' . $task['title'], 'from_name' => $cfg['notif']['from_name'] ?: (string)g7_site('name'),
-                    'html' => tk_mail_html(trim($titles[0]), $titles[1], $body, $tkId !== null ? g7_site_origin() . ($ptMod ? '/toolz/solicitudes/#solicitudes/t/' . $tkId : '/toolz/trabajo/#tickets' . ($tkId ? '/' . $tkId : '')) : tk_task_url((int)$task['id']), $task['title'], $tkId !== null)];
+            // Textos de la plantilla de Admin › Mails (mail_tpl_lib.php): se pueden cambiar sin tocar código
+            require_once __DIR__ . '/mail_tpl_lib.php';
+            $mkey = g7_mail_tk_key($event);
+            $url = $tkId !== null ? g7_site_origin() . ($ptMod ? '/toolz/solicitudes/#solicitudes/t/' . $tkId : '/toolz/trabajo/#tickets' . ($tkId ? '/' . $tkId : '')) : tk_task_url((int)$task['id']);
+            [$subj, $html] = g7_mail_build($mkey, ['nombre' => (string)$u['name'], 'de' => $from ?: 'Alguien', 'titulo' => (string)$task['title']],
+                ['highlight' => (string)$task['title'], 'quote' => $body, 'url' => $url, 'kicker' => $tkId !== null ? ($isPt ? 'Solicitudes' : 'Tickets') : 'Tareas',
+                 'foot' => 'Puedes elegir qué avisos te llegan desde Tareas › Mis avisos.']);
+            $q[] = ['to' => $u['email'], 'subject' => $subj, 'from_name' => $cfg['notif']['from_name'] ?: '', 'key' => $mkey, 'html' => $html];
         }
     }
 }

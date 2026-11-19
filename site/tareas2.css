@@ -17,7 +17,7 @@ input[type=checkbox].tk-fin{width:16px;height:16px;accent-color:var(--g7-accent)
 .tk-furl{display:flex;align-items:center;gap:4px;width:100%}
 .tk-furl a{color:var(--g7-text-3);font-size:11px;padding:4px}
 .tk-furl a:hover{color:var(--g7-accent)}
-:root[data-theme="light"] .tk-fin,.theme-light .tk-fin{color-scheme:light}
+:root[data-theme="light"] .tk-fin,html:is(.theme-light,.theme-sand,.theme-sky,.theme-lilac,.theme-mint,.theme-sakura,.theme-lemon,.theme-cloud,.theme-desktop,.theme-classic,.theme-vintage,.theme-mica,.theme-aqua,.theme-studio,.theme-material,.theme-mobile,.theme-glassfrost,.theme-glasspeach,.theme-glassmint,.theme-glasssky,.theme-glasslilac,.theme-glasslemon,.theme-glassblush,.theme-glasspearl,.theme-coral,.theme-lagoon,.theme-peach,.theme-fog,.theme-lime,.theme-latte,.theme-indigo,.theme-pocket,.theme-platinum) .tk-fin{color-scheme:light}
 
 /* Tabla */
 .tk-xt-w{overflow:auto;border:1px solid var(--g7-border-2);border-radius:12px;background:var(--g7-bg-2);max-height:calc(100dvh - 260px)}

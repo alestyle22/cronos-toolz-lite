@@ -41,6 +41,14 @@ $cfg['statuses'] = wk_statuses($db, $boardRow, $cfg);   // cada tablero puede te
 $GLOBALS['TK_WSCOPE'] = wk_task_where($db, $ctx);
 $GLOBALS['TK_BOARD'] = 'COALESCE(t.board_id, ' . wk_general_id($db) . ') = ' . $board;
 
+/** Configuración con los estados del tablero de una tarea (puede no ser el tablero del pedido). Devuelve [cfg, id del tablero]. */
+function tk_cfg_of_task(PDO $db, array $cfg, array $globalStatuses, int $id, int $board): array {
+    $q = $db->prepare('SELECT board_id FROM g7_tasks WHERE id = ?'); $q->execute([$id]);
+    $tb = (int)$q->fetchColumn() ?: wk_general_id($db);
+    if ($tb !== $board && ($tbRow = wk_board($db, $tb))) $cfg['statuses'] = wk_statuses($db, $tbRow, ['statuses' => $globalStatuses]);
+    return [$cfg, $tb];
+}
+
 /** Tareas con responsables y contadores (sin archivadas, salvo que se pidan). */
 function tk_tasks(PDO $db, bool $archived = false, ?int $id = null): array {
     global $TK_SCOPE;
@@ -363,9 +371,7 @@ case 'save':
         $in['board_id'] = $board;
     } else {
         // Una tarea de otro tablero (p. ej. tildada desde Mis tareas) se valida con los estados de su propio tablero
-        $q = $db->prepare('SELECT board_id FROM g7_tasks WHERE id = ?'); $q->execute([(int)$in['id']]);
-        $tb = (int)$q->fetchColumn() ?: wk_general_id($db);
-        if ($tb !== $board && ($tbRow = wk_board($db, $tb))) $cfg['statuses'] = wk_statuses($db, $tbRow, ['statuses' => $globalStatuses]);
+        $cfg = tk_cfg_of_task($db, $cfg, $globalStatuses, (int)$in['id'], $board)[0];
     }
     $t = tk_apply($db, $cfg, $uid, $in);
     tk_out(['task' => $t]);
@@ -374,8 +380,13 @@ case 'move':
     // Kanban: la tarea pasa a "status" y la columna queda en el orden de "order"
     $id = (int)($in['id'] ?? 0);
     $t = tk_task($db, $id);
-    if (($in['status'] ?? $t['status']) !== $t['status']) $t = tk_apply($db, $cfg, $uid, ['id' => $id, 'status' => $in['status']]);
-    $up = $db->prepare('UPDATE g7_tasks t SET t.position = ? WHERE t.id = ? AND t.status = ? AND ' . $GLOBALS['TK_BOARD']);
+    // El estado se valida con el tablero de la tarea, no con el del pedido (antes una columna de otro tablero se rechazaba o caía en la primera)
+    [$cfgT, $tb] = tk_cfg_of_task($db, $cfg, $globalStatuses, $id, $board);
+    if (($in['status'] ?? $t['status']) !== $t['status']) {
+        if (!in_array((string)$in['status'], tk_status_ids($cfgT), true)) tk_fail('Esa columna no existe en el tablero de la tarea');
+        $t = tk_apply($db, $cfgT, $uid, ['id' => $id, 'status' => $in['status']]);
+    }
+    $up = $db->prepare('UPDATE g7_tasks t SET t.position = ? WHERE t.id = ? AND t.status = ? AND COALESCE(t.board_id, ' . wk_general_id($db) . ') = ' . $tb);
     foreach (array_values(array_map('intval', (array)($in['order'] ?? []))) as $i => $tid) $up->execute([$i + 1, $tid, $t['status']]);
     tk_out(['task' => tk_task($db, $id), 'tasks' => tk_tasks($db)]);
 
@@ -720,7 +731,10 @@ case 'bulk':
             }
             if (array_key_exists('assignees', (array)($in['fields'] ?? []))) $f['assignees'] = (array)$in['fields']['assignees'];
             if (!$f) tk_fail('No hay nada para cambiar');
-            tk_apply($db, $cfg, $uid, ['id' => $id] + $f); $n++;
+            // Cada tarea con los estados de su tablero; si el estado elegido no existe ahí, esa tarea se saltea (antes caía en la primera columna)
+            $cfgT = tk_cfg_of_task($db, $cfg, $globalStatuses, $id, $board)[0];
+            if (isset($f['status']) && !in_array((string)$f['status'], tk_status_ids($cfgT), true)) { $skipped++; continue; }
+            tk_apply($db, $cfgT, $uid, ['id' => $id] + $f); $n++;
         }
     }
     tk_out(['n' => $n, 'skipped' => $skipped, 'tasks' => tk_tasks($db)]);

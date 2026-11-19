@@ -151,6 +151,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .sv-clear-btn:hover{background:var(--ink)!important;color:var(--paper)!important}
 .sv-add-lbl:hover{background:var(--accent)!important}
 </style>
+<link rel="stylesheet" href="/toolz/assets/g7-studio.css?v=<?= (int)@filemtime(__DIR__ . '/assets/g7-studio.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/svg-studio.css?v=<?= (int)@filemtime(__DIR__ . '/assets/svg-studio.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/topbar.php'; ?>
@@ -257,6 +259,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 <div class="sv-toast" id="toast"></div>
 
+<script src="/toolz/assets/g7-studio.js?v=<?= (int)@filemtime(__DIR__ . '/assets/g7-studio.js') ?>"></script>
 <script src="/toolz/assets/svg-converter.js?v=<?= (int)@filemtime(__DIR__ . '/assets/svg-converter.js') ?>"></script>
 </body>
 </html>

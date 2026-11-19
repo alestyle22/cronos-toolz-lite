@@ -1,0 +1,52 @@
+/* assets/biblioteca-look.css — Biblioteca con estética nueva (biblioteca-look.js). Colores del tema de cada persona. */
+body.blx{background:radial-gradient(1000px 500px at 15% -150px,color-mix(in srgb,var(--g7-accent) 10%,transparent),transparent 70%),var(--g7-bg)}
+body.blx .lb{max-width:1320px}
+body.blx .lb-head h1{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:900;letter-spacing:-.04em}
+.blx-ico{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;font-size:21px;color:#fff;background:linear-gradient(140deg,var(--g7-accent),color-mix(in srgb,var(--g7-accent) 45%,#7c3aed));box-shadow:0 12px 26px -12px var(--g7-accent)}
+html.g7-move .blx-ico{animation:blx-pop .7s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes blx-pop{from{transform:scale(.4) rotate(-20deg);opacity:0}}
+.blx-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+.blx-stat{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--g7-bg-3);border:1px solid var(--g7-border-2)}
+.blx-stat::after{content:'';position:absolute;right:-30px;top:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),transparent 70%)}
+.blx-stat i{grid-row:1/3;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:16px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.blx-stat b{font-size:24px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+.blx-stat small{font-size:12px;color:var(--g7-text-3);font-weight:600}
+/* barra de búsqueda y filtros */
+body.blx .lb-bar{border-radius:20px;margin:18px 0 0;padding:12px 14px;border:1px solid var(--g7-border-2);background:color-mix(in srgb,var(--g7-bg-2) 88%,transparent);box-shadow:0 14px 34px -26px rgba(0,0,0,.7)}
+body.blx .lb-search{height:42px;width:min(380px,100%);border-radius:14px}
+body.blx .lb-select,body.blx .lb-fav{height:42px;border-radius:14px}
+body.blx .tag-pill{border-radius:999px!important;transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+body.blx .tag-pill:hover{transform:translateY(-1px)}
+body.blx .tag-pill.active{background:var(--g7-accent)!important;color:#000!important;border-color:var(--g7-accent)!important}
+/* categorías */
+body.blx .category-section{margin-top:34px}
+body.blx .section-header{gap:12px;padding-bottom:14px}
+body.blx .section-title{display:flex;align-items:center;gap:11px;font-size:19px!important;font-weight:850!important;letter-spacing:-.02em}
+.blx-cico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:15px;color:var(--cc);background:color-mix(in srgb,var(--cc) 15%,transparent);border:1px solid color-mix(in srgb,var(--cc) 30%,transparent)}
+body.blx .section-count{font-weight:800;color:var(--cc)!important;background:color-mix(in srgb,var(--cc) 13%,transparent)!important;border-radius:999px;padding:2px 10px}
+body.blx .add-item-btn{border-radius:999px!important}
+/* tarjetas */
+body.blx .cards-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+body.blx .lb-card{border-radius:20px;background:var(--g7-bg-2);box-shadow:0 14px 30px -26px rgba(0,0,0,.8);transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,border-color .25s}
+body.blx .lb-card:hover{transform:translateY(-5px);border-color:color-mix(in srgb,var(--cc,var(--g7-accent)) 45%,var(--g7-border-2));box-shadow:0 24px 44px -24px color-mix(in srgb,var(--cc,var(--g7-accent)) 55%,transparent)}
+body.blx .lb-cover{aspect-ratio:16/9}
+body.blx .lb-card:hover .lb-cover img{transform:scale(1.07)}
+/* portada automática (sin imagen o si la imagen falla) */
+body.blx .lb-cover.noimg{background:radial-gradient(120% 90% at 0% 0%,hsl(var(--h1) 80% 62%),transparent 60%),radial-gradient(120% 100% at 100% 100%,hsl(var(--h2) 80% 55%),transparent 60%),linear-gradient(135deg,hsl(var(--h1) 60% 30%),hsl(var(--h2) 60% 22%))}
+body.blx .lb-cover.noimg .ph{flex-direction:column;gap:2px;color:#fff}
+.blx-mono{font:900 46px/1 var(--g7-font,'Inter',system-ui,sans-serif);letter-spacing:-.04em;text-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.blx-dom{font-size:11.5px;font-weight:700;opacity:.85;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(0,0,0,.2);padding:2px 9px;border-radius:999px}
+body.blx .lb-card:hover .blx-mono{transform:scale(1.15) rotate(-6deg)}
+body.blx .lb-cover.noimg::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);transform:translateX(-120%);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+body.blx .lb-card:hover .lb-cover.noimg::after{transform:translateX(120%)}
+body.blx .lb-fav-btn{border-radius:12px;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .15s}
+body.blx .lb-fav-btn:hover{transform:scale(1.12)}
+body.blx .lb-body{padding:14px 16px 10px}
+body.blx .card-name{font-size:15px;font-weight:800;letter-spacing:-.01em}
+body.blx .lb-tag{border-radius:999px;padding:2px 9px;font-weight:600}
+body.blx .lb-foot .lb-ic{opacity:.55;transition:opacity .2s,background .15s,color .15s}
+body.blx .lb-card:hover .lb-foot .lb-ic{opacity:1}
+body.blx .lb-empty-cat{border-radius:18px;background:color-mix(in srgb,var(--cc,var(--g7-accent)) 5%,transparent);border-color:color-mix(in srgb,var(--cc,var(--g7-accent)) 30%,var(--g7-border-3))}
+@media (max-width:760px){.blx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+body.blx .lb-head .g7m-hico{display:none!important}
+body.blx .section-count{flex:0 0 auto!important;width:auto!important;margin-right:auto}

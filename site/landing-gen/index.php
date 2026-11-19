@@ -307,6 +307,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $raw = trim($data['content'] ?? '');
         if (!$raw) { echo json_encode(['error' => 'Sin contenido']); exit; }
 
+        // Pedido largo (una landing entera puede tardar minutos):
+        // - se suelta la sesión, para que el resto de Cronos (otras pestañas, el chat, recargar) no quede esperando;
+        // - las cabeceras salen enseguida: si en este pedido se renovó el id de sesión, la cookie nueva llega aunque
+        //   la persona cierre o recargue antes de que termine (si no, a los 2 minutos la sesión vieja muere y la saca);
+        // - mientras Claude escribe se manda un espacio cada 10 s, para que el hosting no corte la conexión por inactividad.
+        //   El JSON final admite espacios adelante (landings.js lo lee igual).
+        @set_time_limit(600);
+        session_write_close();
+        while (ob_get_level() > 0) @ob_end_flush();
+        header('Cache-Control: no-store'); header('X-Accel-Buffering: no');
+        echo ' '; @flush();
+        $beat = time();
+        $tick = function () use (&$beat) { if (time() - $beat >= 10) { $beat = time(); echo ' '; @flush(); } };
+
         // Plataforma con plantilla de textos (paquete de marcas): la IA solo redacta los textos
         $genPlat = (string)($data['platform'] ?? '');
         if (lg_template_kind($genPlat) === 'textos') {
@@ -346,7 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Con Claude configurado, la landing la escribe Claude (respuesta larga: va por streaming)
         if (g7_claude_ready()) {
             try {
-                $html = g7_claude_text($systemPrompt, "Converti este contenido al HTML del template:\n\n" . $raw, ['maxTokens' => 32000, 'effort' => 'medium']);
+                $html = g7_claude_text($systemPrompt, "Converti este contenido al HTML del template:\n\n" . $raw, ['maxTokens' => 32000, 'effort' => 'medium', 'tick' => $tick]);
                 $html = preg_replace('/^```[a-z]*\n?/i', '', trim($html));
                 $html = preg_replace('/\n?```$/', '', $html);
                 echo json_encode(['ok' => true, 'html' => trim($html), 'ai' => 'Claude']);
@@ -700,6 +714,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Inter',-apple-system,san
 .land-editing-badge i{font-size:8px}
 .lg-x-hov:hover{color:#e4e4e7!important}
 </style>
+<link rel="stylesheet" href="/toolz/assets/g7-studio.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/g7-studio.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/tool-studio.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/tool-studio.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/../topbar.php'; ?>
@@ -945,5 +961,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Inter',-apple-system,san
 <script type="application/json" id="lg-data"><?= json_encode(['isAdmin' => (bool)$isAdmin]) ?></script>
 <script src="/toolz/landing-gen/frame-host.js?v=<?= (int)@filemtime(__DIR__ . '/frame-host.js') ?>"></script>
 <script src="/toolz/landing-gen/landings.js?v=<?= (int)@filemtime(__DIR__ . '/landings.js') ?>"></script>
+<script src="/toolz/assets/tool-studio.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/tool-studio.js') ?>" data-ts="landing" data-ts-name="Landing Gen" data-ts-desc="Landings de promo y T&amp;C con IA" data-ts-icon="fa-wand-magic-sparkles" data-ts-grad="#22c55e,#0ea5e9" data-ts-head=".form-panel" data-ts-icons=".fcard-label > i" data-ts-stage=".prev-panel" data-ts-busy="#gen-loading"></script>
 </body>
 </html>

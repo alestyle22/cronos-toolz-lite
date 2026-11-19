@@ -386,7 +386,7 @@ function openEditModal(){document.getElementById('edit-modal').classList.add('op
 function closeEditModal(){document.getElementById('edit-modal').classList.remove('open');}
 async function saveProfile(){
   const fd=new FormData();fd.append('action','save_profile');
-  ['display','position','email','phone','location','bio','instagram','behance','linkedin','portfolio'].forEach(f=>fd.append(f==='display'?'display_name':f,document.getElementById('pf-'+f)?.value||''));
+  ['display','position','email','phone','location','bio','instagram','behance','linkedin','portfolio','birthday','joined'].forEach(f=>fd.append(f==='display'?'display_name':f,document.getElementById('pf-'+f)?.value||''));
   fd.append('skills_json',JSON.stringify(skillValues));fd.append('current_avatar',document.getElementById('current-avatar').value);fd.append('current_cover',document.getElementById('current-cover').value);
   const avf=document.getElementById('avatar-input').files[0];if(avf)fd.append('avatar',await g7PrepImage(avf,{max:1200}));
   const cvf=document.getElementById('cover-input').files[0];if(cvf)fd.append('cover',await g7PrepImage(cvf,{max:2400}));

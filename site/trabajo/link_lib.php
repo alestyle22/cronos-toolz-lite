@@ -11,7 +11,7 @@
  * Los cambios que hace la sincronización no vuelven a disparar la sincronización (wk_link_busy).
  */
 
-const WK_TK_ORIGINS = ['ticket' => 'Ticket interno', 'tarea' => 'Tarea', 'base' => 'Sitio base', 'form' => 'Panel de solicitudes', 'chat' => 'Chat (tarea rápida)', 'juego' => 'Juego'];   // juego: reportes desde el juego (juegos/reportes.php)
+const WK_TK_ORIGINS = ['ticket' => 'Ticket interno', 'tarea' => 'Tarea', 'base' => 'Sitio base', 'form' => 'Panel de solicitudes', 'chat' => 'Chat (tarea rápida)', 'juego' => 'Juego', 'social' => 'Social Studio', 'blog' => 'Blog Studio'];   // blog: tarea editorial ⇄ ticket (blog/posts_lib.php, BLOG_STUDIO.md)   // social: "Convertir en ticket" de social/ (SOCIAL_STUDIO.md)   // juego: reportes desde el juego (juegos/reportes.php)
 const WK_TK_OPEN = ['abierto', 'en_curso', 'esperando'];
 
 /** v8: columnas del vínculo, pausa del SLA, origen y formularios del panel. */

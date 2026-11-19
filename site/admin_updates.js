@@ -55,11 +55,25 @@ function updDraw() {
     ${logs.length ? `<div class="adm-card"><div class="adm-card-head"><div class="adm-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Historial</div></div>${logs.map(h => `<div class="upd-log">${esc(h.at)} · <b>${esc(h.site)}</b> ${esc(h.action)} ${esc(h.version)}${h.detail ? ' · ' + esc(h.detail) : ''}</div>`).join('')}</div>` : ''}`;
 }
 async function updPreview(site, version) {
+  // Revisar baja el paquete (~14 MB) y lo compara archivo por archivo: puede tardar. Que se note que está trabajando.
+  if (UPD.busy) return;
+  const btn = this instanceof Element ? this : null, html = btn ? btn.innerHTML : '';
+  UPD.busy = true;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Revisando… baja el paquete'; }
+  const slow = setTimeout(() => { if (btn && btn.isConnected) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sigue revisando… puede tardar hasta 2 min'; }, 12000);
   try {
     const r = await accApi('upd_run', { op: 'preview', site, version });
     UPD.plan = { ...r, site, name: UPD.data.sites.find(s => s.id === site)?.name || site };
+    UPD.busy = false;
     updDraw();
-  } catch (e) {}
+    const go = $id('upd-go');
+    if (go) { go.closest('.adm-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); go.focus({ preventScroll: true }); }
+  } catch (e) {
+    UPD.busy = false;
+    if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = html; }
+    const row = btn && btn.closest('.upd-row');
+    if (row) { row.querySelector('.upd-err')?.remove(); row.insertAdjacentHTML('beforeend', `<div class="upd-err"><i class="fa-solid fa-triangle-exclamation"></i> No se pudo revisar: ${esc(e.message || 'error desconocido')}</div>`); }
+  } finally { clearTimeout(slow); }
 }
 async function updApply() {
   const u = UPD.plan; if (!u || UPD.busy) return;

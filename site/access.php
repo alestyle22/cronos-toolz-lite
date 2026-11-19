@@ -80,7 +80,8 @@ function g7_setting_on(string $key): bool { return (string)g7_setting($key) === 
 function g7_settings_schema(): array {
     $tz = [];
     foreach (['America/Argentina/Buenos_Aires','America/Asuncion','America/Guatemala','America/Costa_Rica','America/Tegucigalpa','America/Mexico_City','America/Bogota','America/Lima','America/Santiago','America/Montevideo','America/Sao_Paulo','America/New_York','Europe/Madrid','UTC'] as $z) $tz[$z] = str_replace('_', ' ', $z);
-    $themes = ['dark' => 'Oscuro', 'midnight' => 'Medianoche', 'violet' => 'Violeta', 'green' => 'Verde', 'rose' => 'Rosa', 'light' => 'Claro'];
+    require_once __DIR__ . '/theme_list.php';   // lista única de temas
+    $themes = array_map(fn($t) => $t['label'], g7_themes());
     $teams = ['' => 'Ninguno'];
     try { foreach (getDB()->query("SELECT id, name FROM g7_teams WHERE active=1 ORDER BY name") as $t) $teams[(string)$t['id']] = $t['name']; } catch (Throwable $e) {}
 
@@ -204,7 +205,10 @@ function g7_base_modules(): array {
         'perfil'      => ['label' => 'Mi perfil',          'icon' => 'fa-user-gear',        'group' => 'Plataforma',   'paths' => ['user_config.php'], 'core' => true],
         'promos'      => ['label' => 'Promos CMS',         'icon' => 'fa-layer-group',      'group' => 'Contenido',    'paths' => ['promos/'], 'actions' => ['view', 'create', 'edit', 'delete'], 'default_mode' => 'teams', 'brand_scoped' => true],
         'landings'    => ['label' => 'Landing Gen',        'icon' => 'fa-file-code',        'group' => 'Contenido',    'paths' => ['landing-gen/'], 'brand_scoped' => true],
+        // Landing Gen 2.0: landings y sitios con bloques, publicados como estáticos (landing-gen-2/, doc LANDING_GEN_2.md). Solo Cronos completo
+        'landings2'   => ['label' => 'Landing Gen 2.0',    'icon' => 'fa-wand-magic-sparkles', 'group' => 'Contenido', 'paths' => ['landing-gen-2/'], 'actions' => ['view', 'edit', 'publish', 'config'], 'default_mode' => 'admins'],
         'mailing'     => ['label' => 'Mailing Maker',      'icon' => 'fa-envelope',         'group' => 'Contenido',    'paths' => ['mailingmaker/'], 'brand_scoped' => true],
+        'mailing2'    => ['label' => 'Mailing Maker 2.0',  'icon' => 'fa-envelope-open-text', 'group' => 'Contenido', 'paths' => ['mailing-2/'], 'actions' => ['view', 'edit', 'templates', 'config'], 'default_mode' => 'admins'],
         'popups'      => ['label' => 'Popup Gen',          'icon' => 'fa-window-restore',   'group' => 'Contenido',    'paths' => ['popup-gen/']],
         'pages'       => ['label' => 'Pages',              'icon' => 'fa-file-lines',       'group' => 'Contenido',    'paths' => ['pages.php']],
         'planify'     => ['label' => 'Planify',            'icon' => 'fa-calendar-days',    'group' => 'Contenido',    'paths' => ['planify.php']],
@@ -214,6 +218,17 @@ function g7_base_modules(): array {
         'placas'      => ['label' => 'Placas deportivas',  'icon' => 'fa-futbol',           'group' => 'Diseño',       'paths' => ['placasdeportivas/', 'placaspaid/', 'sport_placas.php']],
         'stock'       => ['label' => 'Stock',              'icon' => 'fa-photo-film',       'group' => 'Diseño',       'paths' => ['stock.php']],
         'imghost'     => ['label' => 'Image Host',         'icon' => 'fa-cloud-arrow-up',   'group' => 'Diseño',       'paths' => ['imghost.php']],
+        'globo'       => ['label' => 'Globo',              'icon' => 'fa-comment-dots',     'group' => 'Diseño',       'paths' => ['taller/globo.php', 'taller/globo/']],
+        'etiqueta'    => ['label' => 'Etiqueta',           'icon' => 'fa-at',               'group' => 'Diseño',       'paths' => ['taller/etiqueta.php', 'taller/etiqueta/']],
+        'calco'       => ['label' => 'Calco',              'icon' => 'fa-note-sticky',      'group' => 'Diseño',       'paths' => ['taller/calco.php', 'taller/calco/']],
+        // Mockup Studio (mockups/, doc MOCKUP_STUDIO.md): diseños sobre productos con motor de composición. edit = proyectos; share = presentaciones con enlace; tickets = importar y adjuntar a tickets;
+        // assets = importar de Materiales y guardar ahí; ai = fondos y escenas con IA; templates = crear, editar y apagar plantillas
+        'mockups'     => ['label' => 'Mockup Studio',      'icon' => 'fa-layer-group',      'group' => 'Diseño',       'paths' => ['mockups/'], 'actions' => ['view', 'edit', 'share', 'tickets', 'assets', 'ai', 'templates'], 'grant_actions' => ['ai', 'templates']],
+        'rotulo'      => ['label' => 'Rótulo',             'icon' => 'fa-heading',          'group' => 'Diseño',       'paths' => ['taller/rotulo.php', 'taller/rotulo/']],
+        'resena'      => ['label' => 'Reseña',             'icon' => 'fa-star',             'group' => 'Diseño',       'paths' => ['taller/resena.php', 'taller/resena/']],
+        'codigo'      => ['label' => 'Código QR',          'icon' => 'fa-qrcode',           'group' => 'Diseño',       'paths' => ['taller/codigo.php', 'taller/codigo/']],
+        // Paletas: generador de paletas, paletas armadas y significado de cada color, con la interfaz de estudio (paletas/, doc PALETAS.md)
+        'paletas'     => ['label' => 'Paletas',            'icon' => 'fa-palette',          'group' => 'Diseño',       'paths' => ['paletas/']],
         'webp'        => ['label' => 'WebP Converter',     'icon' => 'fa-image',            'group' => 'Herramientas', 'paths' => ['webpmaker.php', 'webp_converter.php']],
         'jpg'         => ['label' => 'WebP a JPG',         'icon' => 'fa-file-image',       'group' => 'Herramientas', 'paths' => ['jpg_converter.php']],
         'svg'         => ['label' => 'SVG → PNG',          'icon' => 'fa-vector-square',    'group' => 'Herramientas', 'paths' => ['svg_converter.php']],
@@ -221,18 +236,33 @@ function g7_base_modules(): array {
         'renombrador' => ['label' => 'Renombrador',        'icon' => 'fa-i-cursor',         'group' => 'Herramientas', 'paths' => ['renombrador.php']],
         'claude'      => ['label' => 'Claude',             'icon' => 'fa-robot',            'group' => 'Herramientas', 'paths' => ['claude/']],
         'linkgen'     => ['label' => 'Links Generator',    'icon' => 'fa-link',             'group' => 'Herramientas', 'paths' => ['linkgen/', 'linkgenerator.php']],
-        'links'       => ['label' => 'Biblioteca',         'icon' => 'fa-book-bookmark',    'group' => 'Comunidad',    'paths' => ['links/'], 'actions' => ['view', 'notes'], 'grant_actions' => ['notes']],
+        'links'       => ['label' => 'Biblioteca',         'icon' => 'fa-book-bookmark',    'group' => 'Comunidad',    'paths' => ['links/'], 'actions' => ['view', 'notes', 'catalog'], 'grant_actions' => ['notes', 'catalog']],   // catalog: Catálogo Cronos (CATALOGO.md)
         'comunidad'   => ['label' => 'Comunidad',          'icon' => 'fa-people-group',     'group' => 'Comunidad',    'paths' => ['comunidad.php']],
         'chat'        => ['label' => 'Chat',               'icon' => 'fa-comment-dots',     'group' => 'Comunidad',    'paths' => ['chat/', 'chat_page.php', 'chat.php', 'chat_embed.php']],
         'encuesta'    => ['label' => 'Encuesta',           'icon' => 'fa-square-poll-vertical', 'group' => 'Comunidad', 'paths' => ['encuesta/']],
+        // Bienestar: ánimo, hábitos, retos, clima, reconocimientos, carga y ausencias (bienestar/, doc BIENESTAR.md).
+        // manage = gestionar retos, encuestas, programas y aprobar ausencias de los equipos de la persona (los admins de equipo ya lo tienen)
+        'bienestar'   => ['label' => 'Bienestar',          'icon' => 'fa-spa',              'group' => 'Comunidad',    'paths' => ['bienestar/'], 'actions' => ['view', 'manage'], 'grant_actions' => ['manage']],
         'stats'       => ['label' => 'Stats',              'icon' => 'fa-chart-line',       'group' => 'Gestión',      'paths' => ['stats.php', 'stats_minimal.php', 'stats_reporte.php', 'stats_produccion.php'], 'brand_scoped' => true],
         'status'      => ['label' => 'Status',             'icon' => 'fa-triangle-exclamation', 'group' => 'Gestión',  'paths' => ['status.php']],
         'todos'       => ['label' => 'To-Do',              'icon' => 'fa-list-check',       'group' => 'Gestión',      'paths' => ['todos.php']],
         'calendario'  => ['label' => 'Mi calendario',      'icon' => 'fa-calendar-days',    'group' => 'Gestión',      'paths' => ['calendario/']],
-        'tareas'      => ['label' => 'Gestión de trabajo', 'icon' => 'fa-table-columns',    'group' => 'Gestión',      'paths' => ['trabajo/', 'tareas.php', 'tareas_api.php', 'tareas_files.php']],
+        // Social Studio: calendario editorial por marca o cliente y "Convertir en ticket" (social/, doc SOCIAL_STUDIO.md). edit = crear y editar;
+        // approve/schedule/publish = llevar a Aprobado/Programado/Publicado y publicar en las redes; tickets = convertir en ticket; assign = asignar a otros;
+        // inbox = ver las conversaciones; reply = responder en la red; analytics = métricas; reports = informes para clientes; accounts = conectar, renovar y desconectar cuentas; config = estados, reglas y agrupación
+        'social'      => ['label' => 'Social Studio',      'icon' => 'fa-share-nodes',      'group' => 'Gestión',      'paths' => ['social/'], 'actions' => ['view', 'edit', 'approve', 'schedule', 'publish', 'tickets', 'assign', 'inbox', 'reply', 'analytics', 'reports', 'accounts', 'config'], 'grant_actions' => ['approve', 'publish', 'accounts', 'config'], 'default_mode' => 'admins'],
+        // Blog Studio: CMS editorial multiblog (blog/, doc BLOG_STUDIO.md). view = entrar y trabajar en los blogs donde la persona tiene rol;
+        // create = crear blogs nuevos. Lo de adentro (redactar, revisar, publicar, SEO, diseño…) lo decide el rol de cada blog. blog/ver.php y blog/t.php son públicos.
+        'blog'        => ['label' => 'Blog Studio',        'icon' => 'fa-feather-pointed',  'group' => 'Gestión',      'paths' => ['blog/'], 'actions' => ['view', 'create'], 'grant_actions' => ['create'], 'default_mode' => 'admins'],
+        // Your Web: portal que junta Landing Gen 2.0, Mailing Maker 2.0, Blog Studio y la Tienda, con dominios propios y visitas sumadas (yourweb/, doc YOUR_WEB.md).
+        // view = entrar y ver las webs y estadísticas; manage = crear webs, cambiar dominios y verificarlos. yourweb/sitio.php es público (lo usan los dominios).
+        'yourweb'     => ['label' => 'Your Web',           'icon' => 'fa-globe',            'group' => 'Gestión',      'paths' => ['yourweb/'], 'actions' => ['view', 'manage'], 'grant_actions' => ['manage'], 'default_mode' => 'admins'],
+        'tareas'      => ['label' => 'Gestión de trabajo','icon' => 'fa-table-columns',    'group' => 'Gestión',      'paths' => ['trabajo/', 'tareas.php', 'tareas_api.php', 'tareas_files.php']],
         // Portal de Solicitudes aparte de Trabajo: quien no usa Gestión de trabajo igual pide y sigue sus pedidos (solicitudes/, SOLICITUDES.md)
         'solicitudes' => ['label' => 'Solicitudes',        'icon' => 'fa-inbox',            'group' => 'Gestión',      'paths' => ['solicitudes/']],
-        'tienda'      => ['label' => 'Tienda',             'icon' => 'fa-shop',             'group' => 'Gestión',      'paths' => ['tienda/admin/'], 'actions' => ['view', 'edit', 'config'], 'default_mode' => 'admins'],
+        'resto'       => ['label' => 'Restaurant',         'icon' => 'fa-utensils',         'group' => 'Gestión',      'paths' => ['resto/admin/'], 'actions' => ['view', 'manage', 'config'], 'default_mode' => 'admins'],   // Cronos Restaurant (toolz/RESTAURANT.md); permisos por sucursal dentro del módulo
+        'eventos'     => ['label' => 'Eventos',            'icon' => 'fa-ticket',           'group' => 'Gestión',      'paths' => ['eventos/admin/', 'eventos/acceso/'], 'actions' => ['view', 'manage', 'config'], 'default_mode' => 'admins'],   // Cronos Tickets (toolz/EVENTOS.md); permisos por organizador dentro del módulo
+        'tienda'      => ['label' => 'Tienda',             'icon' => 'fa-shop',             'group' => 'Gestión',      'paths' => ['tienda/admin/'], 'actions' => ['view', 'edit', 'config', 'design', 'publish'], 'default_mode' => 'admins'],
         'monday'      => ['label' => 'Monday',             'icon' => 'fa-check-square',     'group' => 'Gestión',      'paths' => ['monday.php']],
     ];
 }
@@ -695,13 +725,14 @@ function g7_href_visible(int $uid, string $href): bool {
 /** Herramientas que el usuario puede abrir, en el orden y con los textos del Inicio. */
 function g7_tool_catalog(int $uid): array {
     $desc = [
-        'promos' => 'Promos, lanzamientos y piezas', 'landings' => 'Landings de términos con IA', 'mailing' => 'Mailings y comunicaciones',
+        'promos' => 'Promos, lanzamientos y piezas', 'landings' => 'Landings de términos con IA', 'landings2' => 'Landings, promociones y sitios con bloques', 'mailing' => 'Mailings y comunicaciones', 'paletas' => 'Generador de paletas de color, paletas armadas y qué significa cada color', 'mailing2' => 'Editor visual de emails: componentes, responsive, plantillas y HTML para Outlook y Gmail',
         'popups' => 'Popups para los sitios', 'pages' => 'Páginas publicadas', 'planify' => 'Calendario de publicaciones',
         'placas' => 'Placas de partidos y resultados', 'placas_diarias' => 'Placas de redes para cada día', 'placas_paid' => 'Placas para pauta, por campaña', 'promos_gen' => 'Todas las piezas de una promo a partir de sus datos', 'stock' => 'Banco de imágenes y videos', 'imghost' => 'Sube una imagen y obtén el link',
         'webp' => 'Convierte imágenes a WebP', 'svg' => 'Exporta SVG a PNG', 'recolorear' => 'Cambia colores de un SVG',
-        'renombrador' => 'Renombra imágenes en lote', 'linkgen' => 'Enlaces para el CMS de cada sitio', 'claude' => 'Consultas y documentos con IA', 'links' => 'Recursos y enlaces del equipo',
-        'comunidad' => 'Novedades del equipo', 'chat' => 'Mensajes del equipo', 'encuesta' => 'Encuesta interna',
-        'stats' => 'Producción y métricas', 'status' => 'Incidencias y su estado', 'todos' => 'Tus tareas pendientes', 'calendario' => 'Eventos personales y tus tareas con fecha', 'clientes' => (is_file(__DIR__ . '/facturacion/index.php') ? 'Fichas, servicios, archivos y facturas de cada cliente' : 'Fichas, servicios, notas y archivos de cada cliente'), 'facturacion' => 'Facturas, cobros y diseño de comprobantes', 'pagos' => 'Cobros en línea, transferencias por revisar y medios de pago', 'tareas' => 'Tablero de tareas por marca', 'monday' => 'Tareas de Monday',
+        'renombrador' => 'Renombra imágenes en lote', 'globo' => 'Mockups de mensajes, chats y notificaciones', 'etiqueta' => 'Etiquetas de usuario para fotos e historias', 'calco' => 'Stickers troquelados desde una foto, texto o emoji', 'rotulo' => 'Títulos animados para videos', 'resena' => 'Insignias de puntaje y tarjetas de reseña', 'codigo' => 'Códigos QR con estilo que se pueden escanear', 'mockups' => 'Tus diseños sobre productos, pantallas, carteles y ropa', 'linkgen' => 'Enlaces para el CMS de cada sitio', 'claude' => 'Consultas y documentos con IA', 'links' => 'Recursos y enlaces del equipo',
+        'afiliados' => 'Quién recomienda Cronos, comisiones y liquidaciones', 'recomendar' => 'Recomienda Cronos a otras agencias y gana con su primer pago',
+        'comunidad' => 'Novedades del equipo', 'bienestar' => 'Tu ánimo, hábitos, retos y reconocimientos', 'chat' => 'Mensajes del equipo', 'encuesta' => 'Encuesta interna',
+        'stats' => 'Producción y métricas', 'status' => 'Incidencias y su estado', 'todos' => 'Tus tareas pendientes', 'calendario' => 'Eventos personales y tus tareas con fecha', 'clientes' => (is_file(__DIR__ . '/facturacion/index.php') ? 'Fichas, servicios, archivos y facturas de cada cliente' : 'Fichas, servicios, notas y archivos de cada cliente'), 'facturacion' => 'Facturas, cobros y diseño de comprobantes', 'pagos' => 'Cobros en línea, transferencias por revisar y medios de pago', 'tareas' => 'Tablero de tareas por marca', 'monday' => 'Tareas de Monday', 'social' => 'Calendario editorial de redes y tickets para producir cada publicación',
     ];
     $out = [];
     foreach (g7_modules() as $id => $m) {

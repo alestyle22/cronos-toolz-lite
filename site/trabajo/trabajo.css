@@ -696,7 +696,7 @@ button.wk-kpi:hover{transform:translateY(-2px);border-color:color-mix(in srgb,va
    tarjetas sin borde con sombra suave, KPIs con variación, área, medidor por segmentos, torta y barras apiladas. Clases sm-*. ── */
 #wk-main{--sm-card:var(--g7-bg-2);--sm-a:#3b6fe0;--sm-b1:#6c5dd3;--sm-b2:color-mix(in srgb,#a78bfa 55%,var(--g7-bg-2));
   --sm-shadow:0 0 30px rgba(82,63,105,.07),0 1px 2px rgba(0,0,0,.04)}
-html:not(.theme-light) #wk-main{--sm-a:#5b8cff;--sm-b1:#7c6cf0;--sm-b2:color-mix(in srgb,#c4b5fd 38%,transparent);--sm-shadow:0 0 0 1px var(--g7-border-2),0 10px 30px -18px rgba(0,0,0,.8)}
+html:not(.theme-light,.theme-sand,.theme-sky,.theme-lilac,.theme-mint,.theme-sakura,.theme-lemon,.theme-cloud,.theme-desktop,.theme-classic,.theme-vintage,.theme-mica,.theme-aqua,.theme-studio,.theme-material,.theme-mobile,.theme-glassfrost,.theme-glasspeach,.theme-glassmint,.theme-glasssky,.theme-glasslilac,.theme-glasslemon,.theme-glassblush,.theme-glasspearl,.theme-coral,.theme-lagoon,.theme-peach,.theme-fog,.theme-lime,.theme-latte,.theme-indigo,.theme-pocket,.theme-platinum) #wk-main{--sm-a:#5b8cff;--sm-b1:#7c6cf0;--sm-b2:color-mix(in srgb,#c4b5fd 38%,transparent);--sm-shadow:0 0 0 1px var(--g7-border-2),0 10px 30px -18px rgba(0,0,0,.8)}
 .sm-card{background:var(--sm-card);border-radius:12px;box-shadow:var(--sm-shadow);padding:20px 21px;min-width:0;animation:tkIn .35s both}
 .sm-ch{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-height:34px}
 .sm-ch h3{margin:0;font-size:17px;font-weight:600;letter-spacing:-.2px;flex:1;min-width:0}
@@ -1202,13 +1202,17 @@ img.wk-av{background:var(--g7-bg-4);box-shadow:inset 0 0 0 1px var(--g7-border-2
 /* ── Colaboradores y menciones en los tickets (TICKETS_COLABORADORES.md) ── */
 .tk-at{color:var(--g7-accent);font-weight:600;background:rgba(var(--g7-accent-rgb),.1);border-radius:5px;padding:0 3px}
 .tk-cols{display:flex;flex-wrap:wrap;gap:6px}
-.tk-col{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 3px;border-radius:999px;background:var(--g7-bg-3);border:1px solid var(--g7-border-2);font-size:12px}
-.tk-col small{color:var(--g7-text-4)}
-.tk-col button{border:0;background:none;color:var(--g7-text-4);cursor:pointer;padding:2px 6px;border-radius:50%}
-.tk-col button:hover{color:var(--g7-text);background:var(--g7-bg-5)}
+/* Colaboradores del ticket: solo el <span>; "tk-col" también es la columna del tablero (section.wk-tkcol) */
+span.tk-col{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 3px;border-radius:999px;background:var(--g7-bg-3);border:1px solid var(--g7-border-2);font-size:12px}
+span.tk-col small{color:var(--g7-text-4)}
+span.tk-col button{border:0;background:none;color:var(--g7-text-4);cursor:pointer;padding:2px 6px;border-radius:50%}
+span.tk-col button:hover{color:var(--g7-text);background:var(--g7-bg-5)}
 .tk-mpop{position:absolute;z-index:40;min-width:240px;max-width:320px;background:var(--g7-bg-2);border:1px solid var(--g7-border-3);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.35);padding:4px;animation:tkmIn .12s ease-out}
 .tk-mpop button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;color:inherit;padding:6px 8px;border-radius:7px;cursor:pointer;font:inherit}
 .tk-mpop button.on,.tk-mpop button:hover{background:var(--g7-bg-4)}
 .tk-mpop b{display:block;font-size:12.5px}.tk-mpop small{display:block;font-size:11px;color:var(--g7-text-4)}
 @keyframes tkmIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.tk-mpop{animation:none}}
+
+/* Redibujado silencioso después de una acción (wkQuiet en trabajo.js): nada vuelve a entrar animado */
+.wk-quiet,.wk-quiet *{animation:none!important}

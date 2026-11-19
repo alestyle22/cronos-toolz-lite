@@ -223,6 +223,7 @@ if ($act === 'get') {
     cli_out([
         // has: lo que trae esta instalación (la edición Lite no trae facturas ni portal de clientes)
         'has' => ['facturas' => is_file(__DIR__ . '/facturacion/index.php'), 'portal' => is_file(__DIR__ . '/portal/index.php')],
+        'portal_path' => (function () { if (!is_file(__DIR__ . '/portal_cfg_lib.php')) return '/'; require_once __DIR__ . '/portal_cfg_lib.php'; return portal_url_path(); })(),   // Admin › Portal de clientes › Dirección
         'client' => $c + ['custom' => cf_values($db, 'client', $id)], 'portal' => $portal, 'invoices' => cli_invoices($db, $id), 'contents' => cli_contents($db, $c['name']), 'billing' => cli_billing($db), 'sys' => cli_sys_name(),
         'fact_ok' => isset(g7_modules()['facturacion']) && g7_can((int)$me['id'], 'facturacion'),
         // Borradores de Facturación: el cliente no los ve, pero en la ficha se muestran aparte para no perderlos de vista

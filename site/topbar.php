@@ -7,7 +7,7 @@ $_tb_db = $db; // use the already-open DB connection
 if (!isset($_tb_theme_loaded)) {
     $_tb_theme_loaded = true;
     try {
-        $_tb_pref_q = $_tb_db->prepare("SELECT pref_key,pref_value FROM g7_user_prefs WHERE user_id=? AND pref_key IN ('theme','accent_color','font_size')");
+        $_tb_pref_q = $_tb_db->prepare("SELECT pref_key,pref_value FROM g7_user_prefs WHERE user_id=? AND pref_key IN ('theme','accent_color','font_size','dashboard_animations','ui_sounds','motion_force','whats_new_seen')");
         $_tb_pref_q->execute([$currentUser['id']]);
         $_tb_prefs = [];
         foreach($_tb_pref_q->fetchAll() as $_tb_r) {
@@ -63,6 +63,7 @@ $_tb_me = $currentUser;
 $_tb_meRow = $_tb_db->prepare('SELECT avatar,display_name FROM g7_users WHERE id=?');
 $_tb_meRow->execute([$_tb_me['id']]); $_tb_meData = $_tb_meRow->fetch();
 $_tb_avatar_html = $_tb_avatar($_tb_meData['avatar']??'', $_tb_meData['display_name']?:$_tb_me['username'], 26);
+$_tb_avatar_html = preg_replace('/^\s*<([a-z]+)/i', '<$1 data-g7-uid="' . (int)$_tb_me['id'] . '"', $_tb_avatar_html, 1);   // el marco de la foto (avatar_frame_lib.php) lo reconoce por el id
 
 // Monday urgent tasks count (cached)
 $_tb_monday_urgent = 0;
@@ -82,7 +83,13 @@ if (function_exists('g7_href_visible') && !g7_href_visible((int)($currentUser['i
 ?>
 <?php if(function_exists('vocab_js') && !defined('G7_TERMS_JS')){define('G7_TERMS_JS',1);echo vocab_js();}   // window.G7_TERMS y g7Term() para el JS de cada página ?>
 <?php if(!defined('G7_CSS_LOADED')){define('G7_CSS_LOADED',1);echo '<link rel="stylesheet" href="/toolz/g7-theme.css?v='.@filemtime(__DIR__.'/g7-theme.css').'">';} ?>
+<?php if(!defined('G7_FRAMES')){define('G7_FRAMES',1);require_once __DIR__.'/avatar_frame_lib.php';   // marcos de la foto de perfil de cada persona
+  echo '<script type="application/json" id="g7-frames-data">'.json_encode(['me'=>(int)$_tb_me['id'],'f'=>(object)g7_af_all($_tb_db ?? getDB())],JSON_HEX_TAG|JSON_HEX_AMP).'</script>'
+     .'<link rel="stylesheet" href="/toolz/assets/g7-frames.css?v='.(int)@filemtime(__DIR__.'/assets/g7-frames.css').'">'
+     .'<script src="/toolz/assets/g7-frames.js?v='.(int)@filemtime(__DIR__.'/assets/g7-frames.js').'" defer></script>';} ?>
+<?php if(!defined('G7_MOBILE_CSS')){define('G7_MOBILE_CSS',1);echo '<link rel="stylesheet" href="/toolz/assets/g7-mobile.css?v='.(int)@filemtime(__DIR__.'/assets/g7-mobile.css').'">';} ?>
 <?php if(!defined('G7_SHELL_CSS')){define('G7_SHELL_CSS',1);echo '<link rel="stylesheet" href="/toolz/g7-shell.css?v='.@filemtime(__DIR__.'/g7-shell.css').'">';} ?>
+<?php if(!defined('G7_JUICE')){define('G7_JUICE',1);echo '<link rel="stylesheet" href="/toolz/assets/g7-juice.css?v='.(int)@filemtime(__DIR__.'/assets/g7-juice.css').'"><script src="/toolz/assets/g7-vt.js?v='.(int)@filemtime(__DIR__.'/assets/g7-vt.js').'" data-motion="'.((($_tb_prefs['dashboard_animations'] ?? true) === false) ? '0' : '1').'" data-force="'.(!empty($_tb_prefs['motion_force']) ? '1' : '0').'"></script><script src="/toolz/assets/g7-juice.js?v='.(int)@filemtime(__DIR__.'/assets/g7-juice.js').'" data-motion="'.((($_tb_prefs['dashboard_animations'] ?? true) === false) ? '0' : '1').'" data-force="'.(!empty($_tb_prefs['motion_force']) ? '1' : '0').'" data-sound="'.(!empty($_tb_prefs['ui_sounds']) ? '1' : '0').'" defer></script><link rel="stylesheet" href="/toolz/assets/g7-tools.css?v='.(int)@filemtime(__DIR__.'/assets/g7-tools.css').'"><script src="/toolz/assets/g7-tools.js?v='.(int)@filemtime(__DIR__.'/assets/g7-tools.js').'" defer></script><script src="/toolz/assets/g7-ach.js?v='.(int)@filemtime(__DIR__.'/assets/g7-ach.js').'" defer></script><link rel="stylesheet" href="/toolz/assets/g7-people.css?v='.(int)@filemtime(__DIR__.'/assets/g7-people.css').'"><script src="/toolz/assets/g7-people.js?v='.(int)@filemtime(__DIR__.'/assets/g7-people.js').'" defer></script><link rel="stylesheet" href="/toolz/assets/g7-modern.css?v='.(int)@filemtime(__DIR__.'/assets/g7-modern.css').'"><script src="/toolz/assets/g7-modern.js?v='.(int)@filemtime(__DIR__.'/assets/g7-modern.js').'" defer></script><link rel="stylesheet" href="/toolz/assets/g7-tour.css?v='.(int)@filemtime(__DIR__.'/assets/g7-tour.css').'"><script src="/toolz/assets/g7-tour.js?v='.(int)@filemtime(__DIR__.'/assets/g7-tour.js').'" defer></script>';} ?>
 
 
 <?php
@@ -95,6 +102,10 @@ if (function_exists('g7_href_visible') && !g7_href_visible((int)($currentUser['i
     if (function_exists('g7_nav_add_once') && (g7_modules()['calendario']['mode'] ?? 'off') !== 'off') { try { g7_nav_add_once('nav_calendario_added', ['href' => '/toolz/calendario/', 'icon' => 'fa-calendar-days', 'label' => 'Calendario', 'enabled' => true], '/toolz/trabajo/'); } catch (Throwable $e) {} }
     // Portal de Solicitudes aparte (2026-11-13): el link aparece una vez al lado de Trabajo; el admin lo puede sacar del menú
     if (function_exists('g7_nav_add_once') && (g7_modules()['solicitudes']['mode'] ?? 'off') !== 'off') { try { g7_nav_add_once('nav_solicitudes_added', ['href' => '/toolz/solicitudes/', 'icon' => 'fa-inbox', 'label' => 'Solicitudes', 'enabled' => true], '/toolz/trabajo/'); } catch (Throwable $e) {} }
+    // Social Studio (2026-11-17): el link aparece una vez al lado de Trabajo cuando el módulo se prende; el admin lo puede sacar del menú (SOCIAL_STUDIO.md)
+    if (function_exists('g7_nav_add_once') && (g7_modules()['social']['mode'] ?? 'off') !== 'off' && g7_cfg('nav_social_added') !== '1') { try { g7_nav_add_once('nav_social_added', ['href' => '/toolz/social/', 'icon' => 'fa-share-nodes', 'label' => 'Social Studio', 'enabled' => true], '/toolz/trabajo/'); } catch (Throwable $e) {} }
+    // Bienestar (2026-11-16): el link aparece una vez al lado de Comunidad; el admin lo puede sacar del menú (BIENESTAR.md)
+    if (function_exists('g7_nav_add_once') && (g7_modules()['bienestar']['mode'] ?? 'off') !== 'off') { try { g7_nav_add_once('nav_bienestar_added', ['href' => '/toolz/bienestar/', 'icon' => 'fa-spa', 'label' => 'Bienestar', 'enabled' => true], '/toolz/comunidad.php'); } catch (Throwable $e) {} }
     // Juegos (2026-11-11): en agencias que ya eran de Videojuegos (o compraron el extra) el link y el acceso del Inicio aparecen solos, una vez
     if (function_exists('g7_jg_enabled') && g7_jg_enabled() && g7_cfg('jg_links_added') !== '1') { try {
         g7_nav_add_once('nav_juegos_v1', ['href' => '/toolz/juegos/', 'icon' => 'fa-gamepad', 'label' => 'Juegos', 'enabled' => true], '/toolz/clientes.php');
@@ -142,6 +153,8 @@ if (function_exists('g7_href_visible') && !g7_href_visible((int)($currentUser['i
   .g7-brand-switch span{padding-right:6px}.g7-brand-switch select{background:transparent;border:none;color:inherit;font:inherit;outline:none;cursor:pointer;max-width:150px}.g7-brand-switch select option{background:var(--g7-bg-4);color:var(--g7-text)}</style>
   <?php endif; endif; ?>
 
+  <?php if (isset($_GET['g7tour']) && function_exists('g7_tool_catalog')) { $_tb_tour = []; foreach (g7_tool_catalog((int)($currentUser['id'] ?? 0)) as $_tt) $_tb_tour[rtrim(parse_url((string)$_tt['url'], PHP_URL_PATH) ?: '', '/')] = ['label' => $_tt['label'], 'desc' => $_tt['desc']]; echo '<script type="application/json" id="g7-tour-data">' . json_encode($_tb_tour, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>'; } /* recorrido del menú (g7-tour.js) */ ?>
+  <?php if (is_file(__DIR__ . '/studio_lib.php')) { require_once __DIR__ . '/studio_lib.php'; if (g7_studio_is_page((string)($_SERVER['SCRIPT_NAME'] ?? ''))) { $_tb_here = (string)($_SERVER['SCRIPT_NAME'] ?? ''); echo '<script type="application/json" id="g7-studio-tools">' . json_encode(['here' => $_tb_here, 'tools' => array_map(fn($t) => ['id' => $t['id'], 'name' => $t['name'], 'desc' => $t['desc'], 'url' => $t['url'], 'icon' => $t['fa'], 'grad' => $t['grad']], g7_studio_tools((int)($currentUser['id'] ?? 0)))], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>'; } } /* sidebar del estudio (g7-studio.js) */ ?>
   <div id="g7-nav" class="g7-nav g7-nav-<?= htmlspecialchars($_tb_nav_align) ?>">
   <?php
 
@@ -150,6 +163,7 @@ if (function_exists('g7_href_visible') && !g7_href_visible((int)($currentUser['i
     ['href'=>'/toolz/',             'icon'=>'fa-house',         'label'=>'Home',      'enabled'=>true],
     ['href'=>'/toolz/links/',       'icon'=>'fa-book-bookmark', 'label'=>'Biblioteca','enabled'=>true],
     ['href'=>'/toolz/comunidad.php','icon'=>'fa-people-group',  'label'=>'Comunidad', 'enabled'=>true],
+    ['href'=>'/toolz/bienestar/',   'icon'=>'fa-spa',           'label'=>'Bienestar', 'enabled'=>true],
     ['href'=>'/toolz/stock.php',    'icon'=>'fa-photo-film',    'label'=>'Stock',     'enabled'=>true],
     ['href'=>'/toolz/chat_page.php','icon'=>'fa-comment-dots',  'label'=>'Chat',      'enabled'=>true],
     ['href'=>'/toolz/stats.php',    'icon'=>'fa-chart-line',    'label'=>'Stats',     'enabled'=>true],
@@ -267,7 +281,11 @@ if (function_exists('g7_href_visible') && !g7_href_visible((int)($currentUser['i
         <b><?= htmlspecialchars($_tb_meData['display_name']?:$_tb_me['username']) ?></b>
         <span>@<?= htmlspecialchars($_tb_me['username'] ?? '') ?> · <?= $isAdmin ? 'Admin' : 'Usuario' ?></span>
       </div>
-      <a class="g7-um-item" href="/toolz/user_config.php" role="menuitem"><i class="fa-solid fa-user"></i> Mi perfil y preferencias</a>
+      <a class="g7-um-item" href="/toolz/perfil.php" role="menuitem"><i class="fa-solid fa-id-card"></i> Mi perfil</a>
+      <a class="g7-um-item" href="/toolz/user_config.php" role="menuitem"><i class="fa-solid fa-sliders"></i> Preferencias</a>
+      <a class="g7-um-item" href="/toolz/logros.php" role="menuitem"><i class="fa-solid fa-trophy"></i> Mis logros</a>
+      <a class="g7-um-item" href="#" data-g7-tour role="menuitem"><i class="fa-solid fa-compass"></i> Recorrido del menú</a>
+      <?php if (is_file(__DIR__ . '/novedades_data.php')): ?><a class="g7-um-item" href="#" data-g7-whatsnew role="menuitem"><i class="fa-solid fa-wand-magic-sparkles"></i> Novedades</a><?php endif; ?>
       <?php if($isAdmin): ?><a class="g7-um-item" href="/toolz/admin.php" role="menuitem"><i class="fa-solid fa-shield-halved"></i> Panel de administración</a><?php endif; ?>
       <div class="g7-um-sep"></div>
       <form method="POST" action="/toolz/logout.php" style="margin:0">
@@ -334,6 +352,17 @@ $_cur_mob   = $cur ?? $_SERVER['REQUEST_URI'];
 <?php $tbUsers = $_tb_db->query("SELECT id,username,display_name,avatar FROM g7_users WHERE active=1 AND id!=".(int)$_tb_me['id']." ORDER BY username")->fetchAll(); ?>
 <?php echo '<script type="application/json" id="g7-topbar-cfg">' . json_encode(['notifSound' => (bool)$_tb_notif_enabled, 'notifType' => (string)$_tb_notif_type, 'callUsers' => $tbUsers, 'myId' => (int)$_tb_me['id'], 'browserNotif' => (bool)$_tb_bn, 'beeps' => (int)$_tb_beeps_default], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>'; ?>
 <script src="/toolz/assets/topbar.js?v=<?= (int)@filemtime(__DIR__ . '/assets/topbar.js') ?>"></script>
+<?php
+// ── Qué hay de nuevo: ventana con lo nuevo de la versión, una vez por persona (novedades_lib.php, assets/g7-whatsnew.js) ──
+if (is_file(__DIR__ . '/novedades_lib.php') && !defined('G7_WHATSNEW')) {
+  define('G7_WHATSNEW', 1);
+  require_once __DIR__ . '/novedades_lib.php';
+  $_tb_isadm = ($currentUser['role'] ?? '') === 'admin';
+  $_tb_nov = g7_nov_pending(isset($_tb_prefs['whats_new_seen']) ? (string)$_tb_prefs['whats_new_seen'] : null, $_tb_isadm, $_tb_isadm && function_exists('g7_super_ok') && g7_super_ok((int)($currentUser['id'] ?? 0)));
+  if ($_tb_nov) echo '<script type="application/json" id="g7-whatsnew-data">' . json_encode($_tb_nov, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>';
+  echo '<script src="/toolz/assets/g7-whatsnew.js?v=' . (int)@filemtime(__DIR__ . '/assets/g7-whatsnew.js') . '" defer></script>';
+}
+?>
 <?php // OpenCloud (Admin › Integraciones): botón para adjuntar en los cuadros de mensaje y carpeta del cliente. Solo si está conectado.
 try { if (is_file(__DIR__ . '/integraciones/opencloud.php')) { require_once __DIR__ . '/integraciones/opencloud.php';
   if (oc_ready()): ?><link rel="stylesheet" href="/toolz/assets/opencloud.css?v=<?= (int)@filemtime(__DIR__ . '/assets/opencloud.css') ?>"><script src="/toolz/assets/opencloud.js?v=<?= (int)@filemtime(__DIR__ . '/assets/opencloud.js') ?>" defer></script>

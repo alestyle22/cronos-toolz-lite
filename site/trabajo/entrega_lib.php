@@ -187,13 +187,7 @@ function wk_delivery_text(PDO $db, array $c): string {
     return strtr($tpl, ['{enlaces}' => $links, '{nombre}' => (string)$c['name']]);
 }
 
-/** ¿Atiende el ticket? (departamento, responsable o gente de su tarea; como wk_ticket() de api.php) */
-function wk_tk_is_agent(PDO $db, array $ctx, array $t): bool {
-    if (wk_is_agent($ctx, $t['team_id'] ? (int)$t['team_id'] : null) || ($t['assignee_id'] && (int)$t['assignee_id'] === $ctx['id'])) return true;
-    if (!$t['task_id']) return false;
-    $q = $db->prepare('SELECT 1 FROM g7_task_assignees WHERE task_id = ? AND user_id = ?'); $q->execute([(int)$t['task_id'], $ctx['id']]);
-    return (bool)$q->fetchColumn();
-}
+// wk_tk_is_agent() vive en lib.php (una sola regla para Trabajo, el portal y las entregas)
 
 /**
  * A qué se puede entregar: tickets abiertos que atiende (los suyos primero) y tareas abiertas asignadas a esa persona que no son de un

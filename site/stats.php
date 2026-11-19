@@ -271,6 +271,8 @@ tr:hover td{background:rgba(var(--g7-ov),.02)}
 #cl-input:focus{border-color:var(--g7-accent)!important}
 .cl-del:hover{opacity:1!important;color:#ef4444!important}
 </style>
+<link rel="stylesheet" href="/toolz/assets/stats-look.css?v=<?= (int)@filemtime(__DIR__ . '/assets/stats-look.css') ?>">
+<script src="/toolz/assets/stats-look.js?v=<?= (int)@filemtime(__DIR__ . '/assets/stats-look.js') ?>" defer></script>
 </head>
 <body>
 <?php include __DIR__ . '/topbar.php'; ?>
@@ -279,10 +281,26 @@ tr:hover td{background:rgba(var(--g7-ov),.02)}
   <!-- LEFT NAV -->
   <div class="stats-nav">
     <div class="nav-head">Estadísticas</div>
-    <?php foreach($navSections as $key=>$nav): ?>
-    <a href="?section=<?= $key ?>&period=<?= $period ?>" class="nav-link <?= $section===$key?'active':'' ?>">
-      <i class="<?= str_starts_with($nav['icon'], 'fa-brands') ? $nav['icon'] : 'fa-solid ' . $nav['icon'] ?>"></i><?= $nav['label'] ?>
-    </a>
+    <?php
+    // Menú ordenado por grupos (2026-11-14). Lo que no está en un grupo va al final, en "Otros".
+    $navGroups = ['General' => ['overview', 'actividad', 'timeline', 'changelog'],
+                  'Producción' => ['content', 'produccion', 'aprobacion', 'tiempos', 'vencidos', 'landings', 'jira'],
+                  'Análisis' => ['tendencia', 'heatmap', 'comparativa'],
+                  'Equipo' => ['users', 'ranking', 'gamificacion', 'bienestar'],
+                  'Comunidad' => ['library', 'community']];
+    $navGroupColor = ['General' => 'var(--g7-accent)', 'Producción' => '#60a5fa', 'Análisis' => '#a78bfa', 'Equipo' => '#34d399', 'Comunidad' => '#f472b6', 'Otros' => '#fbbf24'];
+    $navUsed = []; foreach ($navGroups as $_g) $navUsed = array_merge($navUsed, $_g);
+    $navGroups['Otros'] = array_values(array_diff(array_keys($navSections), $navUsed));
+    foreach ($navGroups as $gName => $gKeys):
+      $gKeys = array_values(array_filter($gKeys, fn($k) => isset($navSections[$k]))); if (!$gKeys) continue; ?>
+    <div class="nav-group" style="--gc:<?= $navGroupColor[$gName] ?? 'var(--g7-accent)' ?>">
+      <div class="nav-group-t"><?= $gName ?></div>
+      <?php foreach ($gKeys as $key): $nav = $navSections[$key]; ?>
+      <a href="?section=<?= $key ?>&period=<?= $period ?>" class="nav-link <?= $section===$key?'active':'' ?>">
+        <i class="<?= str_starts_with($nav['icon'], 'fa-brands') ? $nav['icon'] : 'fa-solid ' . $nav['icon'] ?>"></i><?= $nav['label'] ?>
+      </a>
+      <?php endforeach; ?>
+    </div>
     <?php endforeach; ?>
     <?php if ($section !== 'jira'): // Jira tiene su propio rango de fechas ?>
     <div class="period-group">
@@ -1912,6 +1930,7 @@ tr:hover td{background:rgba(var(--g7-ov),.02)}
       <div class="page-title">Gamifi<span>cación</span></div>
       <div class="page-sub">Niveles, XP y logros del equipo</div>
     </div>
+    <a href="/toolz/logros.php" class="lg-cta" style="display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:16px;border-radius:16px;text-decoration:none;color:var(--g7-text);border:1px solid rgba(245,197,66,.4);background:linear-gradient(120deg,rgba(245,197,66,.14),var(--g7-bg-3) 60%)"><span style="width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:20px;color:#1a1206;background:radial-gradient(circle at 35% 30%,#fff,#f5c542 60%,#a8801c)"><i class="fa-solid fa-trophy"></i></span><span><b style="display:block;font-size:15px">Mis logros</b><small style="color:var(--g7-text-3)">Logros de todas las áreas con niveles Bronce, Plata, Oro y Diamante. Mirá cuáles tenés y cuánto te falta.</small></span><i class="fa-solid fa-arrow-right" style="margin-left:auto;color:#f5c542"></i></a>
 
     <?php if(!function_exists('g7GetUserGamif')): ?>
     <div class="card" style="padding:24px;text-align:center;color:var(--g7-text-5)">

@@ -485,6 +485,18 @@ function wk_is_agent(array $ctx, ?int $teamId): bool {
     if ($ctx['all']) return true;
     return $teamId && in_array($teamId, $ctx['teams'], true);
 }
+/**
+ * ¿Atiende ESTE ticket? Una sola regla para Trabajo (api.php wk_ticket) y el portal (portal_api.php pa_ticket), que antes
+ * diferían: quien atiende el departamento, el responsable, el aprobador (portal) y los responsables de su tarea (ticket = tarea).
+ * Quien atiende ve las notas internas y puede cambiar el ticket.
+ */
+function wk_tk_is_agent(PDO $db, array $ctx, array $t): bool {
+    if (wk_is_agent($ctx, !empty($t['team_id']) ? (int)$t['team_id'] : null)) return true;
+    if (!empty($t['assignee_id']) && (int)$t['assignee_id'] === $ctx['id']) return true;
+    if (!empty($t['approver_id']) && (int)$t['approver_id'] === $ctx['id']) return true;
+    if (!empty($t['task_id'])) { $q = $db->prepare('SELECT 1 FROM g7_task_assignees WHERE task_id = ? AND user_id = ?'); $q->execute([(int)$t['task_id'], $ctx['id']]); if ($q->fetchColumn()) return true; }
+    return false;
+}
 /** Departamentos que atiende alguien (null = todos). */
 function wk_agent_teams(array $ctx): ?array { return $ctx['all'] ? null : $ctx['teams']; }
 

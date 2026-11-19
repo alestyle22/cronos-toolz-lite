@@ -21,6 +21,12 @@ window.addEventListener('load', ()=>{
   cfgPreviewAccent($('cfg-accent-color')?.value || '#ff6600');
   cfgCheckNotifPerm();
 });
+// Un enlace a otra sección estando ya en Mi perfil (por ejemplo, el aviso de ingreso nuevo → #seguridad) solo cambia el hash
+window.addEventListener('hashchange', ()=>{
+  const hash = location.hash.slice(1);
+  const btn = hash && document.querySelector(`.cfg-nav-item[data-click-1="s:${hash}"]`);
+  if(btn && !btn.classList.contains('active')) cfgShow(hash, btn);
+});
 
 // ── SAVE PREF ─────────────────────────────────────────────
 async function cfgSave(key, value){
@@ -115,7 +121,8 @@ async function cfgChangePassword(){
     if(d.ok){
       $('cfg-pw-modal').style.display='none';
       $('cfg-pw-cur').value=''; $('cfg-pw-new').value=''; $('cfg-pw-confirm').value='';
-      cfgToast('Contraseña actualizada ✓');
+      cfgToast(d.closed ? `Contraseña actualizada ✓ · se cerraron ${d.closed} ${d.closed === 1 ? 'sesión' : 'sesiones'} de otros dispositivos` : 'Contraseña actualizada ✓');
+      document.dispatchEvent(new CustomEvent('g7:pw-changed'));   // perfil-sesiones.js actualiza la lista
     } else { err.textContent=d.error||'Contraseña actual incorrecta'; err.style.display='block'; }
   } catch(e){ err.textContent='Error: '+e.message; err.style.display='block'; }
 }

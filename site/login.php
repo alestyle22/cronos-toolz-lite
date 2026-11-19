@@ -7,9 +7,11 @@ $error = '';
 $step2 = false;   // segundo paso: pide el código de la app (verificación en dos pasos)
 if (!empty($_GET['code']) && !empty($_SESSION['g7_2fa'])) $step2 = true;   // viene de otro login (Promos) con el código pendiente
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['code'])) {
-    $r = g7_login_2fa((string)$_POST['code']);
+    $r = g7_login_2fa((string)$_POST['code'], !empty($_POST['remember']));
     if (is_array($r)) { header('Location: /toolz/'); exit; }
     if ($r === 'expired') $error = 'Pasaron más de 5 minutos. Vuelve a escribir tu usuario y contraseña.';
+    elseif ($r === 'locked_account') $error = 'Tu cuenta está bloqueada por seguridad. Para desbloquearla, usa el enlace que te mandamos por email o pídeselo a un administrador.';
+    elseif ($r === 'blocked') $error = 'No se puede entrar desde esta conexión. Si es un error, avisa a un administrador.';
     else { $step2 = true; $error = $r === 'locked' ? 'Demasiados códigos incorrectos. Prueba de nuevo en 15 minutos.' : 'El código no es correcto. Revisa la hora del teléfono o usa un código de respaldo.'; }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $u = trim($_POST['username'] ?? '');
@@ -17,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['code'])) {
     if ($u && $p) {
         $result = login($u, $p);
         if (is_array($result) && !empty($result['need_2fa'])) $step2 = true;
+        elseif (is_array($result) && !empty($result['locked'])) $error = 'Tu cuenta está bloqueada por seguridad. Para desbloquearla, usa el enlace que te mandamos por email o pídeselo a un administrador.';
+        elseif (is_array($result) && !empty($result['blocked'])) $error = 'No se puede entrar desde esta conexión. Si es un error, avisa a un administrador.';
         elseif ($result) { header('Location: /toolz/'); exit; }
         else {
             $wait = g7_login_locked($u);
@@ -32,6 +36,13 @@ $lgTitle = trim((string)g7_setting('login_title')) ?: $lgName;
 $lgSub   = (string)g7_setting('login_subtitle');
 $lgMsg   = trim((string)g7_setting('login_message'));
 $lgLogo  = trim((string)g7_setting('login_logo_url')) ?: (trim((string)g7_cfg('logo_url', '')) ?: g7_site('logo'));
+// Sesión cerrada desde otro dispositivo, por un admin o por un cambio de contraseña (auth.php deja el motivo en la cookie g7_bye)
+$bye = (string)($_COOKIE['g7_bye'] ?? '');
+$byeMsg = ['remote' => 'Tu sesión se cerró desde otro dispositivo.', 'not_me' => 'Tu sesión se cerró desde otro dispositivo.',
+    'password' => 'Tu sesión se cerró porque se cambió la contraseña de la cuenta.', 'admin' => 'Un administrador cerró tu sesión.',
+    'locked' => 'Tu cuenta quedó bloqueada y se cerraron todas las sesiones. Te mandamos un email para desbloquearla.'][$bye] ?? '';
+if ($bye !== '' && !headers_sent()) setcookie('g7_bye', '', ['expires' => time() - 3600, 'path' => '/toolz/', 'samesite' => 'Lax']);
+$lgRemember = function_exists('g7_cfg') && g7_cfg('totp_remember', '1') !== '0';
 $lgAcc   = preg_match('/^#[0-9a-fA-F]{6}$/', (string)g7_setting('accent_color')) ? g7_setting('accent_color') : '#ff6600';
 ?>
 <?php
@@ -85,6 +96,10 @@ input:focus{border-color:color-mix(in srgb,var(--acc) 70%,transparent);box-shado
 .btn[disabled]{opacity:.7;cursor:progress}
 .error{display:flex;gap:10px;align-items:flex-start;margin-top:22px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:#fca5a5;border-radius:11px;padding:11px 13px;font-size:13px;line-height:1.45}
 .error i{margin-top:2px}
+.info{display:flex;gap:10px;align-items:flex-start;margin-top:22px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);color:#bfdbfe;border-radius:11px;padding:11px 13px;font-size:13px;line-height:1.45}
+.info i{margin-top:2px}
+.remember{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:#b4b4bb;line-height:1.45;cursor:pointer;margin:0}
+.remember input{margin-top:2px;accent-color:var(--acc);width:15px;height:15px;flex-shrink:0}
 .msg{margin-top:20px;font-size:12.5px;color:#7a7a83;text-align:center;line-height:1.55;white-space:pre-line}
 .foot{text-align:center;margin-top:22px;font-size:11.5px;color:#4d4d55}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
@@ -98,6 +113,7 @@ input:focus{border-color:color-mix(in srgb,var(--acc) 70%,transparent);box-shado
   <div class="card">
     <h1><?= htmlspecialchars($lgTitle) ?></h1>
     <?php if ($lgSub !== ''): ?><p class="sub"><?= htmlspecialchars($lgSub) ?></p><?php endif; ?>
+    <?php if ($byeMsg && !$error): ?><div class="info" role="status"><i class="fa-solid fa-right-from-bracket"></i><span><?= htmlspecialchars($byeMsg) ?> Vuelve a entrar.</span></div><?php endif; ?>
     <?php if ($error): ?><div class="error" role="alert"><i class="fa-solid fa-circle-exclamation"></i><span><?= htmlspecialchars($error) ?></span></div><?php endif; ?>
     <?php if ($step2): ?>
     <form method="POST" data-busy="Verificando…">
@@ -106,6 +122,7 @@ input:focus{border-color:color-mix(in srgb,var(--acc) 70%,transparent);box-shado
         <label for="c">Código</label>
         <div class="field"><i class="fa-solid fa-shield-halved"></i><input id="c" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required autofocus placeholder="123456"></div>
       </div>
+      <?php if ($lgRemember): ?><label class="remember"><input type="checkbox" name="remember" value="1"> No volver a pedir el código en este dispositivo por 30 días. Solo en un dispositivo tuyo, nunca en uno compartido.</label><?php endif; ?>
       <button class="btn" type="submit"><span>Verificar</span><i class="fa-solid fa-arrow-right"></i></button>
       <a href="/toolz/login.php" style="text-align:center;font-size:12.5px;color:#8b8b93;text-decoration:none">Volver a empezar</a>
     </form>

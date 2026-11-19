@@ -115,6 +115,15 @@ function getCurrentUser() {
         unset($_SESSION['g7_replaced']);          // la nueva no lo lleva
         $_SESSION['g7_last_regen'] = time();
     }
+    // Sesión cerrada desde otro dispositivo (Mi perfil › Dónde iniciaste sesión): queda afuera en este pedido
+    if (is_file(__DIR__ . '/login_alert_lib.php')) {
+        require_once __DIR__ . '/login_alert_lib.php';
+        if (!g7_lh_alive()) {
+            // Motivo para el aviso en pantalla (topbar.js) y el login: remote | not_me | password | admin
+            if (!headers_sent()) setcookie('g7_bye', preg_replace('/[^a-z_]/', '', (string)($GLOBALS['g7_lh_bye'] ?? 'remote')), ['expires' => time() + 600, 'path' => '/toolz/', 'secure' => g7_is_https(), 'samesite' => 'Lax']);
+            $_SESSION = []; session_destroy(); return null;
+        }
+    }
     $user = [
         'id'       => $_SESSION['g7_user_id'],
         'username' => $_SESSION['g7_username'],
@@ -236,6 +245,8 @@ function g7_ip_in_cidr(string $ip, string $cidr): bool {
 function g7_client_ip(): string {
     $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
     $ip = $remote;
+    // Solo en las pruebas automáticas (la constante la define el arranque de prueba, nunca un sitio): IP simulada por cabecera
+    if (defined('G7_TEST_IP_HEADER') && !empty($_SERVER['HTTP_X_TEST_IP'])) return filter_var($_SERVER['HTTP_X_TEST_IP'], FILTER_VALIDATE_IP) ? (string)$_SERVER['HTTP_X_TEST_IP'] : '0.0.0.0';
     // Detrás de Cloudflare la IP real viene en CF-Connecting-IP, pero solo vale si quien la manda es Cloudflare
     if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
         foreach (G7_CF_RANGES as $r) if (g7_ip_in_cidr($remote, $r)) { $ip = (string)$_SERVER['HTTP_CF_CONNECTING_IP']; break; }
@@ -282,11 +293,15 @@ function g7_login_fail(string $username): void {
         // Registro de seguridad: cuando un usuario del equipo queda bloqueado por intentos (no las cuentas de tienda ni portal)
         if (strpos($username, ':') === false && g7_login_locked($username) > 0 && function_exists('g7_audit'))
             g7_audit('auth.locked', 'login:' . mb_substr(mb_strtolower(trim($username)), 0, 80), ['ip' => g7_client_ip()], 0);
+        // Aviso a la persona si alguien insiste (muchas contraseñas, o la contraseña bien y el código mal): login_alert_lib.php
+        if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_ld_failed($db, mb_strtolower(trim($username))); }
         if (random_int(1, 50) === 1) $db->exec('DELETE FROM g7_login_failures WHERE created_at < NOW() - INTERVAL 2 DAY');
     } catch (Exception $e) {}
 }
 
 function login($username, $password) {
+    // IP o país con la entrada bloqueada por un superadmin (Mi perfil › Dónde iniciaste sesión › Equipo): login_alert_lib.php
+    if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; if (g7_blk_match(g7_client_ip())) return ['blocked' => true]; }
     if (g7_login_locked((string)$username) > 0) return false;
     $db   = getDB();
     $stmt = $db->prepare('SELECT * FROM g7_users WHERE (username = ? OR email = ?) AND active = 1 LIMIT 1');
@@ -297,10 +312,16 @@ function login($username, $password) {
         g7_login_fail((string)$username);
         return false;
     }
-    try { $db->prepare('DELETE FROM g7_login_failures WHERE username=?')->execute([mb_strtolower(trim($username))]); } catch (Exception $e) {}
+    // Al entrar bien se "liberan" los fallos (dejan de contar para el freno), pero quedan con "ok:" adelante para que la persona
+    // los vea en Mi perfil › Dónde iniciaste sesión (intentos fallidos, 48 h)
+    try { $db->prepare("UPDATE g7_login_failures SET username = CONCAT('ok:', username) WHERE username = ?")->execute([mb_strtolower(trim($username))]); } catch (Exception $e) {}
+    // Cuenta bloqueada por emergencia: con la contraseña correcta igual no entra (se desbloquea eligiendo una nueva desde el email)
+    if (function_exists('g7_acct_locked') && g7_acct_locked($db, (int)$user['id'])) return ['locked' => true];
     // Verificación en dos pasos: la contraseña sola no abre la sesión; queda pendiente el código (5 minutos)
     require_once __DIR__ . '/totp_lib.php';
     if (g7_totp_enabled($db, (int)$user['id'])) {
+        // Dispositivo de confianza (marcado al poner el código, 30 días): no se vuelve a pedir
+        if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; if (g7_td_valid($db, (int)$user['id'])) return g7_login_finish($user, 'trusted'); }
         startSecureSession();
         session_regenerate_id(true);
         $_SESSION = ['g7_2fa' => ['uid' => (int)$user['id'], 'at' => time()]];
@@ -309,8 +330,9 @@ function login($username, $password) {
     return g7_login_finish($user);
 }
 
-/** Segundo paso del login. Devuelve el usuario, o 'expired' | 'locked' | false (código incorrecto). */
-function g7_login_2fa(string $code) {
+/** Segundo paso del login. Devuelve el usuario, o 'expired' | 'locked' | false (código incorrecto).
+ *  $remember: no volver a pedir el código en este navegador por 30 días (login_alert_lib.php, g7_td_issue). */
+function g7_login_2fa(string $code, bool $remember = false) {
     startSecureSession();
     $p = $_SESSION['g7_2fa'] ?? null;
     if (!$p || time() - (int)$p['at'] > 300) { unset($_SESSION['g7_2fa']); return 'expired'; }
@@ -320,16 +342,19 @@ function g7_login_2fa(string $code) {
     $db = getDB();
     $how = g7_totp_check($db, $uid, $code);
     if (!$how) { g7_login_fail($key); return false; }
-    try { $db->prepare('DELETE FROM g7_login_failures WHERE username=?')->execute([$key]); } catch (Exception $e) {}
+    try { $db->prepare("UPDATE g7_login_failures SET username = CONCAT('ok:', username) WHERE username = ?")->execute([$key]); } catch (Exception $e) {}
     $q = $db->prepare('SELECT * FROM g7_users WHERE id = ? AND active = 1'); $q->execute([$uid]); $user = $q->fetch();
     unset($_SESSION['g7_2fa']);
     if (!$user) return 'expired';
+    if (function_exists('g7_acct_locked') && g7_acct_locked($db, $uid)) return 'locked_account';
+    if (function_exists('g7_blk_match') && g7_blk_match(g7_client_ip())) return 'blocked';
     if ($how === 'recovery' && function_exists('g7_audit')) g7_audit('auth.2fa_recovery', 'user:' . $uid, ['ip' => g7_client_ip()], $uid);
-    return g7_login_finish($user);
+    if ($remember && $how !== 'recovery' && is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; try { g7_td_issue($db, $uid); } catch (Throwable $e) {} }
+    return g7_login_finish($user, $how === 'recovery' ? 'recovery' : '2fa');
 }
 
-/** Abre la sesión del usuario (después de la contraseña y, si lo tiene, del código). */
-function g7_login_finish(array $user) {
+/** Abre la sesión del usuario (después de la contraseña y, si lo tiene, del código). $method: password | 2fa | recovery (para el registro de ingresos). */
+function g7_login_finish(array $user, string $method = 'password') {
     $db = getDB();
     // Update last login
     $db->prepare('UPDATE g7_users SET last_login = NOW(), last_seen = NOW() WHERE id = ?')->execute([$user['id']]);
@@ -341,13 +366,14 @@ function g7_login_finish(array $user) {
     $_SESSION['g7_role']     = $user['role'];
     $_SESSION['g7_last_regen'] = time();
     if (function_exists('g7_audit')) g7_audit('auth.login', 'user:' . (int)$user['id'], ['ip' => g7_client_ip(), 'ua' => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 120)], (int)$user['id']);
-    // Aviso de ingreso desde un dispositivo nuevo (campana + email). Nunca frena el ingreso.
-    if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_login_device($db, $user); }
+    // Registro del ingreso (dispositivo, IP, ubicación) y aviso si el dispositivo es nuevo (campana + email). Nunca frena el ingreso.
+    if (is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_login_device($db, $user, $method); }
     return $user;
 }
 
 function logout() {
     startSecureSession();
+    if (!empty($_SESSION['g7_user_id']) && is_file(__DIR__ . '/login_alert_lib.php')) { require_once __DIR__ . '/login_alert_lib.php'; g7_lh_close_current('logout'); }
     $_SESSION = [];
     $cp = session_get_cookie_params();
     setcookie(session_name(), '', ['expires' => time() - 3600, 'path' => $cp['path'], 'domain' => $cp['domain'], 'secure' => $cp['secure'], 'httponly' => true, 'samesite' => 'Strict']);

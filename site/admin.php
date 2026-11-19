@@ -276,6 +276,12 @@ try { $totalUsers = $db->query("SELECT COUNT(*) FROM g7_users")->fetchColumn(); 
 try { $activeUsers = $db->query("SELECT COUNT(*) FROM g7_users WHERE active=1")->fetchColumn(); } catch(Exception $e) { $activeUsers=0; }
 try { $totalContent = $db->query("SELECT COUNT(*) FROM g7_content")->fetchColumn(); } catch(Exception $e) { $totalContent=0; }
 try { $totalMsgs = $db->query("SELECT COUNT(*) FROM g7_chat_messages")->fetchColumn(); } catch(Exception $e) { $totalMsgs=0; }
+// Saludo del resumen: nombre visible y parte del día
+try { $_q = $db->prepare("SELECT COALESCE(NULLIF(display_name,''), username) FROM g7_users WHERE id=?"); $_q->execute([(int)$currentUser['id']]); $admName = (string)$_q->fetchColumn(); } catch (Exception $e) { $admName = ''; }
+if ($admName === '') $admName = (string)$currentUser['username'];
+$admFirst = explode(' ', trim($admName))[0];
+$_h = (int)date('G'); $admHello = $_h < 6 ? 'Buenas noches' : ($_h < 13 ? 'Buen día' : ($_h < 20 ? 'Buenas tardes' : 'Buenas noches'));
+$admVer = json_decode((string)@file_get_contents(__DIR__ . '/_private/updates/state.json'), true)['version'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="es" class="theme-<?= htmlspecialchars($_ap_theme) ?> font-<?= htmlspecialchars($_ap_font) ?>">
@@ -398,6 +404,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
 /* TOAST */
 #adm-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--g7-success);color:#000;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;transition:transform .3s;z-index:9999;pointer-events:none}
 </style>
+<link rel="stylesheet" href="/toolz/assets/admin-look.css?v=<?= (int)@filemtime(__DIR__ . '/assets/admin-look.css') ?>">
 <script src="/toolz/assets/g7-imgprep.js?v=1"></script>
 <style>[data-hov]:hover{border-color:var(--g7-accent)!important}[data-hov2]:hover{border-color:var(--g7-accent)!important;color:var(--g7-accent)!important}</style>
 </head>
@@ -408,9 +415,11 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
   <!-- SIDEBAR -->
   <nav class="adm-nav">
     <div style="padding:8px 12px 12px;border-bottom:1px solid var(--g7-border);margin-bottom:8px">
-      <div style="font-size:13px;font-weight:800;color:var(--g7-accent)"><i class="fa-solid fa-shield-halved"></i> Panel Admin</div>
-      <div style="font-size:10px;color:var(--g7-text-5);margin-top:2px"><?= htmlspecialchars(g7_site('name')) ?></div>
+      <div class="admx-brand"><span class="admx-brand-ico"><i class="fa-solid fa-shield-halved"></i></span>
+        <div><b>Panel Admin</b><small><?= htmlspecialchars(g7_site('name')) ?></small></div></div>
     </div>
+    <label class="admx-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admx-q" placeholder="Buscar ajuste…" autocomplete="off" aria-label="Buscar en el panel"><kbd>/</kbd></label>
+    <div class="admx-empty" id="admx-empty">Nada con ese nombre.</div>
     <div class="adm-nav-sep">General</div>
     <button class="adm-nav-item active" data-sec="overview" data-on-click="admShow" data-click-1="s:overview" data-click-2="this"><i class="fa-solid fa-gauge"></i> Resumen</button>
     <div class="adm-nav-sep">Personas y accesos</div>
@@ -435,6 +444,8 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
     <button class="adm-nav-item" data-sec="estados" data-on-click="admShow" data-click-1="s:estados" data-click-2="this"><i class="fa-solid fa-circle-half-stroke"></i> Estados</button>
     <button class="adm-nav-item" data-sec="topbar" data-on-click="admShow" data-click-1="s:topbar" data-click-2="this"><i class="fa-solid fa-bars"></i> Topbar & Logo</button>
     <button class="adm-nav-item" data-sec="notif" data-on-click="admShow" data-click-1="s:notif" data-click-2="this"><i class="fa-solid fa-bell"></i> Notificaciones</button>
+    <?php if (is_file(__DIR__ . '/admin_mails.php')): ?><button class="adm-nav-item" data-sec="mails" data-on-click="admShow" data-click-1="s:mails" data-click-2="this"><i class="fa-solid fa-envelope-open-text"></i> Mails</button><?php endif; ?>
+    <?php if (is_file(__DIR__ . '/admin_bienestar.php') && (g7_modules()['bienestar']['mode'] ?? 'off') !== 'off'): /* Bienestar: privacidad, reconocimientos, hábitos, vacaciones (BIENESTAR.md) */ ?><button class="adm-nav-item" data-sec="bienestar" data-on-click="admShow" data-click-1="s:bienestar" data-click-2="this"><i class="fa-solid fa-spa"></i> Bienestar</button><?php endif; ?>
     <button class="adm-nav-item" data-sec="monday" data-on-click="admShow" data-click-1="s:monday" data-click-2="this"><i class="fa-solid fa-check-square"></i> Monday API</button>
 <?php if (g7_super_ok((int)$currentUser['id'])): ?>
     <button class="adm-nav-item" data-sec="ia" data-on-click="admShow" data-click-1="s:ia" data-click-2="this"><i class="fa-solid fa-wand-magic-sparkles"></i> Inteligencia artificial</button>
@@ -451,6 +462,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
     <button class="adm-nav-item" data-sec="base-licencias" data-on-click="admShow" data-click-1="s:base-licencias" data-click-2="this"><i class="fa-solid fa-id-card-clip"></i> Licencias</button>
     <button class="adm-nav-item" data-sec="base-planes" data-on-click="admShow" data-click-1="s:base-planes" data-click-2="this"><i class="fa-solid fa-layer-group"></i> Planes</button>
     <button class="adm-nav-item" data-sec="base-banners" data-on-click="admShow" data-click-1="s:base-banners" data-click-2="this"><i class="fa-solid fa-bullhorn"></i> Banners</button>
+    <button class="adm-nav-item" data-sec="base-herramientas" data-on-click="admShow" data-click-1="s:base-herramientas" data-click-2="this"><i class="fa-solid fa-toolbox"></i> Herramientas</button>
     <button class="adm-nav-item" data-sec="base-tickets" data-on-click="admShow" data-click-1="s:base-tickets" data-click-2="this"><i class="fa-solid fa-life-ring"></i> Tickets <span class="bz-badge" id="bz-tk-badge" style="display:none"></span></button>
     <button class="adm-nav-item" data-sec="base-red" data-on-click="admShow" data-click-1="s:base-red" data-click-2="this"><i class="fa-solid fa-chart-line"></i> Estadísticas de la red</button>
 <?php endif; ?>
@@ -476,15 +488,31 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
 
     <!-- ── OVERVIEW ── -->
     <section class="adm-section active" id="sec-overview">
-      <div class="adm-title">Resumen del sistema</div>
-      <div class="adm-sub">Estado general de <?= htmlspecialchars(g7_site('name')) ?></div>
-      <div class="adm-stats">
-        <div class="adm-stat"><div class="adm-stat-val"><?= $totalUsers ?></div><div class="adm-stat-label">Usuarios totales</div></div>
-        <div class="adm-stat"><div class="adm-stat-val"><?= $activeUsers ?></div><div class="adm-stat-label">Usuarios activos</div></div>
-        <div class="adm-stat"><div class="adm-stat-val"><?= $totalContent ?></div><div class="adm-stat-label">Ítems de contenido</div></div>
-        <div class="adm-stat"><div class="adm-stat-val"><?= number_format($totalMsgs) ?></div><div class="adm-stat-label">Mensajes de chat</div></div>
+      <div class="admx-hero">
+        <div class="admx-hero-txt">
+          <h1><?= htmlspecialchars($admHello) ?>, <span><?= htmlspecialchars($admFirst) ?></span></h1>
+          <p>Así está <b><?= htmlspecialchars(g7_site('name')) ?></b> hoy.</p>
+          <div class="admx-chips">
+            <span class="admx-chip ok" data-on-click="admShow" data-click-1="s:users"><i class="fa-solid fa-circle-check"></i> <?= (int)$activeUsers ?> de <?= (int)$totalUsers ?> cuentas activas</span>
+            <?php if (g7_super_ok((int)$currentUser['id'])): ?><span class="admx-chip" data-on-click="admShow" data-click-1="s:updates"><i class="fa-solid fa-cloud-arrow-down"></i> <?= $admVer !== '' ? 'Versión ' . htmlspecialchars($admVer) : 'Sin versión instalada' ?></span><?php else: ?><span class="admx-chip"><i class="fa-solid fa-code-branch"></i> <?= $admVer !== '' ? 'Versión ' . htmlspecialchars($admVer) : 'Sin versión instalada' ?></span><?php endif; ?>
+            <span class="admx-chip"><i class="fa-solid fa-server"></i> PHP <?= htmlspecialchars(PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION) ?></span>
+          </div>
+        </div>
+        <div class="admx-quick">
+          <button type="button" data-on-click="accUserOpen" data-click-1="n:0"><i class="fa-solid fa-user-plus"></i> Nuevo usuario</button>
+          <button type="button" data-on-click="admShow" data-click-1="s:modules"><i class="fa-solid fa-key"></i> Permisos</button>
+          <button type="button" data-on-click="admShow" data-click-1="s:config"><i class="fa-solid fa-sliders"></i> Configuración</button>
+          <button type="button" data-on-click="admShow" data-click-1="s:logs"><i class="fa-solid fa-scroll"></i> Actividad</button>
+        </div>
       </div>
-      <div id="content-stats-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+      <div class="adm-stats">
+        <div class="adm-stat" data-on-click="admShow" data-click-1="s:users"><span class="admx-stat-ico"><i class="fa-solid fa-users"></i></span><div class="adm-stat-val"><?= $totalUsers ?></div><div class="adm-stat-label">Usuarios totales</div><div class="admx-meta"><b><?= (int)($totalUsers - $activeUsers) ?></b> desactivadas</div></div>
+        <?php $_pct = $totalUsers ? (int)round(100 * $activeUsers / $totalUsers) : 0; ?>
+        <div class="adm-stat" data-on-click="admShow" data-click-1="s:users"><span class="admx-stat-ico"><i class="fa-solid fa-user-check"></i></span><div class="adm-stat-val"><?= $activeUsers ?></div><div class="adm-stat-label">Usuarios activos</div><div class="admx-meta"><span class="admx-bar"><i style="width:<?= $_pct ?>%"></i></span><b><?= $_pct ?>%</b></div></div>
+        <div class="adm-stat" data-on-click="admShow" data-click-1="s:content"><span class="admx-stat-ico"><i class="fa-solid fa-layer-group"></i></span><div class="adm-stat-val"><?= $totalContent ?></div><div class="adm-stat-label">Ítems de contenido</div></div>
+        <div class="adm-stat"><span class="admx-stat-ico"><i class="fa-solid fa-comments"></i></span><div class="adm-stat-val"><?= number_format($totalMsgs) ?></div><div class="adm-stat-label">Mensajes de chat</div></div>
+      </div>
+      <div id="content-stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
       <div id="acc-overview" style="margin-top:16px"></div>
     </section>
 
@@ -492,6 +520,8 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
     <?php include __DIR__ . '/admin_home.php'; ?>
     <?php include __DIR__ . '/admin_rubro.php'; ?>
     <?php if (is_file(__DIR__ . '/admin_portal.php')) include __DIR__ . '/admin_portal.php'; ?>
+    <?php if (is_file(__DIR__ . '/admin_mails.php')) include __DIR__ . '/admin_mails.php'; ?>
+    <?php if (is_file(__DIR__ . '/admin_bienestar.php') && (g7_modules()['bienestar']['mode'] ?? 'off') !== 'off') include __DIR__ . '/admin_bienestar.php'; ?>
     <?php include __DIR__ . '/admin_integraciones.php'; ?>
     <?php if (g7_super_ok((int)$currentUser['id'])) include __DIR__ . '/admin_updates.php'; ?>
     <?php include __DIR__ . '/admin_license.php'; ?>
@@ -922,5 +952,6 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
 
 <script src="/toolz/assets/admin-page.js?v=<?= (int)@filemtime(__DIR__ . '/assets/admin-page.js') ?>"></script>
 <script src="/toolz/admin_ui.js?v=<?= @filemtime(__DIR__ . '/admin_ui.js') ?>"></script>
+<script src="/toolz/assets/admin-look.js?v=<?= (int)@filemtime(__DIR__ . '/assets/admin-look.js') ?>"></script>
 </body>
 </html>

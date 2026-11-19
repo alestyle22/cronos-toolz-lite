@@ -485,7 +485,41 @@ details.more .tools{margin-top:12px}
  main{padding-top:28px}.brand-wrap{grid-template-columns:1fr}.preview{position:static}}
 @media(max-width:700px){.team-head{display:none}.trow{grid-template-columns:1fr 42px;padding:12px;border:1px solid var(--line);border-radius:14px}.trow .inp{grid-column:1}.trow .x{grid-column:2;grid-row:1}}
 @media(max-width:600px){.grid,.reqs{grid-template-columns:1fr}.panel{padding:18px;border-radius:16px}.nav .btn{flex:1}.code{flex-direction:column}.mock-pills span:not(.on){display:none}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* anim-v1 (2026-11-16): movimiento del asistente. Todo se apaga con prefers-reduced-motion (regla de abajo). */
+body::after{content:"";position:fixed;inset:-20%;pointer-events:none;z-index:0;opacity:.55;filter:blur(60px);
+  background:radial-gradient(28% 32% at 20% 30%,color-mix(in srgb,var(--acc) 30%,transparent),transparent 70%),radial-gradient(24% 28% at 80% 70%,rgba(99,102,241,.22),transparent 70%),radial-gradient(20% 24% at 60% 15%,rgba(34,211,238,.14),transparent 70%);
+  animation:aurora 22s ease-in-out infinite alternate}
+@keyframes aurora{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(4%,-3%) rotate(8deg)}100%{transform:translate(-3%,4%) rotate(-6deg)}}
+.prog{position:sticky;top:0;z-index:5;height:3px;margin:-56px calc(-1 * clamp(16px,5vw,72px)) 53px;background:var(--line)}
+.prog i{display:block;height:100%;width:var(--p,0%);background:linear-gradient(90deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#fff));box-shadow:0 0 14px var(--acc);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.steps::after{content:"";position:absolute;left:17px;top:18px;width:2px;height:calc((100% - 36px) * var(--sp,0));background:var(--acc);transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.steps li.done .n i{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+.steps li.on .n::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid var(--acc);opacity:0;animation:ring 1.8s ease-out infinite}
+@keyframes ring{0%{transform:scale(.8);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+.js .step.on.fwd{animation:fromR .45s cubic-bezier(.2,.8,.2,1)}.js .step.on.bwd{animation:fromL .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes fromR{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes fromL{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+.step.on>*{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+.step.on>*:nth-child(2){animation-delay:.04s}.step.on>*:nth-child(3){animation-delay:.08s}.step.on>*:nth-child(4){animation-delay:.12s}.step.on>*:nth-child(5){animation-delay:.16s}.step.on>*:nth-child(n+6){animation-delay:.2s}
+.step.on .tool,.step.on .rub{animation:rise .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 30ms + .15s)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.btn:active{transform:scale(.97)}
+.btn.pri{position:relative;overflow:hidden}.btn.pri::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%)}
+.btn.pri:hover::after{animation:shine .8s ease}
+@keyframes shine{to{transform:translateX(120%)}}
+.tool:hover,.rub:hover{transform:translateY(-2px)}
+.tool:has(input:checked) .ck,.rub:has(input:checked) .ck{animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+.tool:has(input:checked) .ic{animation:wob .45s ease}
+@keyframes wob{30%{transform:rotate(-10deg) scale(1.08)}60%{transform:rotate(6deg)}100%{transform:none}}
+.busy-steps{list-style:none;margin:18px auto 0;padding:0;max-width:320px;text-align:left;font-size:14px;color:var(--dim)}
+.busy-steps li{display:flex;gap:10px;align-items:center;padding:5px 0;transition:color .3s}.busy-steps li i{width:16px;text-align:center}
+.busy-steps li.on{color:var(--text)}.busy-steps li.ok{color:var(--mute)}.busy-steps li.ok i{color:var(--ok)}
+.done-wrap>*{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}.done-wrap>*:nth-child(2){animation-delay:.1s}.done-wrap>*:nth-child(3){animation-delay:.18s}.done-wrap>*:nth-child(4){animation-delay:.26s}.done-wrap>*:nth-child(n+5){animation-delay:.34s}
+.done-wrap .badge-ok{animation:pop .6s cubic-bezier(.2,1.4,.4,1) both,glow 2.4s ease-in-out .6s infinite}
+@keyframes glow{50%{box-shadow:0 20px 70px -6px color-mix(in srgb,var(--acc) 85%,transparent)}}
+.confetti{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;pointer-events:none;z-index:60;animation:fall var(--d,2.8s) cubic-bezier(.25,.6,.4,1) forwards}
+@keyframes fall{to{transform:translate(var(--x,0),105vh) rotate(var(--r,540deg));opacity:.9}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}body::after,.confetti{display:none}}
 </style></head><body><?= $body ?></body></html>
 <?php }
 
@@ -532,6 +566,8 @@ const cp = (text, b) => { const ok = () => { const o = b.innerHTML; b.innerHTML 
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok); else { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); ok(); } };
 const c = document.getElementById('copy'); if (c) c.onclick = () => cp(document.getElementById('code').value, c);
 document.querySelectorAll('.copy').forEach(b => b.onclick = () => cp(document.getElementById('msg-' + b.dataset.k).value, b));
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { const cs = [getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#ff6a00', '#34d399', '#60a5fa', '#f472b6', '#facc15', '#a78bfa'];
+  for (let i = 0; i < 90; i++) { const d = document.createElement('i'); d.className = 'confetti'; d.style.left = Math.random() * 100 + 'vw'; d.style.background = cs[i % cs.length]; d.style.animationDelay = Math.random() * .6 + 's'; d.style.setProperty('--x', (Math.random() * 240 - 120) + 'px'); d.style.setProperty('--r', (Math.random() * 900 - 450) + 'deg'); d.style.setProperty('--d', 2.2 + Math.random() * 1.6 + 's'); document.body.append(d); setTimeout(() => d.remove(), 4800); } }
 const all = document.getElementById('copy-all'); if (all) all.onclick = () => cp([...document.querySelectorAll('.msg textarea')].map(t => t.value).join('\n\n────────────\n\n'), all);
 </script>
 <?php i_page('Instalación lista', ob_get_clean(), preg_match('/^#[0-9a-f]{6}$/i', (string)($in['accent'] ?? '')) ? (string)$in['accent'] : '#ff6a00'); exit;
@@ -552,6 +588,7 @@ ob_start(); ?>
   <div class="aside-foot"><b>Tarda un minuto.</b><br>Nada se guarda hasta el último paso: puedes ir y volver.</div>
 </aside>
 <main>
+<div class="prog" aria-hidden="true"><i id="prog"></i></div>
 <form method="post" enctype="multipart/form-data" autocomplete="off" id="f" novalidate>
 
 <section class="step" data-step="1">
@@ -677,14 +714,16 @@ ob_start(); ?>
 </form>
 </main>
 </div>
-<div class="busy" id="busy" role="status"><div><div class="spin"></div><h2 class="disp" style="margin:0;font-size:24px">Instalando…</h2><p>Creando las tablas y guardando tu configuración. No cierres esta página.</p></div></div>
+<div class="busy" id="busy" role="status"><div><div class="spin"></div><h2 class="disp" style="margin:0;font-size:24px">Instalando…</h2><p>No cierres esta página.</p><ul class="busy-steps" id="busy-steps"><li><i class="fa-solid fa-database"></i> Creando las tablas</li><li><i class="fa-solid fa-palette"></i> Aplicando tu marca</li><li><i class="fa-solid fa-toolbox"></i> Prendiendo las herramientas</li><li><i class="fa-solid fa-user-shield"></i> Creando las cuentas</li><li><i class="fa-solid fa-flag-checkered"></i> Dejando todo listo</li></ul></div></div>
 <script>
 (() => {
   const $ = id => document.getElementById(id), f = $('f'), steps = [...document.querySelectorAll('.step')], items = [...document.querySelectorAll('#steps li')];
   const reqOk = <?= $allOk ? 'true' : 'false' ?>; let cur = <?= (int)$start ?>, maxSeen = <?= $errors ? 8 : 1 ?>;
   function show(n) {
+    const dir = n >= cur ? 'fwd' : 'bwd';   // la página entra desde la derecha al avanzar y desde la izquierda al volver
     cur = n; maxSeen = Math.max(maxSeen, n);
-    steps.forEach(s => s.classList.toggle('on', +s.dataset.step === n));
+    steps.forEach(s => { const on = +s.dataset.step === n; s.classList.remove('fwd', 'bwd'); s.classList.toggle('on', on); if (on) { void s.offsetWidth; s.classList.add(dir); s.querySelectorAll('.tool,.rub').forEach((c, i) => c.style.setProperty('--i', Math.min(i, 20))); } });
+    $('prog').style.setProperty('--p', Math.round((n - 1) / 7 * 100) + '%'); $('steps').style.setProperty('--sp', (n - 1) / 7);
     items.forEach(li => { const k = +li.dataset.n, d = k < maxSeen && k !== n; li.classList.toggle('on', k === n); li.classList.toggle('done', d); li.querySelector('.n').innerHTML = d ? '<i class="fa-solid fa-check"></i>' : k; });
     $('back').style.visibility = n === 1 ? 'hidden' : 'visible';
     $('next').innerHTML = n === 1 ? 'Empezar <i class="fa-solid fa-arrow-right"></i>' : n === 8 ? '<i class="fa-solid fa-bolt"></i> Instalar' : 'Siguiente <i class="fa-solid fa-arrow-right"></i>';
@@ -708,7 +747,7 @@ ob_start(); ?>
     if (!valid(cur)) return;
     if (cur < 8) return show(cur + 1);
     for (let k = 2; k <= 6; k++) if (!valid(k)) { show(k); setTimeout(() => valid(k), 400); return; }
-    $('busy').classList.add('on'); $('next').disabled = true; f.submit();
+    $('busy').classList.add('on'); $('next').disabled = true; busySteps(); f.submit();
   });
   $('back').onclick = () => cur > 1 && show(cur - 1);
   items.forEach(li => li.onclick = () => { const k = +li.dataset.n; if (k <= maxSeen && k !== cur) show(k); });
@@ -808,6 +847,7 @@ ob_start(); ?>
     if (!n) alert('No encontré emails en esa lista.');
   };
   tCount();
+  function busySteps() { const li = [...document.querySelectorAll('#busy-steps li')]; let i = 0; const tick = () => { li.forEach((x, k) => { x.classList.toggle('ok', k < i); x.classList.toggle('on', k === i); if (k < i) x.querySelector('i').className = 'fa-solid fa-check'; }); if (i < li.length - 1) { i++; setTimeout(tick, 900); } }; tick(); }
   show(cur);
 })();
 </script>

@@ -94,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $publishHtml = strpos($html, '</body>') !== false
             ? str_replace('</body>', $trackScript . '</body>', $html)
             : $html . $trackScript;
+        $publishHtml = lg_cta_new_tab($publishHtml);   // el botón de la promo abre en una pestaña nueva
         $ok = file_put_contents($pubFile, $publishHtml) !== false;
 
         if ($ok) {
@@ -810,6 +811,7 @@ details.sec[open]>summary .sec-chev{transform:rotate(180deg)}
 .lg-hov-vi:hover{background:rgba(167,139,250,.25)!important}
 .lg-foc-vi:focus{border-color:rgba(167,139,250,.5)!important}
 </style>
+<link rel="stylesheet" href="/toolz/assets/tool-studio.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/tool-studio.css') ?>">
 </head>
 <body class="layout">
 <?php include __DIR__ . '/../topbar.php'; ?>
@@ -1143,5 +1145,6 @@ $lgBoot = ['id' => $id, 'kind' => $kind, 'host' => (string)parse_url(lg_pub_orig
 <script type="application/json" id="lge-data"><?= json_encode($lgBoot, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <script src="/toolz/landing-gen/frame-host.js?v=<?= (int)@filemtime(__DIR__ . '/frame-host.js') ?>"></script>
 <script src="/toolz/landing-gen/editor.js?v=<?= (int)@filemtime(__DIR__ . '/editor.js') ?>"></script>
+<script src="/toolz/assets/tool-studio.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/tool-studio.js') ?>" data-ts="editor" data-ts-name="Editor de landing" data-ts-desc="Tocá el preview para editar en el lugar" data-ts-icon="fa-pen-ruler" data-ts-grad="#22c55e,#0ea5e9" data-ts-head=".sb-head" data-ts-icons=".sec-ic" data-ts-stage=".canvas"></script>
 </body>
 </html>

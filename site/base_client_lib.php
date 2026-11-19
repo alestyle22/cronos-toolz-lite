@@ -11,13 +11,14 @@ const BC_ACTS = [
     'plan_save' => 300, 'plan_delete' => 30, 'lic_save' => 90, 'lic_remove' => 90, 'lic_resign_all' => 300,
     'tickets' => 60, 'tk_save' => 30, 'tk_reply' => 30, 'tk_read' => 30, 'tk_delete' => 30, 'tk_file' => 60,
     'banner_save' => 300, 'banner_delete' => 300, 'banner_push' => 300, 'auto_save' => 30,
-    'tk_sync' => 20, 'tk_sync_push' => 20,
+    'tk_sync' => 20, 'tk_sync_push' => 20, 'lic_list' => 30, 'lic_extend' => 90, 'aff_sync' => 30,
+    'tool_list' => 30, 'tool_get' => 60, 'tool_cover' => 30, 'tool_save' => 120, 'tool_delete' => 30, 'tool_move' => 30,   // Catálogo Cronos (CATALOGO.md)
 ];
 /** Las usa solo el servidor (Trabajo › Tickets, trabajo/base_sync.php): el proxy del navegador (base_api.php) no las acepta. */
-const BC_SERVER_ONLY = ['tk_sync', 'tk_sync_push'];
+const BC_SERVER_ONLY = ['tk_sync', 'tk_sync_push', 'lic_list', 'lic_extend', 'aff_sync'];   // lic_*: cobro de planes (pagos/plans.php); aff_sync: afiliados (afiliados/sync.php)
 const BC_OPS = ['preview' => 180, 'apply' => 660, 'rollback' => 330];
 /** Las que solo leen: no se anotan en la auditoría. */
-const BC_READ = ['state', 'tickets', 'tk_read', 'tk_file'];
+const BC_READ = ['state', 'tickets', 'tk_read', 'tk_file', 'lic_list', 'tool_list', 'tool_get', 'tool_cover'];
 
 function bc_url(): string { return (string)g7_site('base_url', ''); }
 function bc_key(): string { return (string)g7_site('base_sso_secret', ''); }

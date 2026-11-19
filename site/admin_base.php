@@ -62,6 +62,11 @@ textarea.adm-input{resize:vertical;min-height:60px;line-height:1.45}
 .bz-n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.adm-table td small{display:block;color:var(--g7-text-4);font-size:11px}
 .bz-badge{margin-left:auto;background:#ef4444;color:#fff;border-radius:10px;padding:0 6px;font-size:10px;font-weight:700;line-height:16px}
 .bz-tblw{overflow-x:auto}
+.bz-tl{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 18px;border-top:1px solid var(--g7-border-3);font-size:12.5px}.bz-tl:first-child{border-top:none}
+.bz-tl img,.bz-tl .ph{width:96px;height:54px;border-radius:8px;object-fit:cover;background:var(--g7-bg-5);display:flex;align-items:center;justify-content:center;color:var(--g7-accent);font-size:18px}
+.bz-tl b{font-size:13px}.bz-tl small{display:block;color:var(--g7-text-4);font-size:11.5px;margin-top:2px}
+.bz-tframe{margin-top:12px;border:1px solid var(--g7-border-3);border-radius:10px;overflow:hidden}.bz-tframe iframe{width:100%;height:520px;border:0;display:block;background:#fff}
+@media (max-width:760px){.bz-tl{grid-template-columns:64px minmax(0,1fr)}.bz-tl img,.bz-tl .ph{width:64px;height:40px}.bz-tl .bz-act{grid-column:1/-1;justify-content:flex-start}}
 @media (max-width:1000px){.bz-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.bz-charts{grid-template-columns:1fr}}
 @media (max-width:760px){.bz-row{grid-template-columns:1fr}.bz-act{justify-content:flex-start}.bz-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bz-bn{grid-template-columns:1fr}.bz-tk{grid-template-columns:44px minmax(0,1fr)}.bz-tk>div:last-child{grid-column:2;text-align:left!important}}
 </style>
@@ -80,6 +85,10 @@ textarea.adm-input{resize:vertical;min-height:60px;line-height:1.45}
 <section class="adm-section" id="sec-base-banners">
   <?= $bzHead('Banners de la red', 'Avisos arriba del Inicio o del Admin de las agencias. Se mandan solos al guardar.') ?>
   <div id="bz-banners"><div class="adm-card"><div class="bz-msg">Cargando…</div></div></div>
+</section>
+<section class="adm-section" id="sec-base-herramientas">
+  <?= $bzHead('Catálogo de herramientas', 'Herramientas web que las agencias ven en Biblioteca › Catálogo Cronos y suman a su Biblioteca. Solo ven las publicadas.') ?>
+  <div id="bz-herramientas"><div class="adm-card"><div class="bz-msg">Cargando…</div></div></div>
 </section>
 <section class="adm-section" id="sec-base-tickets">
   <?= $bzHead('Tickets', 'Soporte de las agencias y consultas comerciales de cronostoolz.com.') ?>

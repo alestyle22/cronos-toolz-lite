@@ -65,14 +65,23 @@ function notifIcon(type) {
   if (type === 'wk_tk') return '<i class="fa-solid fa-ticket" style="color:#60a5fa"></i>';
   if (type === 'pt_tk') return '<i class="fa-solid fa-inbox" style="color:#ff7a1a"></i>';
   if (type === 'login_new') return '<i class="fa-solid fa-user-shield" style="color:#f59e0b"></i>';
+  if (type === 'login_fail') return '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>';
   if (type === 'wk_run') return '<i class="fa-solid fa-diagram-next" style="color:#f59e0b"></i>';
   if (type === 'task_auto') return '<i class="fa-solid fa-gears" style="color:#a78bfa"></i>';
   if (type === 'cal_remind') return '<i class="fa-regular fa-calendar" style="color:var(--g7-accent)"></i>';
   if (type === 'pay') return '<i class="fa-solid fa-wallet" style="color:#22c55e"></i>';
+  if (type === 'aff' || type === 'aff_apply') return '<i class="fa-solid fa-handshake" style="color:#ff7a1a"></i>';   // Afiliados (afiliados/lib.php aff_notify_staff)
+  if (type === 'resto') return '<i class="fa-solid fa-utensils" style="color:#f97316"></i>';
+  if (type === 'social') return '<i class="fa-solid fa-share-nodes" style="color:#ec4899"></i>';
+  if (type === 'social_inbox') return '<i class="fa-solid fa-inbox" style="color:#ec4899"></i>';
+  if (type === 'social_report') return '<i class="fa-solid fa-file-lines" style="color:#ec4899"></i>';
   if (type === 'pass') return '<i class="fa-solid fa-key" style="color:#f59e0b"></i>';
   if (type === 'onboarding') return '<i class="fa-solid fa-user-check" style="color:#22c55e"></i>';
+  // Bienestar (bienestar/lib.php bn_notify)
+  if (type && type.startsWith('bn_')) return {bn_challenge:'<i class="fa-solid fa-person-running" style="color:#3b82f6"></i>', bn_survey:'<i class="fa-solid fa-square-poll-vertical" style="color:#a855f7"></i>', bn_kudos:'<i class="fa-solid fa-award" style="color:#ec4899"></i>', bn_habit:'<i class="fa-solid fa-seedling" style="color:#22c55e"></i>', bn_leave:'<i class="fa-solid fa-umbrella-beach" style="color:#06b6d4"></i>'}[type] || '<i class="fa-solid fa-spa" style="color:#22c55e"></i>';
   if (type && type.startsWith('task_')) return {task_assigned:'<i class="fa-solid fa-user-plus" style="color:var(--g7-accent)"></i>', task_mention:'<i class="fa-solid fa-at" style="color:var(--g7-accent)"></i>', task_comment:'<i class="fa-regular fa-comment" style="color:#60a5fa"></i>', task_status:'<i class="fa-solid fa-arrow-right-arrow-left" style="color:#a78bfa"></i>', task_due_soon:'<i class="fa-regular fa-clock" style="color:#fbbf24"></i>', task_overdue:'<i class="fa-solid fa-triangle-exclamation" style="color:#f87171"></i>', task_created:'<i class="fa-solid fa-table-columns" style="color:#4ade80"></i>', task_reply:'<i class="fa-solid fa-reply" style="color:#60a5fa"></i>', task_reaction:'<i class="fa-regular fa-face-smile" style="color:#fbbf24"></i>'}[type] || '<i class="fa-solid fa-table-columns"></i>';
-  return {comment:'<i class="fa-solid fa-comment" style="color:#60a5fa"></i>', reply:'<i class="fa-solid fa-reply" style="color:#a78bfa"></i>', mention:'<i class="fa-solid fa-at" style="color:var(--g7-accent)"></i>'}[type] || '<i class="fa-solid fa-bell"></i>';
+  return {comment:'<i class="fa-solid fa-comment" style="color:#60a5fa"></i>', reply:'<i class="fa-solid fa-reply" style="color:#a78bfa"></i>', mention:'<i class="fa-solid fa-at" style="color:var(--g7-accent)"></i>',
+    mention_post:'<i class="fa-solid fa-at" style="color:var(--g7-accent)"></i>', post_reply:'<i class="fa-solid fa-reply" style="color:#a78bfa"></i>', kudos:'<i class="fa-solid fa-award" style="color:#ec4899"></i>'}[type] || '<i class="fa-solid fa-bell"></i>';
 }
 function notifEsc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function notifText(n) {
@@ -81,16 +90,28 @@ function notifText(n) {
   if (n.type === 'wk_tk') return n.from_id ? `<strong>${from}</strong> · ticket` : 'Aviso de un ticket';
   if (n.type === 'pt_tk') return n.from_id ? `<strong>${from}</strong> · solicitud` : 'Aviso de una solicitud';
   if (n.type === 'login_new') return 'Nuevo ingreso a tu cuenta';
+  if (n.type === 'login_fail') return 'Intentos de entrar a tu cuenta';
   if (n.type === 'wk_run') return n.from_id ? `<strong>${from}</strong> · proceso` : 'Novedad en un proceso';
   if (n.type === 'task_auto') return 'Automatización de una tarea';
   if (n.type === 'cal_remind') return 'Recordatorio de tu calendario';
   if (n.type === 'pay') return 'Finanzas y pagos';
+  if (n.type === 'aff' || n.type === 'aff_apply') return 'Afiliados';
+  if (n.type === 'resto') return 'Restaurant';
+  if (n.type === 'social_report') return 'Informe de Social Studio';
+  if (n.type === 'social_inbox') return n.from_id ? `<strong>${from}</strong> · Inbox` : 'Inbox de Social Studio';
+  if (n.type === 'social') return n.from_id ? `<strong>${from}</strong> · Social Studio` : 'Social Studio';
   if (n.type === 'pass') return 'Seguridad de tu cuenta';
   if (n.type === 'onboarding') return 'Configuración de tu cuenta';
+  if (n.type === 'bn_kudos') return n.from_id ? `<strong>${from}</strong> · Bienestar` : 'Bienestar';
+  if (n.type === 'bn_leave') return n.from_id ? `<strong>${from}</strong> · vacaciones y licencias` : 'Vacaciones y licencias';
+  if (n.type && n.type.startsWith('bn_')) return ({bn_challenge:'Bienestar · retos', bn_survey:'Bienestar · encuesta', bn_habit:'Bienestar · tus hábitos'})[n.type] || 'Bienestar';
   if (n.type && n.type.startsWith('task_')) return ({task_assigned:`<strong>${from}</strong> te asignó una tarea`, task_mention:`<strong>${from}</strong> te mencionó en una tarea`,
     task_comment:`<strong>${from}</strong> comentó en una tarea`, task_status:`<strong>${from}</strong> cambió el estado de una tarea`, task_due_soon:'Una tarea tuya está por vencer',
     task_overdue:'Una tarea se venció', task_created:`<strong>${from}</strong> creó una tarea`, task_reply:`<strong>${from}</strong> respondió tu comentario`, task_reaction:`<strong>${from}</strong> reaccionó a tu comentario`})[n.type] || 'Novedad en una tarea';
-  if (n.type==='comment') return `<strong>${from}</strong> comentó en tu perfil`;
+  if (n.type==='kudos') return `<strong>${from}</strong> te dio un reconocimiento`;
+  if (n.type==='mention_post') return `<strong>${from}</strong> te mencionó en Comunidad`;
+  if (n.type==='post_reply') return `<strong>${from}</strong> respondió tu publicación`;
+  if (n.type==='comment') return `<strong>${from}</strong> comentó en tu muro`;
   if (n.type==='reply')   return `<strong>${from}</strong> respondió tu comentario`;
   if (n.type==='mention') return `<strong>${from}</strong> te mencionó en un comentario`;
   return `<strong>${from}</strong> te notificó`;
@@ -104,13 +125,18 @@ function timeAgoN(dt) {
 async function fetchNotifs(silent=false) {
   try {
     const res  = await fetch('/toolz/notif.php?action=get');
+    if (res.status === 401 || res.status === 403) { g7SessionGone(); return; }   // ¿la cerraron desde otro dispositivo?
     const data = await res.json();
     const badge = document.getElementById('notif-badge');
     const list  = document.getElementById('nd-list');
     // New notifications sound
     if (!silent && data.notifs.length && data.notifs[0].id > lastNotifId && lastNotifId > 0) {
       const newOnes = data.notifs.filter(n => n.id > lastNotifId && !n.read_at);
-      if (newOnes.length) playNotifSound();
+      if (newOnes.length) {
+        // g7-juice.js: sonido según el tipo, campana que se mueve y tarjetas en pantalla (MOVIMIENTO.md)
+        if (window.G7Juice && G7Juice.notify) G7Juice.notify(newOnes, { sound: !!G7_NOTIF_SOUND_ENABLED });
+        else playNotifSound();
+      }
       if (newOnes.length && G7_BROWSER_NOTIF && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {
         newOnes.slice(0, 3).forEach(n => {
           try {
@@ -139,23 +165,58 @@ async function fetchNotifs(silent=false) {
   } catch(e) {}
 }
 
+// Sesión cerrada mientras la página estaba abierta (desde otro dispositivo, por un admin o al cambiar la contraseña):
+// se confirma con sesiones_api.php (401 = ya no hay sesión) y se avisa en pantalla, sin esperar a que la persona haga clic en algo.
+let g7GoneShown = false;
+async function g7SessionGone() {
+  if (g7GoneShown) return;
+  try {
+    const r = await fetch('/toolz/sesiones_api.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sess': '1' }, credentials: 'same-origin', body: '{"action":"alive"}' });
+    if (r.status !== 401) return;
+    const j = await r.json().catch(() => ({}));
+    const why = j.gone || (document.cookie.match(/(?:^|; )g7_bye=([a-z_]+)/) || [])[1] || '';
+    const msg = { remote: 'Se cerró desde otro dispositivo (Mi perfil › Dónde iniciaste sesión).', not_me: 'Se cerró desde otro dispositivo (Mi perfil › Dónde iniciaste sesión).',
+      password: 'Se cambió la contraseña de tu cuenta desde otro dispositivo.', admin: 'Un administrador cerró tu sesión.',
+      locked: 'Tu cuenta quedó bloqueada por seguridad. Te mandamos un email para desbloquearla.' }[why] || 'Tu sesión venció.';
+    g7GoneShown = true;
+    const d = document.createElement('div');
+    d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'g7-gone-t');
+    d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)';
+    d.innerHTML = `<div style="background:var(--g7-bg-3,#151517);border:1px solid var(--g7-border-3,#2a2a2e);border-radius:14px;max-width:380px;width:100%;padding:22px;text-align:center;color:var(--g7-text,#eee);box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="width:52px;height:52px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;background:rgba(var(--g7-accent-rgb,255,102,0),.12);color:var(--g7-accent,#f60);font-size:21px"><i class="fa-solid fa-right-from-bracket"></i></div>
+      <h3 id="g7-gone-t" style="font-size:17px;margin:0 0 6px">Se cerró tu sesión</h3>
+      <p style="font-size:13px;line-height:1.55;color:var(--g7-text-3,#aaa);margin:0 0 16px">${notifEsc(msg)} Si no fuiste vos, entra y cambia tu contraseña.</p>
+      <a href="/toolz/login.php" class="btn btn-primary" style="display:inline-flex;justify-content:center;width:100%">Volver a entrar</a></div>`;
+    document.body.appendChild(d);
+    d.querySelector('a').focus();
+  } catch (e) {}
+}
+
 async function clickNotif(id, profileId, type = '', targetId = 0) {
   await fetch('/toolz/notif.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read_one',id})});
   document.getElementById('notif-dropdown').classList.remove('open');
   notifOpen = false;
-  if (type === 'login_new') { window.location.href = '/toolz/perfil_seguridad.php'; fetchNotifs(true); return; }   // aviso de dispositivo nuevo (login_alert_lib.php)
+  if (type === 'login_fail') { window.location.href = '/toolz/user_config.php#sesiones'; fetchNotifs(true); return; }   // intentos fallidos (login_alert_lib.php)
+  if (type === 'login_new') { window.location.href = '/toolz/user_config.php' + (targetId ? '?ingreso=' + targetId : '') + '#sesiones'; fetchNotifs(true); return; }   // aviso de ingreso nuevo: ese ingreso en Dónde iniciaste sesión (login_alert_lib.php)
   if (type === 'pt_tk' && targetId) { window.location.href = '/toolz/solicitudes/#solicitudes/t/' + targetId; fetchNotifs(true); return; }   // Portal de Solicitudes (módulo aparte)
   if ((type === 'wk_req' || type === 'wk_tk' || type === 'wk_run') && targetId) { window.location.href = '/toolz/trabajo/#' + ({ wk_req: 'solicitudes/', wk_tk: 'tickets/', wk_run: 'procesos/run/' })[type] + targetId; fetchNotifs(true); return; }
   if (type === 'pass') { window.location.href = '/toolz/password.php'; fetchNotifs(true); return; }
   if (type === 'onboarding') { window.location.href = '/toolz/bienvenida.php'; fetchNotifs(true); return; }
   if (type === 'pay' && targetId) { window.location.href = '/toolz/pagos/admin/#op/' + targetId; fetchNotifs(true); return; }
+  if (type === 'aff' || type === 'aff_apply') { window.location.href = '/toolz/afiliados/#' + (type === 'aff_apply' && targetId ? 'af/' + targetId : 'referidos'); fetchNotifs(true); return; }
+  if (type === 'resto') { window.location.href = '/toolz/resto/admin/' + (targetId ? '#sucursal/' + targetId : ''); fetchNotifs(true); return; }
+  if (type && type.startsWith('bn_')) { window.location.href = '/toolz/bienestar/#' + ({ bn_challenge: 'retos', bn_survey: 'encuestas', bn_kudos: 'reconocimientos', bn_habit: 'habitos', bn_leave: 'ausencias' }[type] || 'inicio') + (targetId && type !== 'bn_kudos' ? '/' + targetId : ''); fetchNotifs(true); return; }   // Bienestar
   if (type === 'cal_remind' && targetId) { window.location.href = '/toolz/calendario/#e/' + targetId; fetchNotifs(true); return; }
+  if (type === 'social_report' && targetId) { window.location.href = '/toolz/social/#informes/' + targetId; fetchNotifs(true); return; }   // Social Studio · automatic report
+  if (type === 'social_inbox' && targetId) { window.location.href = '/toolz/social/#inbox/c/' + targetId; fetchNotifs(true); return; }   // Social Studio · Inbox
+  if (type === 'social') { window.location.href = '/toolz/social/#' + (targetId ? 'p/' + targetId : 'cuentas'); fetchNotifs(true); return; }   // Social Studio (SOCIAL_STUDIO.md)
   if (type.startsWith('task_') && targetId) {
     if (typeof window.tkOpen === 'function') window.tkOpen(targetId); else window.location.href = '/toolz/tareas.php?t=' + targetId;
     fetchNotifs(true); return;
   }
-  if (profileId && typeof openProfile === 'function') openProfile(profileId);
-  else if (profileId) window.location.href = '/toolz/comunidad.php#profile-'+profileId;
+  // Comunidad 2: publicaciones y reconocimientos llevan a la publicación; el muro, al perfil (perfil.php)
+  if ((type === 'kudos' || type === 'mention_post' || type === 'post_reply') && targetId) { window.location.href = '/toolz/comunidad.php?post=' + targetId; fetchNotifs(true); return; }
+  if (profileId) window.location.href = '/toolz/perfil.php?u=' + profileId + ((type === 'comment' || type === 'reply' || type === 'mention') ? '#muro' : '');
   fetchNotifs(true);
 }
 
@@ -373,7 +434,7 @@ async function checkPings() {
     const data = await res.json();
     if (data.pings && data.pings.length) {
       const maxBeeps = Math.max(...data.pings.map(p => parseInt(p.beeps)||3));
-      if(G7_NOTIF_SOUND_ENABLED) playPingSound(maxBeeps);
+      if(G7_NOTIF_SOUND_ENABLED) { if (window.G7Juice && G7Juice.ring) G7Juice.ring(maxBeeps); else playPingSound(maxBeeps); }
       data.pings.forEach(p => showPingToast(p));
       // Shake the screen
       shakeScreen(maxBeeps);

@@ -136,7 +136,7 @@ function pa_ticket(PDO $db, array $ctx, int $id): array {
     $t = wk_tk_row($db, $id);
     if (!$t) pa_fail('Esa solicitud no existe', 404);
     $team = $t['team_id'] ? (int)$t['team_id'] : null;
-    $agent = wk_is_agent($ctx, $team) || ($t['assignee_id'] && (int)$t['assignee_id'] === $ctx['id']) || ($t['approver_id'] && (int)$t['approver_id'] === $ctx['id']);
+    $agent = wk_tk_is_agent($db, $ctx, $t);   // misma regla que Trabajo (lib.php)
     $collab = !$agent && function_exists('wk_tkc_is') && wk_tkc_is($db, $id, $ctx['id']);
     $isReq = (int)$t['requester_id'] === $ctx['id'];
     if (!$agent && !$isReq && !$collab) pa_fail('Esa solicitud no existe', 404);

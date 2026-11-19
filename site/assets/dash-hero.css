@@ -1,0 +1,71 @@
+/* assets/dash-hero.css — Banner del Inicio vivo (index.php, escena .d3-scene). Color pleno, paralaje por capas,
+   autos por la ruta, molinos, árboles que se mecen, avión con cartel (día/tarde), globo (tarde), aurora y lluvia de
+   estrellas (noche). Interacción en dash-hero.js. Doc: toolz/MOVIMIENTO.md (Inicio vivo). */
+
+.d3-head{min-height:236px}
+.d3-scene svg{opacity:.95;filter:saturate(1) brightness(.95)}
+html:is(.theme-light,.theme-sand,.theme-sky,.theme-lilac,.theme-mint,.theme-sakura,.theme-lemon,.theme-cloud,.theme-desktop,.theme-classic,.theme-vintage,.theme-mica,.theme-aqua,.theme-studio,.theme-material,.theme-mobile,.theme-glassfrost,.theme-glasspeach,.theme-glassmint,.theme-glasssky,.theme-glasslilac,.theme-glasslemon,.theme-glassblush,.theme-glasspearl,.theme-coral,.theme-lagoon,.theme-peach,.theme-fog,.theme-lime,.theme-latte,.theme-indigo,.theme-pocket,.theme-platinum) .d3-scene svg{opacity:.9;filter:saturate(.9) brightness(1.04)}
+.d3-scene::after{background:linear-gradient(90deg,var(--g7-bg-3) 0%,var(--g7-bg-3) 26%,color-mix(in srgb,var(--g7-bg-3) 72%,transparent) 42%,color-mix(in srgb,var(--g7-bg-3) 20%,transparent) 60%,transparent 74%)}
+
+/* paralaje: --px/--py van de -1 a 1 (dash-hero.js) */
+.sc-pl{transform:translate(calc(var(--px,0) * var(--d,0) * -1px),calc(var(--py,0) * var(--d,0) * -.45px));transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+
+/* autos */
+.sc-car{offset-path:path('M-80 306 C180 288 380 301 560 299 C760 297 900 284 1280 293');offset-rotate:auto;animation:scCar 30s linear infinite}
+.sc-car>g{transform:translate(0,-1px)}
+.sc-car.sc-back{animation-name:scCarB}
+.sc-car.sc-back>g{transform:translate(0,4px) scale(-1,1)}
+@keyframes scCar{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes scCarB{from{offset-distance:100%}to{offset-distance:0%}}
+.sc-car:nth-of-type(1){offset-distance:30%}.sc-car:nth-of-type(2){offset-distance:62%}.sc-car:nth-of-type(3){offset-distance:48%}.sc-car:nth-of-type(4){offset-distance:80%}.sc-car:nth-of-type(5){offset-distance:92%}
+.sc-car.honk>g>rect:first-of-type{filter:brightness(1.4)}
+
+/* molinos, árboles, baliza */
+.sc-rotor{transform-box:view-box;animation:scSpin 7s linear infinite}
+.sc-tree{transform-box:view-box;animation:scSway 4.5s ease-in-out infinite alternate}
+@keyframes scSway{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
+.sc-beacon{animation:scBeacon 1.8s steps(1) infinite}
+@keyframes scBeacon{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* cielo */
+.sc-plane{transform:translateX(560px);animation:scPlane 52s linear infinite -14s}
+@keyframes scPlane{from{transform:translateX(1300px)}to{transform:translateX(-640px)}}
+.sc-flag{transform-box:fill-box;transform-origin:left center;animation:scFlag 1.4s ease-in-out infinite alternate}
+@keyframes scFlag{from{transform:skewY(-2deg)}to{transform:skewY(2deg)}}
+.sc-balloon{animation:scBalloon 9s ease-in-out infinite alternate}
+@keyframes scBalloon{from{transform:translate(0,6px)}to{transform:translate(-26px,-16px)}}
+.sc-aurora{opacity:.42;transform-box:view-box;transform-origin:600px 0;animation:scAur 13s ease-in-out infinite alternate;mix-blend-mode:screen}
+@keyframes scAur{from{transform:translateX(-30px) skewX(-4deg);opacity:.28}to{transform:translateX(40px) skewX(5deg);opacity:.55}}
+.sc-shoot2{animation-duration:31s;animation-delay:15s}
+
+/* sol y luna: se tocan */
+.d3-scene .sc-sun,.d3-scene .sc-car{pointer-events:auto;cursor:pointer}
+.sc-sun{transform-box:view-box}
+.sc-sun.pop{animation:scSunPop .7s cubic-bezier(.34,1.56,.64,1)}
+@keyframes scSunPop{40%{transform:scale(1.18)}}
+.sc-sun.fast .sc-rays{animation-duration:2.5s}
+.sc-shower .sc-shoot{animation:scShoot 1.4s ease-in 2 both}
+.sc-shower .sc-shoot2{animation-delay:.45s}
+
+/* saludo */
+.d3-head h1 span{background-size:220% auto;background-image:linear-gradient(90deg,var(--g7-accent),var(--p5,#a855f7),var(--g7-accent));animation:dhShine 7s linear infinite}
+@keyframes dhShine{to{background-position:220% center}}
+.dh-ch{display:inline-block;white-space:pre}
+.dh-clock{font-variant-numeric:tabular-nums;color:var(--g7-text-3);margin-left:6px}
+.dh-clock::before{content:'·';margin-right:6px;color:var(--g7-text-5)}
+.dh-clock i{font-style:normal;animation:dhBlink 1s steps(1) infinite}
+@keyframes dhBlink{50%{opacity:.2}}
+
+/* sin movimiento: la escena queda quieta (también reemplaza al prefers-reduced-motion viejo, para respetar "forzar animaciones") */
+html:not(.g7-move) .d3-scene *,html:not(.g7-move) .d3-head h1 span,html:not(.g7-move) .dh-clock i{animation:none!important}
+html:not(.g7-move) .sc-pl{transition:none}
+/* las letras del saludo no heredan el degradado del nombre */
+.d3-head h1 .dh-ch{background:none!important;color:inherit;-webkit-text-fill-color:currentColor;animation:none}
+
+/* resto del Inicio: secciones que aparecen al bajar, accesos con inclinación 3D e ícono que salta */
+.dh-rev{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
+.dh-rev.dh-on{opacity:1;transform:none}
+html.g7-move .d3-tiles .tc{transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(var(--ty,0px))}
+html.g7-move .d3-tiles .tc:hover{--ty:-4px;box-shadow:0 18px 34px -16px var(--tc)}
+html.g7-move .d3-tiles .tc:hover .tc-art-icon{animation:dhIcon .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes dhIcon{35%{transform:translateY(-6px) scale(1.15) rotate(-6deg)}70%{transform:translateY(1px) scale(.97)}}

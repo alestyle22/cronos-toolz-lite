@@ -160,7 +160,7 @@ function tmRenderTeamDetail(d){
 
 // ── PERMISSIONS RENDER ────────────────────────────────
 const MODULES = TM_CFG.modules;
-const ACTION_LABELS = {view:'Ver',create:'Crear',edit:'Editar',delete:'Eliminar',upload:'Subir',manage:'Gestionar',read:'Leer',write:'Escribir'};
+const ACTION_LABELS = {view:'Ver',create:'Crear',edit:'Editar',delete:'Eliminar',upload:'Subir',manage:'Gestionar',read:'Leer',write:'Escribir',config:'Configurar',design:'Diseñar',publish:'Publicar'};
 
 function tmRenderPermissions(canEdit){
   return `<div class="tm-perm-grid">` +

@@ -54,6 +54,26 @@ $mods = g7_modules(); $off = lic_modules_off();
         <span class="lic-mod<?= in_array($id, $off, true) ? ' off' : '' ?>"><?= $h($m['label'] ?? $id) ?></span>
       <?php } ?>
     </div>
+    <?php // Limits inside the modules (LIC_LIMITS): only the ones the plan sets
+    $LL = (array)($L['limits'] ?? []);
+    if ($LL) {
+        $used = []; try { $used['social_accounts'] = (int)getDB()->query("SELECT COUNT(*) FROM g7_ss_accounts WHERE token_enc IS NOT NULL AND token_enc <> ''")->fetchColumn(); } catch (Throwable $e) {}
+        $byMod = [];
+        foreach (LIC_LIMITS as $k => [$mod, $label, $type, $opts]) {
+            if (!array_key_exists($k, $LL)) continue;
+            $v = $LL[$k];
+            $txt = $type === 'num' ? (isset($used[$k]) ? $used[$k] . ' de ' . (int)$v : 'hasta ' . (int)$v) : ($type === 'bool' ? ($v ? 'Incluido' : 'No incluido') : ($v ? implode(', ', array_map(fn($x) => $opts[$x] ?? $x, $v)) : 'Ninguna'));
+            $byMod[$mod][] = [$label, $txt, $type === 'bool' && !$v];
+        } ?>
+    <div class="lic-foot"><b style="color:var(--g7-text)">Límites de tu plan</b> · lo que no está incluido se ve, pero no se puede usar</div>
+    <div class="lic-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <?php foreach ($byMod as $mod => $rows) { ?>
+        <div><div class="lic-use-top" style="margin-bottom:6px"><b style="font-size:13px"><?= $h($mods[$mod]['label'] ?? $mod) ?></b></div>
+          <?php foreach ($rows as [$label, $txt, $no]) { ?><div class="lic-use-top" style="margin:0 0 4px"><span><?= $h($label) ?></span><span class="lic-mod<?= $no ? ' off' : '' ?>" style="padding:2px 9px"><?= $h($txt) ?></span></div><?php } ?>
+        </div>
+      <?php } ?>
+    </div>
+    <?php } ?>
     <div class="lic-foot"><?= !empty($L['renew']) ? $h($L['renew']) : 'Para renovar o cambiar de plan, escríbenos a info@cronostoolz.com.' ?>
       <span style="float:right;color:var(--g7-text-4)">Espacio medido <?= $U['at'] ? date('d/m H:i', (int)$U['at']) : '—' ?></span></div>
   </div>

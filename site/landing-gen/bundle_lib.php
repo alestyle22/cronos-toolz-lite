@@ -80,6 +80,38 @@ function lg_list_files(string $dir, string $pre = ''): array {
     return $out;
 }
 
+/**
+ * Botones de llamada a la acción (enlaces con clase cta / btn… que van a una URL http(s)) en ventana nueva:
+ * target="_blank" y rel="noopener noreferrer". Los enlaces a anclas (#…) no se tocan. Un target que el
+ * enlace ya traiga (p. ej. _top de una plantilla) se respeta, salvo con $force. $n devuelve cuántos cambió.
+ */
+function lg_cta_new_tab(string $html, bool $force = false, ?int &$n = null): string {
+    $n = 0;
+    return preg_replace_callback('#<a\b[^>]*>#i', function ($m) use ($force, &$n) {
+        $tag = $m[0];
+        if (!preg_match('#\sclass\s*=\s*("[^"]*"|\'[^\']*\')#i', $tag, $c) || !preg_match('#(^|[\s"\'])(cta|btn)([\s"\'_-]|$)#i', $c[1])) return $tag;
+        if (!preg_match('#\shref\s*=\s*["\']?\s*https?://#i', $tag)) return $tag;
+        $orig = $tag;
+        if (preg_match('#\starget\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', $tag, $t)) {
+            if (strcasecmp(trim($t[1], '"\''), '_blank') !== 0) {
+                if (!$force) return $tag;
+                $tag = str_replace($t[0], ' target="_blank"', $tag);
+            }
+        } else {
+            $tag = preg_replace('#\s*(/?)>$#', ' target="_blank"$1>', $tag, 1);
+        }
+        if (preg_match('#\srel\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', $tag, $r)) {
+            $vals = preg_split('/\s+/', strtolower(trim($r[1], '"\'')), -1, PREG_SPLIT_NO_EMPTY);
+            $vals = array_values(array_unique(array_merge($vals, ['noopener', 'noreferrer'])));
+            $tag = str_replace($r[0], ' rel="' . implode(' ', $vals) . '"', $tag);
+        } else {
+            $tag = preg_replace('#\s*(/?)>$#', ' rel="noopener noreferrer"$1>', $tag, 1);
+        }
+        if ($tag !== $orig) $n++;
+        return $tag;
+    }, $html) ?? $html;
+}
+
 function lg_beacon(int $id): string {
     // Fuera de producción cuenta en el mismo servidor (si no, una prueba local sumaría visitas a la landing real con ese id)
     $t = str_replace('/landings/', '/toolz/landing-gen/track.php', lg_pub_base());
@@ -112,6 +144,7 @@ function lg_bundle_publish(PDO $db, int $id, string $platform, string $name, str
     $html = preg_replace('#<script>\(function\(\)\{var _i=\d+;.*?landing-gen/track\.php.*?\}\)\(\);</script>#s', '', $html);
     $b = lg_beacon($id);
     $html = stripos($html, '</body>') !== false ? preg_replace('#</body>#i', $b . '</body>', $html, 1) : $html . $b;
+    $html = lg_cta_new_tab($html);   // el botón de la promo abre en una pestaña nueva
     file_put_contents("$src/$entry", $html);
     $files = lg_list_files($src);
     $size = 0; foreach ($files as $f) $size += filesize("$src/$f");

@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($u && $p) {
         $result = login($u, $p);
         if (is_array($result) && !empty($result['need_2fa'])) { header('Location: /toolz/login.php?code=1'); exit; }   // el código se pide en el login principal
+        if (is_array($result) && (!empty($result['locked']) || !empty($result['blocked']))) $result = false;   // cuenta bloqueada o conexión bloqueada: no entra
         if ($result) { header('Location: index.php'); exit; }
         else $error = 'Usuario o contraseña incorrectos.';
     } else {

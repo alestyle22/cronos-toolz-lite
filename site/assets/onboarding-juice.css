@@ -1,0 +1,71 @@
+/* assets/onboarding-juice.css — Movimiento del onboarding (onboarding-juice.js). Doc: toolz/MOVIMIENTO.md › Onboarding */
+
+/* Fondo vivo */
+.obj-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.obj-bg i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.28}
+.obj-bg .b1{width:46vw;height:46vw;left:-12vw;top:-14vw;background:var(--ob-a,var(--g7-accent))}
+.obj-bg .b2{width:40vw;height:40vw;right:-10vw;top:10vh;background:var(--ob-b,#a855f7)}
+.obj-bg .b3{width:36vw;height:36vw;left:30vw;bottom:-18vw;background:color-mix(in srgb,var(--ob-a,var(--g7-accent)) 50%,var(--ob-b,#3b82f6))}
+.obj-bg s{position:absolute;left:var(--x);bottom:-10px;width:6px;height:6px;border-radius:50%;background:var(--ob-a,var(--g7-accent));opacity:0;transform:scale(var(--z))}
+html.g7-move .obj-bg .b1{animation:obj-drift 18s ease-in-out infinite}
+html.g7-move .obj-bg .b2{animation:obj-drift 22s ease-in-out -6s infinite reverse}
+html.g7-move .obj-bg .b3{animation:obj-drift 26s ease-in-out -12s infinite}
+html.g7-move .obj-bg s{animation:obj-rise var(--d) linear var(--w) infinite}
+@keyframes obj-drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(6vw,4vh) scale(1.1)}66%{transform:translate(-4vw,6vh) scale(.92)}}
+@keyframes obj-rise{0%{transform:translateY(0) scale(var(--z));opacity:0}10%{opacity:.7}100%{transform:translateY(-105vh) scale(var(--z));opacity:0}}
+.ob-page .ob{position:relative;z-index:1}
+
+/* Botón de sonido */
+.obj-snd{width:34px;height:34px;border-radius:10px;border:1px solid var(--g7-border-3);background:var(--g7-bg-3);color:var(--g7-text-2);cursor:pointer;display:grid;place-items:center;margin-left:auto;margin-right:8px;transition:transform .2s cubic-bezier(.34,1.56,.64,1),color .15s}
+.obj-snd:hover{transform:scale(1.1);color:var(--g7-text)}
+.obj-snd.off{opacity:.6}
+
+/* Título letra por letra */
+.obj-word{display:inline-block;white-space:nowrap}
+.obj-ch{display:inline-block}
+html.g7-move .obj-ch{animation:obj-letter .6s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(150ms + var(--k) * 32ms)}
+@keyframes obj-letter{from{opacity:0;transform:translateY(.6em) rotate(8deg) scale(.6)}to{opacity:1;transform:none}}
+
+/* Botón principal que respira */
+.obj-cta{position:relative;transition:translate .25s cubic-bezier(.2,.8,.2,1),transform .2s,box-shadow .2s}
+html.g7-move .obj-cta{animation:obj-breathe 2.2s ease-in-out infinite}
+.obj-cta::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%);transform:translateX(-120%)}
+html.g7-move .obj-cta::after{animation:obj-sheen 3.4s ease-in-out infinite}
+.obj-cta{overflow:hidden}
+.obj-cta:hover{transform:scale(1.04)}
+@keyframes obj-breathe{0%,100%{box-shadow:0 10px 30px -10px color-mix(in srgb,var(--ob-a,var(--g7-accent)) 70%,transparent)}50%{box-shadow:0 14px 44px -8px color-mix(in srgb,var(--ob-a,var(--g7-accent)) 95%,transparent),0 0 0 6px color-mix(in srgb,var(--ob-a,var(--g7-accent)) 14%,transparent)}}
+@keyframes obj-sheen{0%,70%{transform:translateX(-120%)}90%,100%{transform:translateX(120%)}}
+
+/* Chispas, aros, avisos */
+.obj-spark{position:fixed;z-index:100003;width:7px;height:7px;border-radius:50%;pointer-events:none;box-shadow:0 0 10px currentColor}
+.obj-ring{position:fixed;z-index:100002;width:40px;height:40px;border-radius:50%;border:3px solid;pointer-events:none}
+.obj-chip{position:fixed;z-index:100004;pointer-events:none;display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;font:800 13px var(--g7-font,Inter,system-ui);
+  color:#fff;background:var(--c,var(--ob-a,var(--g7-accent)));box-shadow:0 14px 34px -10px var(--c,var(--ob-a,var(--g7-accent)))}
+.obj-wash{position:fixed;inset:0;z-index:99990;pointer-events:none}
+
+/* Datos completos y medidor del perfil */
+.ob-f.obj-ok{position:relative}
+.obj-tick{position:absolute;right:10px;bottom:11px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2);pointer-events:none}
+.ob-f.obj-ok input,.ob-f.obj-ok select{border-color:color-mix(in srgb,#22c55e 55%,var(--g7-border-3))!important}
+.obj-meter{display:flex;align-items:center;gap:8px;margin-left:auto;min-width:130px}
+.obj-meter span{flex:1;height:7px;border-radius:7px;background:var(--g7-bg-4);overflow:hidden}
+.obj-meter i{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,var(--ob-a,var(--g7-accent)),var(--ob-b,#a855f7));transition:width .5s cubic-bezier(.34,1.56,.64,1)}
+.obj-meter b{font:800 12px var(--g7-font,Inter);font-variant-numeric:tabular-nums;color:var(--g7-text-3);min-width:34px;text-align:right}
+.obj-meter.full i{background:#22c55e}
+.obj-meter.full b{color:#22c55e}
+.ob-h{flex-wrap:wrap}
+
+/* Pasos: el actual brilla */
+html.g7-move .ob-steps li.on > span{animation:obj-glow 1.8s ease-in-out infinite}
+@keyframes obj-glow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ob-a,var(--g7-accent)) 50%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
+.ob-bar{overflow:visible!important;position:relative}
+.ob-bar i{position:relative;box-shadow:0 0 14px color-mix(in srgb,var(--ob-a,var(--g7-accent)) 60%,transparent)}
+.ob-bar i::after{content:"";position:absolute;right:-4px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:#fff;box-shadow:0 0 12px var(--ob-a,var(--g7-accent)),0 0 4px #fff}
+html.g7-move .ob-bar i::after{animation:obj-tip 1.4s ease-in-out infinite}
+@keyframes obj-tip{0%,100%{transform:scale(.8)}50%{transform:scale(1.15)}}
+
+/* Tarjeta con profundidad y botón siguiente con brillo */
+.ob-card{transition:box-shadow .3s}
+.ob-btn.primary{position:relative;overflow:hidden}
+.ob-btn.primary:hover{filter:brightness(1.06)}
+.ob-btn:active{transform:scale(.97)}

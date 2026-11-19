@@ -1055,6 +1055,7 @@ body{font-family:var(--g7-font,'Inter',sans-serif)}
 [data-hov=row]:hover{background:rgba(255,255,255,.02)!important}
 [data-hov=em]:hover{background:#18181b!important}
 </style>
+<link rel="stylesheet" href="/toolz/assets/promos-look.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/promos-look.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/../topbar.php'; ?>
@@ -1735,6 +1736,7 @@ if ($prBrands !== null): ?><script type="application/json" data-global="G7_BRAND
 <script src="/toolz/promos/forms.js?v=<?= (int)@filemtime(__DIR__ . '/forms.js') ?>"></script>
 <script src="/toolz/promos/jira.js?v=<?= (int)@filemtime(__DIR__ . '/jira.js') ?>"></script>
 <script src="/toolz/promos/entrega.js?v=<?= (int)@filemtime(__DIR__ . '/entrega.js') ?>"></script>
+<script src="/toolz/assets/promos-look.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/promos-look.js') ?>"></script>
 </body>
 
 <!-- MAILING HTML EDITOR MODAL -->

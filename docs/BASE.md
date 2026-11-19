@@ -90,6 +90,13 @@ Las dos categorías se crean solas la primera vez. Después se pueden renombrar 
 - **Esquema:** columnas `base_id` y `base_info` en `g7_wk_tickets`, `ext_name` y `base_rid` en `g7_wk_ticket_msgs`, y la tabla `g7_wk_base_out`. Se crean solas (`wb_install`, bandera `work_base_schema`) y solo en el Toolz conectado al base: en las agencias no cambia nada.
 - **Prueba:** `dev/test_base_tickets.php`. Ver "Probar en local".
 
+## Cobro de planes (Finanzas y pagos, 2026-11-13, sin publicar)
+- Dos acciones firmadas nuevas en el base, **solo desde el servidor de Toolz**: Toolz las tiene en `BC_SERVER_ONLY` y el proxy del navegador no las acepta.
+  - `lic_list`: agencias con plan y vencimiento, y los planes.
+  - `lic_extend`: `{site, plan_id, months, ref}`. Suma meses al vencimiento y entrega la licencia, una vez por `ref` (la operación de pago). Las referencias quedan en `paid_refs`.
+- La usa `site/pagos/plans.php`. Detalle en `PAGOS.md` › Planes de las agencias.
+- Pruebas: la sección "Cobro de planes" de `dev/test_base_api.php`.
+
 ## Seguridad
 - El navegador habla solo con `site/base_api.php`. Ese archivo exige:
   - sesión de Toolz;
@@ -197,3 +204,19 @@ Orden:
   - las dos agencias simuladas pasaron de 1.0.12 y 1.0.11 a 1.0.46 en orden y se frenó en la caída;
   - `auto_save` prende y apaga;
   - `test_base_api` 42/42 y `test_base_tickets` 49/49.
+
+
+## Afiliados: puente de "Recomienda Cronos" (2026-11-16, sin publicar)
+- **Archivos nuevos:** `base/aff_lib.php` y `base/aff_api.php`. Detalle completo en `AFILIADOS.md`.
+- **De la agencia** (`aff_api.php`, con la clave del sitio, como `tickets_api.php`):
+  - `me`: su resumen, la clave pública y lo que tiene en cola;
+  - `lead`: una agencia recomendada, con un tope de 20 por hora;
+  - `prefs`: descontar o cobrar, con los datos de cobro sellados (`s1:…`, que el base no puede abrir).
+- **De nuestro Toolz** (`index.php`, acción firmada `aff_sync`, solo de servidor en `BC_SERVER_ONLY`): confirma lo guardado (`ack`), deja la clave pública y los resúmenes de todas las agencias, y devuelve la cola (hasta 200).
+- **Guardado:** `_private/aff.json`, con candado:
+  - la cola tiene un tope de 5000;
+  - quedan las últimas 1000 claves confirmadas, así un reintento no se encola dos veces.
+- **La landing** (`contacto.php`) encola los pedidos de demo que llegan con la cookie `ct_ref`.
+
+## Catálogo Cronos (herramientas para la Biblioteca, 2026-11-18, sin publicar)
+- Admin › Red Cronos › Herramientas carga herramientas web (un HTML cada una) en `base/_private/herramientas/`; las agencias las ven en Biblioteca › Catálogo Cronos y las copian. Acciones firmadas `tool_list`, `tool_get`, `tool_save`, `tool_delete` y `tool_move`; las agencias usan `base/herramientas_api.php`. Detalle en `CATALOGO.md`.

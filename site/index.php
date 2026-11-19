@@ -385,7 +385,7 @@ a:hover .d3-ic{color:var(--g7-accent);background:var(--g7-accent-muted);border-c
 
 /* ── Inicio amable (2026-11-11): colores pastel, formas redondeadas. Misma estructura; cada ícono toma un tono con --h ── */
 .d3{--p1:#a78bfa;--p2:#34d399;--p3:#fbbf24;--p4:#60a5fa;--p5:#f472b6;--p6:#fb923c}
-html.theme-light .d3{--p1:#7c3aed;--p2:#059669;--p3:#d97706;--p4:#2563eb;--p5:#db2777;--p6:#ea580c}
+html:is(.theme-light,.theme-sand,.theme-sky,.theme-lilac,.theme-mint,.theme-sakura,.theme-lemon,.theme-cloud,.theme-desktop,.theme-classic,.theme-vintage,.theme-mica,.theme-aqua,.theme-studio,.theme-material,.theme-mobile,.theme-glassfrost,.theme-glasspeach,.theme-glassmint,.theme-glasssky,.theme-glasslilac,.theme-glasslemon,.theme-glassblush,.theme-glasspearl,.theme-coral,.theme-lagoon,.theme-peach,.theme-fog,.theme-lime,.theme-latte,.theme-indigo,.theme-pocket,.theme-platinum) .d3{--p1:#7c3aed;--p2:#059669;--p3:#d97706;--p4:#2563eb;--p5:#db2777;--p6:#ea580c}
 /* Encabezado en tarjeta con degradé suave y burbujas de fondo */
 .d3-head{position:relative;overflow:hidden;align-items:center;padding:28px 30px;border-radius:26px;border:1px solid var(--g7-border-2);
   background:linear-gradient(130deg,color-mix(in srgb,var(--p1) 16%,var(--g7-bg-3)) 0%,color-mix(in srgb,var(--g7-accent) 9%,var(--g7-bg-3)) 55%,color-mix(in srgb,var(--p2) 12%,var(--g7-bg-3)) 100%)}
@@ -428,7 +428,7 @@ a:hover .d3-ic{color:#fff;background:var(--h,var(--g7-accent));border:none}
 @keyframes tcWiggle{0%,100%{rotate:0deg}25%{rotate:-12deg}50%{rotate:9deg}75%{rotate:-5deg}}
 @keyframes tcRing{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tc) 55%,transparent)}100%{box-shadow:0 0 0 28px color-mix(in srgb,var(--tc) 0%,transparent)}}
 @media (prefers-reduced-motion:reduce){.tc-art-icon,.tc-art-icon::after{transition:none}.tc:hover .tc-art-icon{animation:none}}
-html.theme-light .tc:hover{box-shadow:0 18px 36px rgba(24,24,27,.12)}
+html:is(.theme-light,.theme-sand,.theme-sky,.theme-lilac,.theme-mint,.theme-sakura,.theme-lemon,.theme-cloud,.theme-desktop,.theme-classic,.theme-vintage,.theme-mica,.theme-aqua,.theme-studio,.theme-material,.theme-mobile,.theme-glassfrost,.theme-glasspeach,.theme-glassmint,.theme-glasssky,.theme-glasslilac,.theme-glasslemon,.theme-glassblush,.theme-glasspearl,.theme-coral,.theme-lagoon,.theme-peach,.theme-fog,.theme-lime,.theme-latte,.theme-indigo,.theme-pocket,.theme-platinum) .tc:hover{box-shadow:0 18px 36px rgba(24,24,27,.12)}
 @media (max-width:640px){.tc-art-icon{width:52px;height:52px;font-size:21px}}
 /* Tareas, clientes y paneles */
 .d3-wk-tabs{border-radius:999px}.d3-wk-tabs button{border-radius:999px}
@@ -453,7 +453,7 @@ html.theme-light .tc:hover{box-shadow:0 18px 36px rgba(24,24,27,.12)}
 .d3-head::before,.d3-head::after{content:none}
 .d3-head>.d3-scene{position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;overflow:hidden}
 .d3-scene svg{width:100%;height:100%;display:block;opacity:.55;filter:saturate(.55) brightness(.85)}
-html.theme-light .d3-scene svg{opacity:.45;filter:saturate(.5) brightness(1.08)}
+html:is(.theme-light,.theme-sand,.theme-sky,.theme-lilac,.theme-mint,.theme-sakura,.theme-lemon,.theme-cloud,.theme-desktop,.theme-classic,.theme-vintage,.theme-mica,.theme-aqua,.theme-studio,.theme-material,.theme-mobile,.theme-glassfrost,.theme-glasspeach,.theme-glassmint,.theme-glasssky,.theme-glasslilac,.theme-glasslemon,.theme-glassblush,.theme-glasspearl,.theme-coral,.theme-lagoon,.theme-peach,.theme-fog,.theme-lime,.theme-latte,.theme-indigo,.theme-pocket,.theme-platinum) .d3-scene svg{opacity:.45;filter:saturate(.5) brightness(1.08)}
 .d3-scene::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--g7-bg-3) 0%,var(--g7-bg-3) 38%,color-mix(in srgb,var(--g7-bg-3) 55%,transparent) 62%,transparent 85%)}
 /* Animaciones lentas y suaves */
 .sc-star{animation:scTw 5s ease-in-out infinite}
@@ -475,7 +475,7 @@ html.theme-light .d3-scene svg{opacity:.45;filter:saturate(.5) brightness(1.08)}
 @keyframes scFlap{from{transform:scaleY(1)}to{transform:scaleY(.4)}}
 .sc-fly{animation:scBob 8s ease-in-out infinite}
 @keyframes scBob{0%,100%{transform:translate(0,0);opacity:.15}50%{transform:translate(10px,-8px);opacity:.7}}
-@media (prefers-reduced-motion:reduce){.d3-scene *{animation:none!important}}
+/* la escena se frena con html:not(.g7-move) en assets/dash-hero.css */
 @media (max-width:640px){.d3-scene::after{background:linear-gradient(180deg,var(--g7-bg-3) 0%,color-mix(in srgb,var(--g7-bg-3) 70%,transparent) 65%,color-mix(in srgb,var(--g7-bg-3) 40%,transparent))}}
 /* Tareas en curso con el formato de Trabajo › Tickets (2026-11-11): indicadores con ícono y filas con franja, código, chips y estado */
 #d3-working{margin-top:36px}
@@ -598,6 +598,7 @@ html.theme-light .d3-scene svg{opacity:.45;filter:saturate(.5) brightness(1.08)}
 @media (max-width:640px){.d3-md-btn span{display:none}.d3-md-btn{padding:0 12px}}
 @media (prefers-reduced-motion:reduce){.d3-md-btn.beat,.d3-md-btn.beat i{animation:none}}
 </style>
+<link rel="stylesheet" href="/toolz/assets/dash-hero.css?v=<?= (int)@filemtime(__DIR__ . '/assets/dash-hero.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/topbar.php'; ?>
@@ -634,34 +635,89 @@ html.theme-light .d3-scene svg{opacity:.45;filter:saturate(.5) brightness(1.08)}
           <linearGradient id="scSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="<?= $scP['sky'][0] ?>"/><stop offset=".55" stop-color="<?= $scP['sky'][1] ?>"/><stop offset="1" stop-color="<?= $scP['sky'][2] ?>"/></linearGradient>
           <radialGradient id="scGlow"><stop offset="0" stop-color="#fff7d6" stop-opacity=".55"/><stop offset="1" stop-color="#fff7d6" stop-opacity="0"/></radialGradient>
           <linearGradient id="scShoot" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>
+          <radialGradient id="scHead"><stop offset="0" stop-color="#fef08a" stop-opacity=".9"/><stop offset="1" stop-color="#fef08a" stop-opacity="0"/></radialGradient>
+          <linearGradient id="scAur" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22d3ee" stop-opacity="0"/><stop offset=".35" stop-color="#4ade80"/><stop offset=".7" stop-color="#a78bfa"/><stop offset="1" stop-color="#f472b6" stop-opacity="0"/></linearGradient>
           <mask id="scMoon"><rect width="1200" height="320" fill="#fff"/><circle cx="1000" cy="74" r="30" fill="#000"/></mask>
         </defs>
         <rect width="1200" height="320" fill="url(#scSky)"/>
-        <g fill="#fff"><?= $scStars ?></g>
-        <?php if ($scK === 'noche'): ?>
-        <circle class="sc-glow" cx="985" cy="88" r="95" fill="url(#scGlow)"/>
-        <circle cx="985" cy="88" r="34" fill="#fef3c7" mask="url(#scMoon)"/>
-        <g class="sc-shoot"><line x1="380" y1="40" x2="470" y2="10" stroke="url(#scShoot)" stroke-width="2" stroke-linecap="round" transform="rotate(180 425 25)"/></g>
-        <?php else: $sy = $scK === 'dia' ? 82 : 196; ?>
-        <circle class="sc-glow" cx="985" cy="<?= $sy ?>" r="110" fill="url(#scGlow)"/>
-        <g class="sc-rays" stroke="<?= $scK === 'dia' ? '#fde047' : '#fed7aa' ?>" stroke-width="5" stroke-linecap="round" opacity=".7">
-          <?php for ($a = 0; $a < 360; $a += 30): $r = deg2rad($a); ?><line x1="<?= round(985 + cos($r) * 54) ?>" y1="<?= round($sy + sin($r) * 54) ?>" x2="<?= round(985 + cos($r) * 70) ?>" y2="<?= round($sy + sin($r) * 70) ?>"/><?php endfor; ?>
+        <?php
+        // Capas con paralaje: dash-hero.js mueve --px/--py y cada capa se corre según su --d (2026-11-14)
+        $scRoad = 'M-80 306 C180 288 380 301 560 299 C760 297 900 284 1280 293';
+        $scCars = '';
+        foreach ([['#f43f5e', 24, 0, 1], ['#38bdf8', 31, 9, 1], ['#facc15', 27, 17, -1], ['#a78bfa', 36, 4, -1], ['#34d399', 29, 22, 1]] as $ci => [$col, $dur, $del, $dir]) {
+            $lights = $scK === 'dia' ? '' : '<circle cx="17" cy="-6" r="10" fill="url(#scHead)"/><rect x="-15" y="-8" width="2" height="3" fill="#ef4444"/>';
+            $scCars .= '<g class="sc-car' . ($dir < 0 ? ' sc-back' : '') . '" style="animation-duration:' . $dur . 's;animation-delay:-' . $del . 's"><g' . ($dir < 0 ? ' transform="scale(-1 1)"' : '') . '>' . $lights
+                . '<rect x="-14" y="-10" width="28" height="8" rx="3" fill="' . $col . '"/><path d="M-8 -10 L-5 -16 H5 L9 -10Z" fill="' . $col . '"/><path d="M-6 -10.5 L-4 -14.5 H4 L7 -10.5Z" fill="#e0f2fe" opacity=".75"/>'
+                . '<circle cx="-8" cy="-2" r="3" fill="#18181b"/><circle cx="8" cy="-2" r="3" fill="#18181b"/></g></g>';
+        }
+        $scTrees = '';
+        foreach ([430, 452, 476, 590, 612, 640, 668] as $ti => $tx) {
+            $th = 14 + ($ti * 7) % 10;
+            $scTrees .= '<g class="sc-tree" style="animation-delay:-' . ($ti * .7) . 's;transform-origin:' . $tx . 'px 252px"><rect x="' . ($tx - 1.5) . '" y="' . (252 - $th) . '" width="3" height="' . $th . '" fill="' . $scP['hills'][2] . '"/><circle cx="' . $tx . '" cy="' . (252 - $th) . '" r="' . (8 + $ti % 3 * 2) . '" fill="' . $scP['hills'][0] . '"/></g>';
+        }
+        $scBlade = fn($x, $y, $l, $c, $rot) => '<path d="M' . $x . ' ' . $y . ' l-2.2 -' . $l . ' l2.2 -2 l2.2 2Z" fill="' . $c . '" transform="rotate(' . $rot . ' ' . $x . ' ' . $y . ')"/>';
+        $scTurb = '';
+        foreach ([[488, 206, 1, 6], [548, 210, .8, 8.5]] as [$tx, $ty, $ts, $tdur]) {
+            $hy = $ty - 52 * $ts; $tc = $scK === 'noche' ? '#4338ca' : '#f8fafc';
+            $scTurb .= '<path d="M' . ($tx - 1.6) . ' ' . $ty . ' L' . ($tx - .8) . ' ' . $hy . ' H' . ($tx + .8) . ' L' . ($tx + 1.6) . ' ' . $ty . 'Z" fill="' . $tc . '"/>'
+                . '<g class="sc-rotor" style="transform-origin:' . $tx . 'px ' . $hy . 'px;animation-duration:' . $tdur . 's">' . $scBlade($tx, $hy, 26 * $ts, $tc, 0) . $scBlade($tx, $hy, 26 * $ts, $tc, 120) . $scBlade($tx, $hy, 26 * $ts, $tc, 240) . '</g>'
+                . '<circle cx="' . $tx . '" cy="' . $hy . '" r="2.4" fill="' . ($scK === 'noche' ? '#ef4444' : '#cbd5e1') . '"' . ($scK === 'noche' ? ' class="sc-beacon"' : '') . '/>';
+        }
+        $scMsg = '¡' . $d3Hello . ', ' . $d3First . '!';
+        $scMsgW = 30 + (int)(mb_strlen($scMsg) * 7.4);
+        ?>
+        <g class="sc-pl" style="--d:2">
+          <g fill="#fff"><?= $scStars ?></g>
+          <?php if ($scK === 'noche'): ?>
+          <g class="sc-aurora"><path d="M120 120 C300 40 420 150 600 80 C780 10 900 110 1200 50 L1200 0 L120 0Z" fill="url(#scAur)"/><path d="M300 150 C460 90 560 170 760 110 C920 60 1040 140 1200 100 L1200 40 C1000 90 900 20 760 60 C560 120 460 40 300 110Z" fill="url(#scAur)" opacity=".6"/></g>
+          <circle class="sc-glow" cx="985" cy="88" r="95" fill="url(#scGlow)"/>
+          <g class="sc-sun" data-sc="moon"><circle cx="985" cy="88" r="46" fill="#000" opacity="0"/><circle cx="985" cy="88" r="34" fill="#fef3c7" mask="url(#scMoon)"/></g>
+          <g class="sc-shoot"><line x1="380" y1="40" x2="470" y2="10" stroke="url(#scShoot)" stroke-width="2" stroke-linecap="round" transform="rotate(180 425 25)"/></g>
+          <g class="sc-shoot sc-shoot2"><line x1="760" y1="30" x2="830" y2="6" stroke="url(#scShoot)" stroke-width="1.6" stroke-linecap="round" transform="rotate(180 795 18)"/></g>
+          <?php else: $sy = $scK === 'dia' ? 82 : 196; ?>
+          <circle class="sc-glow" cx="985" cy="<?= $sy ?>" r="110" fill="url(#scGlow)"/>
+          <g class="sc-sun" data-sc="sun" style="transform-origin:985px <?= $sy ?>px">
+            <g class="sc-rays" stroke="<?= $scK === 'dia' ? '#fde047' : '#fed7aa' ?>" stroke-width="5" stroke-linecap="round" opacity=".8">
+              <?php for ($a = 0; $a < 360; $a += 30): $r = deg2rad($a); ?><line x1="<?= round(985 + cos($r) * 54) ?>" y1="<?= round($sy + sin($r) * 54) ?>" x2="<?= round(985 + cos($r) * 70) ?>" y2="<?= round($sy + sin($r) * 70) ?>"/><?php endfor; ?>
+            </g>
+            <circle cx="985" cy="<?= $sy ?>" r="<?= $scK === 'dia' ? 40 : 48 ?>" fill="<?= $scK === 'dia' ? '#fde047' : '#fdba74' ?>"/>
+          </g>
+          <g class="sc-plane"><g transform="translate(0 112)">
+            <path d="M0 0 L22 -3 L28 -9 L32 -9 L30 -2 L40 -1 Q46 0 40 2 L6 4Z" fill="#f8fafc" transform="scale(-1 1) translate(-46 0)"/><path d="M32 0 L22 9 L18 9 L22 0Z" fill="#cbd5e1"/>
+            <line x1="46" y1="0" x2="64" y2="0" stroke="#e2e8f0" stroke-width="1"/>
+            <g class="sc-flag"><rect x="64" y="-10" width="<?= $scMsgW ?>" height="20" rx="3" fill="#fff" opacity=".93"/><text x="79" y="4" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="800" fill="<?= $scK === 'dia' ? '#0369a1' : '#9d174d' ?>"><?= htmlspecialchars($scMsg) ?></text></g>
+          </g></g>
+          <?php endif; ?>
+          <?php if ($scK === 'tarde'): ?>
+          <g class="sc-balloon"><g transform="translate(720 120)"><path d="M0 -34 C22 -34 26 -10 6 8 L-6 8 C-26 -10 -22 -34 0 -34Z" fill="#f97316"/><path d="M0 -34 C8 -34 9 -10 3 8 L-3 8 C-9 -10 -8 -34 0 -34Z" fill="#fde047"/><line x1="-5" y1="8" x2="-4" y2="16" stroke="#3b0764"/><line x1="5" y1="8" x2="4" y2="16" stroke="#3b0764"/><rect x="-5" y="16" width="10" height="7" rx="1.5" fill="#7c2d12"/></g></g>
+          <?php endif; ?>
         </g>
-        <circle cx="985" cy="<?= $sy ?>" r="<?= $scK === 'dia' ? 40 : 48 ?>" fill="<?= $scK === 'dia' ? '#fde047' : '#fdba74' ?>"/>
-        <?php endif; ?>
-        <g fill="#fff" opacity="<?= $scP['cloud'] ?>"><?= $scCloud(0, 70, 1, 70, 10) . $scCloud(0, 128, .7, 95, 55) . $scCloud(0, 46, .55, 120, 90) ?></g>
-        <?php if ($scK === 'dia'): ?>
-        <g class="sc-birds" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" opacity=".55">
-          <path class="sc-wing" d="M0 0 q6 -6 12 0 q6 -6 12 0"/><path class="sc-wing" d="M30 14 q5 -5 10 0 q5 -5 10 0" style="animation-delay:-.3s"/><path class="sc-wing" d="M-22 18 q4 -4 8 0 q4 -4 8 0" style="animation-delay:-.6s"/>
+        <g class="sc-pl" style="--d:5">
+          <g fill="#fff" opacity="<?= $scP['cloud'] ?>"><?= $scCloud(0, 70, 1, 70, 10) . $scCloud(0, 128, .7, 95, 55) . $scCloud(0, 46, .55, 120, 90) . $scCloud(0, 100, .45, 150, 30) ?></g>
+          <?php if ($scK === 'dia'): ?>
+          <g class="sc-birds" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" opacity=".55">
+            <path class="sc-wing" d="M0 0 q6 -6 12 0 q6 -6 12 0"/><path class="sc-wing" d="M30 14 q5 -5 10 0 q5 -5 10 0" style="animation-delay:-.3s"/><path class="sc-wing" d="M-22 18 q4 -4 8 0 q4 -4 8 0" style="animation-delay:-.6s"/>
+          </g>
+          <?php endif; ?>
         </g>
-        <?php endif; ?>
-        <path d="M0 214 C150 168 300 190 450 202 C600 214 750 160 900 170 C1050 180 1130 196 1200 186 L1200 320 L0 320Z" fill="<?= $scP['hills'][0] ?>"/>
-        <g><?= $scCity ?></g>
-        <path class="sc-hill2" d="M0 262 C200 226 350 246 520 250 C700 256 820 230 1000 240 C1100 245 1160 252 1200 248 L1200 320 L0 320Z" fill="<?= $scP['hills'][1] ?>"/>
-        <path d="M0 296 C180 276 380 291 560 289 C760 287 900 272 1200 282 L1200 320 L0 320Z" fill="<?= $scP['hills'][2] ?>"/>
-        <?php if ($scK === 'noche'): ?>
-        <g class="sc-flies" fill="#fde68a"><?php for ($i = 0; $i < 9; $i++): ?><circle class="sc-fly" cx="<?= mt_rand(380, 1180) ?>" cy="<?= mt_rand(262, 306) ?>" r="2" style="animation-delay:-<?= mt_rand(0, 60) / 10 ?>s"/><?php endfor; ?></g>
-        <?php endif; ?>
+        <g class="sc-pl" style="--d:9">
+          <path d="M0 214 C150 168 300 190 450 202 C600 214 750 160 900 170 C1050 180 1130 196 1200 186 L1200 320 L0 320Z" fill="<?= $scP['hills'][0] ?>"/>
+          <?= $scTurb ?>
+          <g><?= $scCity ?></g>
+        </g>
+        <g class="sc-pl" style="--d:14">
+          <path class="sc-hill2" d="M0 262 C200 226 350 246 520 250 C700 256 820 230 1000 240 C1100 245 1160 252 1200 248 L1200 320 L0 320Z" fill="<?= $scP['hills'][1] ?>"/>
+          <?= $scTrees ?>
+        </g>
+        <g class="sc-pl" style="--d:20">
+          <path d="M0 296 C180 276 380 291 560 289 C760 287 900 272 1200 282 L1200 320 L0 320Z" fill="<?= $scP['hills'][2] ?>"/>
+          <path d="<?= $scRoad ?>" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="13"/>
+          <path d="<?= $scRoad ?>" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2" stroke-dasharray="10 12"/>
+          <?= $scCars ?>
+          <?php if ($scK === 'noche'): ?>
+          <g class="sc-flies" fill="#fde68a"><?php for ($i = 0; $i < 12; $i++): ?><circle class="sc-fly" cx="<?= mt_rand(380, 1180) ?>" cy="<?= mt_rand(262, 290) ?>" r="2" style="animation-delay:-<?= mt_rand(0, 60) / 10 ?>s"/><?php endfor; ?></g>
+          <?php endif; ?>
+        </g>
       </svg>
     </div>
     <div>
@@ -1077,5 +1133,6 @@ html.theme-light .d3-scene svg{opacity:.45;filter:saturate(.5) brightness(1.08)}
 </main>
 
 <script src="/toolz/assets/home-3.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/home-3.js') ?>"></script>
+<script src="/toolz/assets/dash-hero.js?v=<?= (int)@filemtime(__DIR__ . '/assets/dash-hero.js') ?>"></script>
 </body>
 </html>

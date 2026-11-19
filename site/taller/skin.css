@@ -1,0 +1,28 @@
+/* taller/skin.css — Las herramientas del Taller con el tema de Cronos de cada persona (g7-theme.css).
+ * Sus variables propias pasan a leer las de Cronos; con !important porque ellas mismas se redefinen con
+ * :root[data-theme=dark] y prefers-color-scheme. El botón claro/oscuro de cada herramienta ya no hace falta. */
+html.g7-skin{
+  --bg:var(--g7-bg)!important;
+  --panel:var(--g7-bg-3)!important;
+  --ink:var(--g7-text)!important;
+  --muted:var(--g7-text-3)!important;
+  --line:var(--g7-border-2)!important;
+  --soft:var(--g7-bg-4)!important;
+  --soft2:var(--g7-bg-5)!important;
+  --hi:var(--g7-accent)!important;
+  --chk1:var(--g7-bg-4)!important;
+  --chk2:var(--g7-bg-3)!important;
+  --glass:color-mix(in srgb,var(--g7-bg-2) 84%,transparent)!important;
+  color-scheme:dark;
+}
+html.g7-skin.g7-skin-light{color-scheme:light}
+html.g7-skin body{background:var(--g7-bg);color:var(--g7-text)}
+/* el selector de tema propio de cada herramienta */
+html.g7-skin #uiTheme,html.g7-skin #uiTh{display:none!important}
+/* sidebar: el botón de casa y el activo con el acento de Cronos */
+html.g7-skin .tl-rail{background:var(--g7-bg-2);border-right-color:var(--g7-border-2)}
+html.g7-skin .tl-tip{background:var(--g7-bg-4);color:var(--g7-text);border:1px solid var(--g7-border-3)}
+html.g7-skin .tl-tip small{color:var(--g7-text-3)}
+html.g7-skin .tl-fade{background:var(--g7-bg)}
+/* celular: una sola columna que no se estira con el contenido (1fr tomaba el ancho del lienzo y achicaba todo) */
+@media (max-width:900px){html.g7-skin body{grid-template-columns:minmax(0,1fr)!important}html.g7-skin body>*{min-width:0}}

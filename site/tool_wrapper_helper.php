@@ -4,10 +4,11 @@
  * Wraps a standalone HTML tool with auth + topbar.
  * Call this at the top of each tool's PHP wrapper.
  */
-function g7_wrap_tool(string $htmlFile, string $toolUrl, string $toolName, bool $csp = false): void {
+function g7_wrap_tool(string $htmlFile, string $toolUrl, string $toolName, bool|string $csp = false): void {
     require_once __DIR__ . '/auth.php';
     // $csp: la herramienta ya no tiene código en línea → CSP estricta (SEC-24). Las que todavía tienen, sin el parámetro.
-    if ($csp) { require_once __DIR__ . '/csp_lib.php'; g7_csp_enforce(); }
+    // Un texto es un perfil de csp_lib.php que suma algo a script-src (p. ej. 'ml' para modelos en el navegador).
+    if ($csp) { require_once __DIR__ . '/csp_lib.php'; g7_csp_enforce(is_string($csp) ? $csp : ''); }
 
     $user = getCurrentUser();
     if (!$user) { header('Location: /toolz/login.php'); exit; }

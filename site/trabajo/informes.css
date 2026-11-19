@@ -1,0 +1,32 @@
+/* trabajo/informes.css — Trabajo › Reports. The dashboard uses the same styles as Statistics › Jira (assets/stats-jira.css);
+   here go the base ones that page takes from stats.php, and the layout of this page. Variables from g7-theme.css (light and dark). */
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font)}
+.wr{max-width:1320px;margin:0 auto;padding:22px 22px 80px}
+.wr a{color:inherit}
+.page-header{margin-bottom:16px}
+.page-title{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.page-title span{color:var(--g7-accent)}
+.page-sub{font-size:12px;color:var(--g7-text-4);margin-top:3px}
+.wr-back{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--g7-text-3)!important;text-decoration:none;margin-bottom:8px}
+.wr-back:hover{color:var(--g7-accent)!important}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px;margin-bottom:16px}
+.mc{background:var(--g7-bg-3);border:1px solid var(--g7-border-2);border-radius:12px;padding:14px 16px;transition:border-color .2s}
+.mc:hover{border-color:var(--g7-border-3)}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mc-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.mc-val{font-size:26px;font-weight:800;line-height:1;margin-bottom:4px}
+.mc-label{font-size:11px;color:var(--g7-text-4);font-weight:600}
+.card{background:var(--g7-bg-3);border:1px solid var(--g7-border-2);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.card-title{font-size:10px;font-weight:700;color:var(--g7-text-4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.card-title i{color:var(--g7-accent)}
+.wr-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.wr-sel{display:inline-flex;align-items:center;gap:8px;background:var(--g7-bg-4);border:1px solid var(--g7-border-3);border-radius:10px;padding:0 10px;height:34px;color:var(--g7-text-3);font-size:12px}
+.wr-sel select{background:none;border:0;color:var(--g7-text);font:500 12.5px var(--g7-font);outline:none;max-width:220px}
+.wr-sel select option{background:var(--g7-bg-3)}
+.wr-empty{text-align:center;padding:34px 20px;color:var(--g7-text-3)}
+.wr-empty i{font-size:28px;color:var(--g7-accent);margin-bottom:10px;display:block}
+.wr-empty h3{margin:0 0 6px;color:var(--g7-text);font-size:16px}
+.wr-empty p{margin:0 auto;max-width:460px;font-size:13px;line-height:1.5}
+@media (max-width:760px){.wr{padding:12px 12px 70px}.page-title{font-size:20px}.wr-sel{flex:1}.wr-sel select{max-width:none;flex:1}}

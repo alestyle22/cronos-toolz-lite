@@ -70,3 +70,7 @@ Pedido del usuario: "armemos el repo de cronos toolz lite".
 - **Cómo se pone al día:** con `php dev/lite_repo.php X.Y.Z` después de armar cada versión. Toma el instalador Lite firmado, reemplaza `site/` y `root/`, copia la documentación y frena si encuentra una marca de cliente, un secreto o algo de `_private/`. No hace commit: eso se hace a mano después de mirar `git status`.
 - **Finales de línea:** `.gitattributes` con `* -text` deja los archivos byte a byte como en la versión firmada, así coinciden con los hashes de `site/install/release.php`.
 - **Qué queda afuera del repo público:** CARGA.md (la cuenta y los límites del hosting), SEGURIDAD_WAF.md y SEGURIDAD_SAMM.md (qué defensas hay y cuáles faltan). Además, `lite_repo.php` y `release.php` frenan si aparece cualquiera de las marcas de clientes de su lista.
+
+## Afiliados (1.0.80)
+
+La Lite deja afuera `afiliados/`: el panel de Afiliados y el portal de particulares solo existen en el Cronos principal (edición completa, el que cobra los planes con `pagos/`). Las agencias Lite usan "Recomienda Cronos" (`recomendar/`), que habla con el base y no necesita Pagos. Hasta la 1.0.79 el instalador Lite no se podía armar porque `afiliados/api.php` carga `pagos/lib.php`.

@@ -344,10 +344,13 @@ async function generateAI(){
   const btn = document.getElementById('gen-btn');
   btn.disabled = true;
   startLoading();
-  const r = await post({action:'generate_ai', content:raw, platform:curPlat?.id||''});
-  btn.disabled = false;
-  stopLoading();
+  // Si el pedido se corta (hosting, conexión, sesión vencida) la carga termina igual y se avisa: antes quedaba girando para siempre
+  let r;
+  try { r = await post({action:'generate_ai', content:raw, platform:curPlat?.id||''}); }
+  catch(e){ r = {error: e.status===401||e.login ? 'Tu sesión venció. Vuelve a entrar y prueba de nuevo.' : 'La generación se cortó antes de terminar (tardó demasiado o se perdió la conexión). Prueba de nuevo; si se repite, acorta el texto de la promo.'}; }
+  finally { btn.disabled = false; stopLoading(); }
   if(r.error){ toast(r.error,'err'); return; }
+  if(!r.html){ toast('La IA no devolvió la landing. Prueba de nuevo.','err'); return; }
   generatedHTML = r.html;
   renderPreview(generatedHTML);
   toast('Landing generada!','ok');
@@ -402,7 +405,9 @@ async function openInEditor(){
 
 async function post(data){
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return r.json();
+  const t=await r.text();   // generate_ai manda espacios de latido antes del JSON
+  try { return JSON.parse(t); }
+  catch(e){ const err=new Error('respuesta inválida'); err.status=r.status; err.login=r.redirected&&/login\.php/.test(r.url); throw err; }
 }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function triggerDl(html, filename){

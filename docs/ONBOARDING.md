@@ -154,3 +154,9 @@ Da **60/60**, con la base `ob_test` y un servidor propio en :8181. Cubre:
   - hay que **respaldar esa clave**;
   - la bienvenida rige desde el primer pedido después de instalar; las personas que ya estaban no la ven, salvo que el admin la pida.
 - **Servidor de PHP local:** al pedir una carpeta (`/toolz/trabajo/`) se pierde el `auto_prepend_file` de las pruebas. La prueba usa `trabajo/index.php`. En el hosting no pasa.
+
+## Perfil en pantallas cortas y datos nuevos (2026-11-14)
+
+- El paso **Perfil** se ve como **4 pantallas cortas**, cada una con su lugar en la barra (7 pasos en total): **Vos** (foto, nombre, cargo, departamento), **Sobre vos** (bio, email, teléfono, ubicación, país, zona horaria, idioma), **Fechas** (cumpleaños, con aviso si falta, y en el equipo desde) y **Lo que sabés** (herramientas y aptitudes, elegidas en un modal).
+- Para el servidor sigue siendo un solo paso (`last_step` y `steps_done` no cambian). Continuar valida solo la pantalla actual; en la última se guarda todo junto. Si el servidor marca un error, se vuelve a la pantalla de ese dato. Las pantallas sin nada para completar se saltean (por ejemplo, con "solo lo que falta").
+- Campos nuevos en `OB_FIELDS` (Admin › Bienvenida › Datos del perfil, **opcionales** por defecto): Email, Teléfono, Ubicación, Cumpleaños, En el equipo desde, Herramientas y Aptitudes. Las redes sociales no se piden acá. Se guardan en `save_profile` con las mismas reglas que Comunidad (`profile_fields_lib.php`).

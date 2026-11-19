@@ -287,9 +287,11 @@ function setMediaType(val,btn){mediaType=val;$('media-toggle').querySelectorAll(
   updateNameWithVideos();
 }
 
+// Error dentro del formulario (g7-juice.js: el campo tiembla y el mensaje queda debajo); sin g7-juice, el aviso de siempre
+function prFieldErr(el,msg){ if(window.G7Juice&&G7Juice.fieldError&&el){ G7Juice.fieldError(el,msg); } else alert(msg); }
 async function saveItem(){
-  const name=$('f-name').value.trim();if(!name){alert('El nombre es obligatorio');return;}
-  const cx=cxGet('f-cx');if(cx.yes&&!cx.list.length){alert('Marcaste que hubo complicaciones: elige al menos una.');return;}
+  const name=$('f-name').value.trim();if(!name){prFieldErr($('f-name'),'Ponele un nombre al contenido');return;}
+  const cx=cxGet('f-cx');if(cx.yes&&!cx.list.length){prFieldErr($('f-cx'),'Marcaste que hubo complicaciones: elige al menos una.');return;}
   const fd=new FormData();
   fd.append('complications',JSON.stringify(cx.list));fd.append('complications_note',cx.note);
   fd.append('action','save');fd.append('type',formType);fd.append('name',name);
@@ -312,7 +314,7 @@ async function saveItem(){
   // Multiplataforma: proyecto principal = primera plataforma; todas van en projects[]
   if($('f-multi')?.checked && !$('multi-wrap').classList.contains('hidden')){
     const sel = multiSelected();
-    if(sel.length < 2){ alert('Elige al menos dos plataformas o desmarca "Tarea de múltiples plataformas".'); return; }
+    if(sel.length < 2){ prFieldErr($('multi-wrap'),'Elige al menos dos plataformas o desmarca "Tarea de múltiples plataformas".'); return; }
     fd.set('project', sel[0]);
     fd.delete('projects[]');
     sel.forEach(v=>fd.append('projects[]', v));

@@ -82,7 +82,7 @@
   function avatar(uid, size = 32, status = true) {
     const u = S.users[uid] || { name: '?' };
     const st = !status ? '' : `<i class="cc-st ${u.online ? u.status : 'off'}" title="${esc(statusLabel(u))}"></i>`;
-    return `<span class="cc-av" style="--s:${size}px" data-user="${uid}">${u.avatar ? `<img src="${esc(u.avatar)}" alt="" loading="lazy" data-cc-fb="${esc(initials(u.name))}">` : esc(initials(u.name))}${st}</span>`;
+    return `<span class="cc-av" style="--s:${size}px" data-user="${uid}"${u.avatar ? '' : ` data-g7-uid="${uid}"`}>${u.avatar ? `<img src="${esc(u.avatar)}" alt="" loading="lazy" data-cc-fb="${esc(initials(u.name))}">` : esc(initials(u.name))}${st}</span>`;
   }
   const statusLabel = u => !u.online ? 'Desconectado' : (S.statuses[u.status] || 'Disponible') + (u.status_text ? ' · ' + u.status_text : '');
   const convName = c => c.kind === 'dm' ? (c.peer === S.me ? uname(c.peer) + ' (tú)' : uname(c.peer)) : c.kind === 'channel' ? c.name : c.name;
@@ -159,6 +159,8 @@
       return;
     }
     renderMe(); renderList(); updateBadges();
+    window.CCX = { S, api, openConv, openDM, react, curConv, uname, avatar, esc, renderMsgs, renderList, toast, fail };
+    emit('boot');
     const qs = new URLSearchParams(location.search);
     if (qs.get('m')) gotoMessage(+qs.get('m'));
     else if (qs.get('c') && S.convs[+qs.get('c')]) openConv(+qs.get('c'));
@@ -390,7 +392,7 @@
   function closeConv() {
     S.open = null; S.preview = null; cc.classList.remove('open', 'aside-on'); S.aside = null;
     history.replaceState(null, '', location.pathname);
-    main.innerHTML = $('cc-welcome-tpl').innerHTML; renderList();
+    main.innerHTML = $('cc-welcome-tpl').innerHTML; renderList(); emit('welcome');
   }
   async function openDM(uid) {
     try { const d = await api('dm_open', { user_id: uid }); S.convs[d.conv.id] = d.conv; S.view = S.view === 'channels' || S.view === 'files' ? 'home' : S.view; setRail(); openConv(d.conv.id); } catch (e) { fail(e); }
@@ -403,7 +405,7 @@
   // ── Conversación (panel principal) ──
   function renderMain() {
     const c = curConv();
-    if (!c) { main.innerHTML = $('cc-welcome-tpl').innerHTML; return; }
+    if (!c) { main.innerHTML = $('cc-welcome-tpl').innerHTML; emit('welcome'); return; }
     main.innerHTML = `
       <header class="cc-mh" id="cc-mh"></header>
       <div class="cc-msgs" id="cc-msgs" tabindex="-1" aria-live="polite"></div>
@@ -429,6 +431,7 @@
         <button class="cc-ib" data-act="mute" title="${c.muted ? 'Activar avisos' : 'Silenciar'}" aria-label="Silenciar" aria-pressed="${c.muted}"><i class="fa-solid ${c.muted ? 'fa-bell-slash' : 'fa-bell'}"></i></button>` : ''}
         <button class="cc-ib${S.aside === 'info' ? ' on' : ''}" data-act="info" title="Detalles" aria-label="Detalles"><i class="fa-solid fa-circle-info"></i></button>
       </div>`;
+    emit('head');
   }
 
   function msgHtml(m, prev, C, inThread) {
@@ -534,7 +537,10 @@
     else box.scrollTop = oldT + 0 * oldH;
     updateJump();
     if (S.aside === 'thread') renderThread();
+    emit('msgs');
   }
+  // Avisos para chat-plus.js (inicio, efectos, rompehielos): se dibujó algo
+  const emit = what => { try { document.dispatchEvent(new CustomEvent('cc:render', { detail: what })); } catch (e) {} };
   function introHtml(c) {
     if (c.kind === 'dm') { const u = S.users[c.peer] || {}; return `<div class="cc-intro">${avatar(c.peer, 56)}<h3>${esc(convName(c))}</h3><p>${c.peer === S.me ? 'Tu espacio personal: anota cosas, guarda enlaces o prueba mensajes.' : `Este es el comienzo de tu conversación con ${esc(u.name || '')}.`}${u.position ? '<br>' + esc(u.position) : ''}</p></div>`; }
     return `<div class="cc-intro">${convIcon(c, 56)}<h3>${c.kind === 'channel' ? '#' : ''}${esc(c.name)}</h3><p>${c.topic ? esc(c.topic) + '<br>' : ''}${c.kind === 'channel' ? 'Este es el comienzo del canal.' : 'Este es el comienzo del grupo.'}</p></div>`;
@@ -697,6 +703,7 @@
     const C = S.conv[m.conv_id];
     try {
       const d = await api('send', m.payload);
+      beep('sent');
       if (C) { const i = C.list.indexOf(m); const j = C.list.findIndex(x => x.id === d.message.id); if (j >= 0 && j !== i) C.list.splice(i, 1); else if (i >= 0) C.list[i] = d.message; }
       if (/https?:\/\//.test(d.message.body || '')) api('unfurl', { id: d.message.id }).then(x => { if (x.message) { upsert(x.message); if (S.open === x.message.conv_id) renderMsgs(); } }).catch(() => {});
       const cv = S.convs[m.conv_id]; if (cv) { cv.last_msg_id = d.message.id; cv.last_msg_at = d.message.created_at; cv.last = { user_id: S.me, body: d.message.body, kind: 'text' }; cv.last_read_id = d.message.id; }
@@ -1040,8 +1047,11 @@
     return a <= b ? cur >= a && cur < b : cur >= a || cur < b;
   }
   let audioCtx = null;
-  function beep() {
+  // kind: 'dm' | 'chat' | 'mention' | 'chatnote' | 'sent' → sonidos de g7-juice.js (MOVIMIENTO.md); sin él, el bip de siempre
+  function beep(kind = 'chat') {
     if (!S.prefs.sound || inQuiet()) return;
+    if (window.G7Juice && G7Juice.alert) { G7Juice.alert(kind); return; }
+    if (kind === 'sent') return;
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime;
@@ -1066,7 +1076,7 @@
     const c = S.convs[m.conv_id]; if (!c || c.muted || c.notify !== 'all' || watching(c.id)) return;
     const want = c.kind === 'dm' ? S.prefs.dm : c.kind === 'group' ? S.prefs.groups : S.prefs.channels;
     if (!want) return;
-    beep();
+    beep(c.kind === 'dm' ? 'dm' : 'chat');
     const where = c.kind === 'dm' ? uname(m.user_id) : (c.kind === 'channel' ? '#' : '') + c.name;
     popup(where, (c.kind === 'dm' ? '' : uname(m.user_id).split(' ')[0] + ': ') + (m.body || (m.poll ? '📊 ' + m.poll.question : '📎 Archivo')), () => openConv(c.id), 'c' + c.id);
   }
@@ -1091,7 +1101,7 @@
       const c = n.conv_id && S.convs[n.conv_id];
       if (c && c.notify === 'none') return;
       if (n.message_id && watching(n.conv_id) && n.kind !== 'reply') return;
-      beep();
+      beep(n.kind === 'mention' ? 'mention' : n.kind === 'reminder' ? 'remind' : 'chatnote');
       popup(notifTitle(n), n.kind === 'reaction' ? n.extra : n.extra, () => openNotif(n), 'n' + n.id);
     });
     updateBadges();
@@ -1599,7 +1609,7 @@
       <p class="cc-appe">Cada conversación tiene además su propio nivel de aviso en <b>Detalles</b>.</p></div>
       <div class="cc-app"><div class="ah"><i class="fa-regular fa-moon"></i><b>Horario de descanso</b></div>${tg('quiet_on', 'Silenciar avisos en este horario', 'Los mensajes llegan igual; solo no suenan ni aparecen avisos')}
       <div class="cc-time"><label>De <input type="time" class="cc-in" data-pref="quiet_from" value="${esc(p.quiet_from)}"></label><label>a <input type="time" class="cc-in" data-pref="quiet_to" value="${esc(p.quiet_to)}"></label></div></div>
-      <div class="cc-app"><div class="ah"><i class="fa-regular fa-user"></i><b>Perfil y estado</b></div><button class="cc-btn sm" data-act="status-menu">Cambiar mi estado</button> <a class="cc-btn sm" href="/toolz/comunidad.php" target="_blank" rel="noopener">Editar mi perfil</a>
+      <div class="cc-app"><div class="ah"><i class="fa-regular fa-user"></i><b>Perfil y estado</b></div><button class="cc-btn sm" data-act="status-menu">Cambiar mi estado</button> <a class="cc-btn sm" href="/toolz/perfil.php" target="_blank" rel="noopener"><i class="fa-solid fa-id-card"></i> Ver mi perfil</a> <a class="cc-btn sm" href="/toolz/comunidad.php?editar=1" target="_blank" rel="noopener">Editar mi perfil</a>
       <p class="cc-appe">Foto, cargo y datos de contacto se editan en tu perfil de la intranet.</p></div>
       <div class="cc-app"><div class="ah"><i class="fa-solid fa-check-double"></i><b>Mensajes</b></div><button class="cc-btn sm" data-act="read-all">Marcar todo como leído</button></div>
       <div class="cc-app"><div class="ah"><i class="fa-regular fa-keyboard"></i><b>Atajos</b></div><dl class="cc-keys"><dt>Ctrl K</dt><dd>Buscar conversación</dd><dt>Ctrl Shift F</dt><dd>Búsqueda avanzada</dd><dt>Enter</dt><dd>Enviar</dd><dt>Shift Enter</dt><dd>Nueva línea</dd><dt>↑</dt><dd>Editar tu último mensaje</dd><dt>Ctrl B / I</dt><dd>Negrita / cursiva</dd><dt>Esc</dt><dd>Cerrar paneles</dd></dl></div>`;

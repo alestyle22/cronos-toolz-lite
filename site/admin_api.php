@@ -118,7 +118,7 @@ function adm_snapshot(PDO $db): array {
             'superadmins' => ['label' => 'Solo superadmin', 'desc' => 'Solo el superadmin: a los demás admins ni siquiera les aparece', 'icon' => 'fa-crown'],
             'off'      => ['label' => 'Apagado', 'desc' => 'Nadie salvo admins; se oculta del menú', 'icon' => 'fa-power-off'],
         ], fn($k) => $__super || $k !== 'superadmins', ARRAY_FILTER_USE_KEY),
-        'action_labels' => ['view' => 'Ver', 'create' => 'Crear', 'edit' => 'Editar', 'delete' => 'Eliminar', 'notes' => 'Ver notas compartidas'],
+        'action_labels' => ['view' => 'Ver', 'create' => 'Crear', 'edit' => 'Editar', 'delete' => 'Eliminar', 'notes' => 'Ver notas compartidas', 'catalog' => 'Agregar del catálogo', 'config' => 'Configurar', 'design' => 'Diseñar', 'publish' => 'Publicar'],
     ];
 }
 

@@ -59,5 +59,7 @@ $id = (int)($_GET['id'] ?? 0);
 <script src="<?= $pa ?>form_render.js?v=<?= $v('form_render.js') ?>"></script>
 <script src="<?= $pa ?>form_editors.js?v=<?= $v('form_editors.js') ?>"></script>
 <script src="<?= $pa ?>builder.js?v=<?= $v('builder.js') ?>"></script>
+<link rel="stylesheet" href="<?= $pa ?>builder-juice.css?v=<?= $v('builder-juice.css') ?>">
+<script src="<?= $pa ?>builder-juice.js?v=<?= $v('builder-juice.js') ?>"></script>
 </body>
 </html>

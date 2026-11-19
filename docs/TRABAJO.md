@@ -231,6 +231,65 @@ En Trabajo › Informes, además de "Tickets por categoría", hay tres informes 
 
 Todos se exportan a CSV.
 
+### Tablero de informes (2026-11-17, sin publicar)
+`trabajo/informes.php`. Se abre con el botón **"Tablero de informes"** de Trabajo › Informes, que pasa el período, el departamento y el tablero elegidos. Es el mismo tablero que Estadísticas › Jira, pero con las tareas de Cronos (ticket = tarea, así que también entran los tickets).
+
+**Qué tiene:**
+- **Período:** rangos rápidos o desde/hasta.
+- **Filtros:** departamento y tablero.
+- **Indicadores:**
+  - creadas;
+  - entregadas (con el porcentaje sobre lo creado);
+  - a tiempo;
+  - sin entregar hoy;
+  - tiempo hasta entregar (promedio y mediana);
+  - plazo que se da.
+- **Resumen por situación:** a tiempo, tarde, atrasadas, en curso y sin empezar. Al tocarlo muestra la lista.
+- **Avisos rápidos:** vencen en 7 días, sin fecha, sin responsable, esperando aprobación y fin de semana.
+- **Pestañas:** Resumen, Entregas, Personas, Tiempos, Plazos y prioridad, Calendario, Origen, Explorar (tabla dinámica) y Lista. Cada tarea tiene su link.
+- **Exportar:** Excel o PDF, eligiendo secciones, columnas, cuáles tareas y el orden.
+- **"¿Qué cuenta como entregado?"** (admin o dirección):
+  - Por defecto cuentan las columnas terminadas y las que se llaman como "aprobación", "revisión del cliente" o "entregado".
+  - Se pueden elegir los estados. Así, una tarea que llegó a "Para aprobar" a tiempo y se aprobó después cuenta como entregada a tiempo.
+  - Se guarda en `g7_config.work_stats_cfg` y queda en la auditoría.
+
+**Cómo se arma cada tarea:**
+
+| Dato del informe | De dónde sale |
+|---|---|
+| Estado | El nombre de la columna de su tablero. La primera columna es "sin empezar"; las marcadas como terminadas, "terminada"; el resto, "en curso". |
+| Tipo | El tablero. |
+| Proyecto | El cliente o la marca de la tarea. |
+| Componente | El departamento del tablero. |
+| Responsable | El primero asignado. |
+| Quién la pidió | Quien abrió el ticket o, si no hay ticket, quien creó la tarea. |
+| Etiquetas | Las de la tarea, más "Origen: …" si viene de un ticket que no nació como tarea (por ejemplo, Social Studio). |
+| Fecha de entrega | La última vez que llegó a un estado de entrega, según el historial de estados (`g7_task_activity`). |
+
+- No cuentan las tareas archivadas, las subtareas ni las cerradas antes del período.
+- Máximo 5000 tareas por informe; si hay más, avisa.
+
+**Alcance:** el mismo de los informes de antes.
+- Admin y dirección ven todo.
+- Una jefa ve lo de su gente y lo de los tableros de sus departamentos, y filtra solo por sus departamentos.
+- El resto ve lo suyo: lo que tiene asignado o creó.
+
+**Un solo motor:** las cuentas son `g7_jira_stats()` (`jira_stats_lib.php`), la pantalla es `assets/stats-jira.js` y la exportación, `stats_jira_export.php`. Para eso, Jira y Trabajo comparten código:
+- `stats-jira.js` acepta `R.words` (vocabulario), `R.urls` (link de cada fila) y `R.deliver_url`.
+- `stats_jira_export.php` acepta `$XS`: el informe ya armado y sus textos.
+- Sin esos datos, Jira se ve y exporta igual que antes.
+
+**Archivos:**
+- Nuevos: `trabajo/report_lib.php`, `trabajo/informes.php`, `trabajo/informes.js`, `trabajo/informes.css`.
+- Tocados: `trabajo/trabajo.js` (el botón), `assets/stats-jira.js`, `stats_jira_export.php`.
+- Respaldo de antes: `dev/tmp/stats-jira.antes.js`, `dev/tmp/stats_jira_export.antes.php`.
+
+**Pruebas:**
+- `dev/test_trabajo_informes.php`: 34/34.
+- Siguen bien `test_jira_use` (76) y `test_trabajo_tickets` (89).
+- Navegador, base local: los indicadores y la pestaña Personas con datos reales, y la exportación a Excel y a PDF.
+- Estadísticas › Jira no se pudo ver en local (no hay Jira conectado). Su código de exportación cambió solo para recibir textos: conviene mirarla una vez publicada.
+
 ## Esquema (v8, `wk_install_v8`)
 - `g7_wk_tickets`: `origin`, `paused_at`, `paused_min`, `form_id`, `answers`, más `base_id` y `base_info`, que ahora existen en todas las instalaciones (vacías fuera del Toolz principal). Índices `task_id`, `resolution_due` y `updated_at`.
 - `g7_wk_ticket_msgs`: `comment_id` y `ext_name`.

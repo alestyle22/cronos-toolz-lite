@@ -42,9 +42,9 @@ document.addEventListener('error', e => {
 }, true);
 function av(u, size = 26) {
   if (!u) return `<span class="wk-av" style="width:${size}px;height:${size}px;background:var(--g7-bg-5)"></span>`;
-  if (u.avatar) return `<img class="wk-av" style="width:${size}px;height:${size}px" src="${esc(u.avatar)}" alt="" data-wk-ini="${esc((u.name || '?')[0].toUpperCase())}">`;
+  if (u.avatar) return `<img class="wk-av" data-g7-user="${+u.id || ''}" style="width:${size}px;height:${size}px" src="${esc(u.avatar)}" alt="" data-wk-ini="${esc((u.name || '?')[0].toUpperCase())}">`;
   const hue = (u.id * 47) % 360;
-  return `<span class="wk-av" style="width:${size}px;height:${size}px;background:hsl(${hue} 70% 65%)">${esc((u.name || '?')[0].toUpperCase())}</span>`;
+  return `<span class="wk-av" data-g7-user="${+u.id || ''}" style="width:${size}px;height:${size}px;background:hsl(${hue} 70% 65%)">${esc((u.name || '?')[0].toUpperCase())}</span>`;
 }
 const dayMs = s => { const [y, m, d] = s.slice(0, 10).split('-').map(Number); return Date.UTC(y, m - 1, d); };
 function dueHtml(d, done = false) {
@@ -589,7 +589,7 @@ async function renderReports() {
   const tot = { done: r.people.reduce((a, x) => a + x.done, 0), min: r.clients.reduce((a, x) => a + x.minutes, 0), tk: r.tickets.reduce((a, x) => a + x.created, 0), rq: r.requests.reduce((a, x) => a + x.created, 0) };
   const scopeTxt = r.scope === 'all' ? 'todo el equipo' : r.scope === 'team' ? 'tu departamento' : 'lo tuyo';
   $('wk-main').innerHTML = `<div class="wk-h"><div><h1>Informes<span>.</span></h1><p>Del ${R.from.split('-').reverse().join('/')} al ${R.to.split('-').reverse().join('/')} · ${scopeTxt}. "Abiertas hoy" y "Vencidas hoy" son la foto de este momento.</p></div>
-      <div class="wk-h-a wk-noprint"><button class="wk-btn" type="button" id="rp-print"><i class="fa-solid fa-file-pdf"></i> PDF / imprimir</button></div></div>
+      <div class="wk-h-a wk-noprint"><a class="wk-btn" href="/toolz/trabajo/informes.php?jf=${R.from}&jt=${R.to}${+R.team ? '&d=' + R.team : ''}${+R.board ? '&b=' + R.board : ''}" style="border-color:var(--g7-accent);color:var(--g7-accent)"><i class="fa-solid fa-chart-pie"></i> Tablero de informes</a><button class="wk-btn" type="button" id="rp-print"><i class="fa-solid fa-file-pdf"></i> PDF / imprimir</button></div></div>
     <div class="wk-bar wk-noprint">
       ${[['mes', 'Este mes'], ['30', 'Últimos 30 días'], ['trim', 'Este trimestre'], ['anio', 'Este año']].map(([k, n]) => `<button class="wk-btn sm" type="button" data-rng="${k}">${n}</button>`).join('')}
       <input class="wk-in" type="date" id="rp-from" value="${R.from}" aria-label="Desde" style="min-width:0;width:150px"><span>a</span><input class="wk-in" type="date" id="rp-to" value="${R.to}" aria-label="Hasta" style="min-width:0;width:150px">
@@ -1130,7 +1130,7 @@ function slaChip(due, doneAt, label, now, paused = false) {
 // Filtros de la lista de Tickets: quedan mientras se navega por Trabajo
 W.tkF = W.tkF || { status: 'abiertos', category: 0, priority: '', assignee: '', origin: '', team: 0, q: '', sort: 'due', dir: '', page: 1, since: 0, star: false,
   view: ['table', 'list', 'board'].includes(tkPref('view')) ? tkPref('view') : 'table', per: [25, 50, 100].includes(tkPref('per')) ? tkPref('per') : 50 };
-const TK_SRC = { web: ['Demo web', 'fa-globe', '#a855f7'], sitio: ['Soporte de agencia', 'fa-satellite-dish', '#3b82f6'], ticket: ['Ticket interno', 'fa-ticket', '#64748b'], tarea: ['Tarea', 'fa-list-check', '#f97316'], form: ['Panel de solicitudes', 'fa-inbox', '#14b8a6'], chat: ['Chat', 'fa-comments', '#ec4899'], juego: ['Juego', 'fa-gamepad', '#22c55e'] };
+const TK_SRC = { web: ['Demo web', 'fa-globe', '#a855f7'], sitio: ['Soporte de agencia', 'fa-satellite-dish', '#3b82f6'], ticket: ['Ticket interno', 'fa-ticket', '#64748b'], tarea: ['Tarea', 'fa-list-check', '#f97316'], form: ['Panel de solicitudes', 'fa-inbox', '#14b8a6'], chat: ['Chat', 'fa-comments', '#ec4899'], juego: ['Juego', 'fa-gamepad', '#22c55e'], social: ['Social Studio', 'fa-share-nodes', '#ec4899'] };
 const TK_JR_XT = { label: 'Jugador', icon: 'fa-gamepad', color: '#22c55e', title: 'Jugador (escribió desde el juego)' };
 const srcChip = t => { const s = TK_SRC[t.src] || TK_SRC.ticket; return `<i class="fa-solid ${s[1]}" title="${esc(s[0])}" style="opacity:.7"></i>`; };
 // ── Piezas de Tickets v2 (íconos y colores; estilos tk-* en trabajo.css) ──
@@ -1324,6 +1324,20 @@ function bindTkCompose(help, id, done) {
     more.addEventListener('click', () => { if (!menu.hidden) return close(); menu.hidden = false; more.setAttribute('aria-expanded', 'true'); menu.querySelector('button')?.focus(); setTimeout(() => document.addEventListener('click', away, true)); });
     menu.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); more.focus(); } });
     menu.querySelectorAll('[data-then]').forEach(b => b.addEventListener('click', () => { close(); send(b.dataset.then); }));
+  }
+}
+/** Volver a dibujar después de una acción (cambiar estado, mover en el tablero, tomarlo…) sin que parezca una recarga:
+ *  sin las animaciones de entrada de la vista y con el scroll donde estaba (la página y las columnas del tablero). */
+async function wkQuiet(draw) {
+  const M = $('wk-main'), sc = document.scrollingElement, y = sc ? sc.scrollTop : 0;
+  const boxes = el => [...el.querySelectorAll('.wk-tkdrop, [data-col], .tkt-wrap, .wk-tkboard, .tk-board')];
+  const keep = boxes(M).map(b => [b.scrollTop, b.scrollLeft]);
+  M.classList.add('wk-quiet');
+  try { await draw(); }
+  finally {
+    if (sc) sc.scrollTop = y;
+    boxes(M).forEach((b, i) => { if (keep[i]) { b.scrollTop = keep[i][0]; b.scrollLeft = keep[i][1]; } });
+    setTimeout(() => M.classList.remove('wk-quiet'), 60);
   }
 }
 async function renderTickets(arg) {
@@ -1530,7 +1544,7 @@ function bindTkTable(r, meta, F) {
   $('tk-ckall')?.addEventListener('change', e => { M.querySelectorAll('[data-ck]').forEach(x => { x.checked = e.target.checked; }); bulk(); });
   const runBulk = async (label, fn) => { const list = ids(); if (!list.length) return; let ok = 0, err = '';
     for (const id of list) { try { await fn(id); ok++; } catch (e) { err = e.message; } }
-    toast(err ? `${label}: ${ok} de ${list.length}. ${err}` : `${label}: ${ok} ticket${ok === 1 ? '' : 's'}`, !!err); renderTickets(); };
+    toast(err ? `${label}: ${ok} de ${list.length}. ${err}` : `${label}: ${ok} ticket${ok === 1 ? '' : 's'}`, !!err); wkQuiet(renderTickets); };
   M.querySelector('[data-bulk="take"]')?.addEventListener('click', () => runBulk('Tomados', id => { const t = r.tickets.find(x => x.id === id); return upd(id, { assignee_id: W.me.id, ...(t?.status === 'abierto' ? { status: 'en_curso' } : {}) }); }));
   $('tk-bulk-st')?.addEventListener('change', e => { const st = e.target.value; if (st) runBulk('Pasaron a ' + tkSt(st).name, id => upd(id, { status: st })); });
   M.querySelector('[data-bulk="star"]')?.addEventListener('click', () => { const s = tkStars(); ids().forEach(id => s.add(id)); tkPref('stars', [...s].slice(-300)); toast('Destacados'); renderTickets(); });
@@ -1602,7 +1616,7 @@ function tkEdit(anchor, t, meta, onDone = renderTickets) {
     try {
       await api('ticket_update', { id: t.id, ...data });
       toast(kind === 'status' ? `${tkCode(t.id)} pasó a ${tkSt(v).name}` : kind === 'prio' ? `${tkCode(t.id)}: prioridad ${prioOf(v).name}${prioOf(v).id !== t.priority ? ' (plazos recalculados)' : ''}` : +v ? `${tkCode(t.id)} asignado a ${userOf(+v)?.name || ''}` : `${tkCode(t.id)} quedó sin responsable`);
-      onDone();
+      wkQuiet(onDone);
     } catch (err) { toast(err.message, true); anchor.classList.remove('saving'); anchor.disabled = false; }
   }));
   bindOpts();
@@ -1629,7 +1643,7 @@ function tkRowMenu(btn, t, meta) {
     else if (a === 'tab') open('#tickets/' + t.id, '_blank');
     else if (a === 'link') { try { await navigator.clipboard.writeText(location.origin + location.pathname + '#tickets/' + t.id); toast('Enlace copiado'); } catch (err) { toast('No se pudo copiar', true); } }
     else { try { await api('ticket_update', a === 'take' ? { id: t.id, assignee_id: W.me.id, ...(t.status === 'abierto' ? { status: 'en_curso' } : {}) } : { id: t.id, status: a.slice(3) });
-      toast(a === 'take' ? 'Ahora lo atiendes tú' : `${tkCode(t.id)} pasó a ${tkSt(a.slice(3)).name}`); renderTickets(); } catch (err) { toast(err.message, true); } }
+      toast(a === 'take' ? 'Ahora lo atiendes tú' : `${tkCode(t.id)} pasó a ${tkSt(a.slice(3)).name}`); wkQuiet(renderTickets); } catch (err) { toast(err.message, true); } }
   });
 }
 /** Elegir y ordenar las columnas de la tabla (se guarda en este navegador). */
@@ -1671,7 +1685,7 @@ function bindTkBoard() {
       col.querySelector('.wk-tkdrop').prepend(card);
       try { await api('ticket_update', { id, status: col.dataset.col }); toast(`${tkCode(id)} pasó a ${tkSt(col.dataset.col).name}`); }
       catch (err) { toast(err.message, true); }
-      renderTickets();
+      wkQuiet(renderTickets);
     });
   });
 }
@@ -1922,7 +1936,7 @@ async function renderTicket(id) {
       img.src = 'data:' + f.mime + ';base64,' + f.data; box.appendChild(img); }
     catch (e) { toast(e.message, true); }
   }));
-  const upd = async (data, ok) => { try { await api('ticket_update', { id, ...data }); toast(ok); reload(); } catch (e) { toast(e.message, true); } };
+  const upd = async (data, ok) => { try { await api('ticket_update', { id, ...data }); toast(ok); wkQuiet(reload); } catch (e) { toast(e.message, true); } };
   M.querySelectorAll('[data-tst]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tst !== t.status) upd({ status: b.dataset.tst }, 'Pasó a ' + tkSt(b.dataset.tst).name); }));
   M.querySelectorAll('.tk-sel[data-edit]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tkEdit(b, t, meta, reload); }));
   $('tt-take')?.addEventListener('click', () => upd({ assignee_id: W.me.id, status: t.status === 'abierto' ? 'en_curso' : t.status }, 'Ahora lo atiendes tú'));

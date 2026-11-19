@@ -102,13 +102,23 @@ function int_market(): array {
         try {
             require_once dirname(__DIR__) . '/pagos/lib.php';
             $desc = ['mercadopago' => 'Checkout Pro con tarjetas, dinero en cuenta y medios locales de Argentina y Latinoamérica.', 'stripe' => 'Tarjetas internacionales, Apple Pay y Google Pay. Ideal para USD y EUR.',
-                'transfer' => 'Datos bancarios por moneda, referencia única y comprobante. Una persona la aprueba.'];
-            foreach (['mercadopago', 'stripe', 'transfer'] as $id) {
+                'paypal' => 'Pagos internacionales con cuenta PayPal o tarjeta, en USD y EUR. Reembolsos y avisos verificados.',
+                'transfer' => 'Datos bancarios por moneda, referencia única y comprobante. Una persona la aprueba.',
+                // 2026-11-16: Venezuela, cripto, Uruguay y España
+                'pagomovil' => 'Venezuela: pago al teléfono del comercio en bolívares, con la tasa del día para cobrar lo que está en dólares.',
+                'zelle' => 'Dólares desde bancos de EE. UU., muy usado en Venezuela. El comprador carga el código y una persona lo aprueba.',
+                'zinli' => 'Billetera en dólares de Venezuela y Panamá. El comprador carga la referencia y una persona lo aprueba.',
+                'binancepay' => 'USDT desde la cuenta de Binance del comprador, con la API de comercios. Se confirma consultando a Binance.',
+                'usdt' => 'USDT por la red TRON a tu propia billetera, sin intermediarios. Se verifica solo en la cadena.',
+                'dlocalgo' => 'Uruguay y la región: tarjetas locales, Abitab, RedPagos, Prex y más medios locales.',
+                'redsys' => 'España: tarjeta con el TPV virtual de tu banco.',
+                'bizum' => 'España: pago con el móvil desde el banco, por el mismo TPV de Redsys.'];
+            foreach (['mercadopago', 'stripe', 'paypal', 'transfer', 'pagomovil', 'zelle', 'zinli', 'binancepay', 'usdt', 'dlocalgo', 'redsys', 'bizum'] as $id) {
+                if (!isset(pay_providers()[$id])) continue;
                 $p = pay_provider_public($id); $err = $p['last_error'] && (!$p['last_ok'] || $p['last_error']['at'] > $p['last_ok']);
-                $add('pay_' . $id, $p['label'], 'pagos', 'fa-solid ' . $p['icon'], $p['color'], $desc[$id], $p['ready'] ? ($err ? 'warn' : 'ok') : ($p['on'] ? 'warn' : 'off'), ['url' => '/toolz/pagos/admin/#medios']);
+                $add('pay_' . $id, $p['label'], 'pagos', $p['icon'], $p['color'], $desc[$id], $p['ready'] ? ($err ? 'warn' : 'ok') : ($p['on'] ? 'warn' : 'off'), ['url' => '/toolz/pagos/admin/#medios']);
             }
         } catch (Throwable $e) {}
-        $add('pay_paypal', 'PayPal', 'pronto', 'fa-brands fa-paypal', '#003087', 'Pagos internacionales con cuenta PayPal o tarjeta (Orders v2, reembolsos y webhooks).', 'soon', []);
         $add('pay_modo', 'MODO', 'pronto', 'fa-solid fa-mobile-screen', '#00a19b', 'Pago con QR y apps de bancos argentinos. Lo habilita tu banco o procesador.', 'soon', []);
     }
     // Productividad
@@ -121,6 +131,12 @@ function int_market(): array {
     foreach (int_defs() as $id => $d) {
         if (!empty($d['module']) && !int_module_on($d['module'])) continue;   // sin su módulo no se ofrece
         $add($id, $d['name'], $cats[$id] ?? 'productividad', $d['icon'], $d['color'], $d['desc'], $cardStatus($id), ['card' => $id]);
+    }
+    // Redes sociales: la app de Meta de Social Studio se configura en el módulo (social/, SOCIAL_STUDIO.md); acá solo se muestra su estado
+    if (function_exists('g7_modules') && (g7_modules()['social']['mode'] ?? 'off') !== 'off' && is_file(dirname(__DIR__) . '/social/meta_lib.php')) {
+        try { require_once dirname(__DIR__) . '/social/meta_lib.php';
+              $add('meta_social', 'Meta · Social Studio', 'comunicacion', 'fa-brands fa-meta', '#0866ff', 'Conecta páginas de Facebook y cuentas profesionales de Instagram para publicar desde Social Studio (y, en las próximas etapas, el Inbox y las métricas).',
+                   ss_meta_ready() ? 'ok' : 'off', ['url' => '/toolz/social/#cuentas']); } catch (Throwable $e) {}
     }
     // IA y contenido (Admin › Inteligencia artificial)
     $ia = is_file(dirname(__DIR__) . '/_private/ia.php') ? (include dirname(__DIR__) . '/_private/ia.php') : [];

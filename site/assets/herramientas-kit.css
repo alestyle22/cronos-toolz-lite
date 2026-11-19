@@ -1,0 +1,35 @@
+/* assets/herramientas-kit.css — Estilo de Cronos para las herramientas del Catálogo Cronos (toolz/CATALOGO.md › Estilos).
+   Toolz lo suma al servir una herramienta (links/ver.php, vista previa del catálogo y del Admin), junto con g7-theme.css,
+   la clase del tema de la persona (theme-*, font-*) y su color de acento en <html class="… tk-cronos">.
+   Contrato con las herramientas: usan estas variables con un valor propio en :root (así también se ven bien solas):
+     --bg --card --field --line --text --mute --acc --accs --on-acc --ok --warn --bad --r --rc --font
+   Acá se reemplazan por los tokens --g7-* del tema. La especificidad de html.tk-cronos le gana a :root y a @media. */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+
+html.tk-cronos {
+  --bg: var(--g7-bg);
+  --card: var(--g7-bg-3);
+  --field: var(--g7-bg-4);
+  --line: var(--g7-border-3);
+  --text: var(--g7-text);
+  --mute: var(--g7-text-3);
+  --acc: var(--g7-accent);
+  --accs: var(--g7-accent-muted);
+  --on-acc: #000;
+  --ok: var(--g7-success);
+  --warn: var(--g7-warning);
+  --bad: var(--g7-danger);
+  --r: var(--g7-radius);
+  --rc: var(--g7-radius-lg);
+  --font: 'Geist', 'Inter', system-ui, sans-serif;
+}
+html.tk-cronos body { background: var(--g7-bg); color: var(--g7-text); font-family: var(--font); font-size: calc(var(--g7-font-size, 13px) + 1px); -webkit-font-smoothing: antialiased; }
+html.tk-cronos h1 { font-weight: 700; letter-spacing: -.03em; }
+html.tk-cronos :is(input, select, textarea) { font-family: inherit; border-color: var(--line); }
+html.tk-cronos :is(input, select, textarea):focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--accs); }
+html.tk-cronos ::placeholder { color: var(--g7-text-4); }
+html.tk-cronos button { font-family: inherit; transition: opacity .15s, border-color .15s, transform .15s; }
+html.tk-cronos button:hover { opacity: .9; }
+html.tk-cronos input[type=checkbox], html.tk-cronos input[type=radio] { accent-color: var(--acc); }
+html.tk-cronos ::selection { background: rgba(var(--g7-accent-rgb, 255,102,0), .25); }
+@media (prefers-reduced-motion: reduce) { html.tk-cronos button { transition: none; } }

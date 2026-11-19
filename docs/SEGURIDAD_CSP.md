@@ -132,3 +132,14 @@ Cinco pasadas en paralelo, una por área. Todas las páginas de Toolz quedan con
   - `placasdeportivas/` y `linkgen/`: trabajo de otras sesiones sin publicar.
   - `g7_brand_js()` de `access.php` (lo usa solo linkgen).
 - **Inventario:** `php dev/csp_inventario.php --md QA_Reports/CSP_inventario.md`.
+
+## Perfiles por página (2026-11-16, versión 1.0.70)
+
+- Con la 1.0.59 la CSP estricta empezó a regir de verdad en producción y "Quitar fondo" del generador de Placas Deportivas (`removeBg` en `placasdeportivas/sp/app.js`, Transformers.js + onnxruntime-web, BiRefNet lite 512) dejó de andar: `no available backend found ... Failed to fetch dynamically imported module: blob:`.
+- `csp_lib.php` tiene perfiles (`G7_CSP_EXTRA`) que suman algo a una directiva solo en la página que los pide: `g7_csp_enforce('ml')`, o `g7_wrap_tool(..., 'ml')` / `sp_wrap_tool(..., 'ml')`. `g7_csp_policy($perfil)` arma el texto.
+- Perfil `ml` (modelos en el navegador), hoy solo en `sport_placas.php`:
+  - `script-src` + `blob:` (onnxruntime baja su módulo de WebAssembly de jsDelivr y lo importa desde un blob) y `'wasm-unsafe-eval'` (compilar WebAssembly; no habilita `eval` de JS);
+  - `connect-src` + `data:` (`RawImage.fromURL` hace `fetch` de la imagen en `data:`).
+  - El modelo baja de huggingface.co: ya lo cubría `connect-src https:`.
+- El resto del sitio sigue con la política de siempre. Placas Paid sigue con su marco aislado (`placaspaid/bg-frame.php`), porque @imgly usa `eval`.
+- Prueba (local, CSP activa): con WebGPU y forzando wasm, `removeBg` devuelve un PNG con el fondo en alfa 0 y la figura opaca.

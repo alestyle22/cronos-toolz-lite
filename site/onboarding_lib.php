@@ -7,10 +7,20 @@
  * Estados: pending (no iniciado) · progress (en progreso) · security (pendiente de seguridad) · done (completado).
  */
 require_once __DIR__ . '/totp_lib.php';
+require_once __DIR__ . '/theme_list.php';   // temas que se pueden elegir
+/** Temas para el onboarding: lista única (theme_list.php) con su grupo y si es claro. */
+function ob_themes(): array {
+    $o = [];
+    foreach (g7_themes() as $k => $t) $o[] = ['k' => $k, 'label' => $t['label'], 'bg' => $t['bg'], 'card' => $t['card'], 'accent' => $t['accent'], 'group' => g7_theme_group($k), 'light' => g7_theme_is_light($k)];
+    return $o;
+}
+function ob_theme_ok(string $t): bool { return $t === 'auto' || g7_theme_valid($t); }
 
 const OB_STATUS = ['pending' => 'No iniciado', 'progress' => 'En progreso', 'security' => 'Pendiente de seguridad', 'done' => 'Completado'];
 const OB_FIELDS = ['first_name' => 'Nombre', 'last_name' => 'Apellido', 'display_name' => 'Nombre visible', 'avatar' => 'Foto de perfil', 'username' => 'Nombre de usuario',
-    'bio' => 'Biografía', 'position' => 'Cargo o puesto', 'department' => 'Departamento', 'timezone' => 'Zona horaria', 'country' => 'País', 'language' => 'Idioma'];
+    'bio' => 'Biografía', 'position' => 'Cargo o puesto', 'department' => 'Departamento', 'timezone' => 'Zona horaria', 'country' => 'País', 'language' => 'Idioma',
+    // datos del perfil compartidos con Comunidad y Mi perfil (profile_fields_lib.php); las redes sociales no se piden acá
+    'email' => 'Email', 'phone' => 'Teléfono', 'location' => 'Ubicación', 'birthday' => 'Cumpleaños', 'joined' => 'En el equipo desde', 'tools' => 'Herramientas', 'aptitudes' => 'Aptitudes'];
 const OB_LANGS = ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'];
 const OB_DEFAULT_CFG = [
     'enabled' => true,
@@ -18,9 +28,11 @@ const OB_DEFAULT_CFG = [
     'steps' => ['profile' => true, 'prefs' => false, 'security' => 'policy'],   // security: policy (lo que diga el sitio) | required | optional
     'allow_skip_security' => true,  // solo cuando el 2FA no es obligatorio
     'fields' => ['first_name' => 'required', 'last_name' => 'required', 'display_name' => 'required', 'avatar' => 'optional', 'username' => 'show',
-        'bio' => 'optional', 'position' => 'optional', 'department' => 'optional', 'timezone' => 'required', 'country' => 'optional', 'language' => 'optional'],
+        'bio' => 'optional', 'position' => 'optional', 'department' => 'optional', 'timezone' => 'required', 'country' => 'optional', 'language' => 'optional',
+        'email' => 'optional', 'phone' => 'optional', 'location' => 'optional', 'birthday' => 'optional', 'joined' => 'optional', 'tools' => 'optional', 'aptitudes' => 'optional'],
     'defaults' => ['theme' => 'dark', 'language' => 'es', 'notif_app' => true, 'notif_email' => true, 'notif_desktop' => true, 'notif_sound' => true,
-        'privacy_online' => true, 'privacy_read_receipts' => true, 'chat_enter_send' => true],
+        'privacy_online' => true, 'privacy_read_receipts' => true, 'chat_enter_send' => true,
+        'dashboard_animations' => true, 'motion_force' => false, 'ui_sounds' => false],   // movimiento y sonidos (MOVIMIENTO.md)
     'texts' => ['welcome_title' => '¡Bienvenido a {plataforma}!', 'welcome_text' => 'Estamos preparando tu espacio de trabajo. Vamos a configurar tu perfil y proteger tu cuenta para que puedas aprovechar todas las funcionalidades.',
         'welcome_cta' => 'Comenzar configuración', 'final_title' => '¡Tu espacio está listo!', 'final_text' => 'Ya configuraste tu cuenta y podés comenzar a trabajar.', 'final_cta' => 'Ir a mi escritorio'],
     'colors' => ['accent' => '', 'accent2' => ''],
@@ -68,9 +80,9 @@ function ob_cfg_clean(array $in): array {
         if (in_array($v, $ok, true)) $c['fields'][$f] = $v;
     }
     $df = (array)($in['defaults'] ?? []);
-    $c['defaults']['theme'] = in_array($df['theme'] ?? '', ['dark', 'light', 'auto'], true) ? $df['theme'] : $c['defaults']['theme'];
+    $c['defaults']['theme'] = ob_theme_ok((string)($df['theme'] ?? '')) ? $df['theme'] : $c['defaults']['theme'];
     $c['defaults']['language'] = isset(OB_LANGS[$df['language'] ?? '']) ? $df['language'] : $c['defaults']['language'];
-    foreach (['notif_app', 'notif_email', 'notif_desktop', 'notif_sound', 'privacy_online', 'privacy_read_receipts', 'chat_enter_send'] as $k) if (array_key_exists($k, $df)) $c['defaults'][$k] = !empty($df[$k]);
+    foreach (['notif_app', 'notif_email', 'notif_desktop', 'notif_sound', 'privacy_online', 'privacy_read_receipts', 'chat_enter_send', 'dashboard_animations', 'motion_force', 'ui_sounds'] as $k) if (array_key_exists($k, $df)) $c['defaults'][$k] = !empty($df[$k]);
     foreach (array_keys($d['texts']) as $k) if (isset($in['texts'][$k])) $c['texts'][$k] = mb_substr(trim((string)$in['texts'][$k]), 0, $k === 'welcome_text' || $k === 'final_text' ? 400 : 120) ?: $d['texts'][$k];
     foreach (['accent', 'accent2'] as $k) $c['colors'][$k] = preg_match('/^#[0-9a-f]{6}$/i', (string)($in['colors'][$k] ?? '')) ? strtolower($in['colors'][$k]) : '';
     return $c;
@@ -89,6 +101,9 @@ function ob_user(PDO $db, int $uid): array {
     $q->execute([$uid]); $u['teams'] = array_map(fn($r) => ['id' => (int)$r['team_id'], 'name' => $r['name'], 'primary' => (int)$r['is_primary']], $q->fetchAll(PDO::FETCH_ASSOC));
     $u['department'] = $u['teams'] ? $u['teams'][0]['id'] : null;
     $u['language'] = (string)(ob_pref($db, $uid, 'language') ?? '');
+    // datos del perfil (profile_fields_lib.php)
+    if (is_file(__DIR__ . '/profile_fields_lib.php')) { require_once __DIR__ . '/profile_fields_lib.php'; $pe = pf_edit_data($db, $uid)['me'];
+        foreach (['phone', 'location', 'birthday', 'joined', 'tools', 'aptitudes'] as $k) $u[$k] = $pe[$k]; }
     return $u;
 }
 function ob_pref(PDO $db, int $uid, string $k) {
@@ -105,7 +120,7 @@ function ob_missing(array $u, array $cfg): array {
         if ($mode !== 'required' || $f === 'username') continue;
         $v = $f === 'department' ? ($u['teams'] ? 1 : null) : ($u[$f] ?? '');
         if ($f === 'department' && !$u['teams']) continue;   // sin equipos no hay qué elegir
-        if ($v === '' || $v === null) $miss[] = $f;
+        if ($v === '' || $v === null || $v === []) $miss[] = $f;
     }
     return $miss;
 }

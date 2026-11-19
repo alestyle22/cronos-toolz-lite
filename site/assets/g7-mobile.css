@@ -1,0 +1,150 @@
+/* assets/g7-mobile.css — Ajustes para el celular en todo Cronos. Lo carga topbar.php (todas las páginas con el menú,
+ * también los editores visuales), después de los estilos de cada página, así que a igual especificidad gana.
+ * Regla de oro: en una grilla de una sola columna usar minmax(0,1fr), nunca 1fr (1fr toma el ancho del contenido más largo
+ * y estira toda la página; el celular entonces achica todo para que entre).
+ * Doc: toolz/MOVIL.md */
+
+@media (max-width:768px){
+  /* Red de seguridad: nada se sale por el costado ni hace que la página se vea achicada.
+     clip (no hidden) para no romper las barras pegajosas (position:sticky). */
+  html{overflow-x:clip}
+  body{min-width:0}
+  img,video{max-width:100%}   /* iframes y canvas no: los editores los escalan con transform y quedaban recortados */
+  pre{max-width:100%;overflow-x:auto}
+
+  /* Campos con letra de 16 px: en el iPhone, con menos, la página se agranda sola al tocarlos */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),select,textarea{font-size:16px}
+  /* en una fila flexible los campos se achican en vez de salirse (por defecto miden ~20 letras como mínimo) */
+  input,select,textarea{min-width:0;max-width:100%}
+
+  /* Botones y enlaces del menú lateral más fáciles de tocar */
+  .g7-mobile-nav a,.g7-mobile-nav button{min-height:44px}
+  /* Avisos: colgaban de la campana hacia la izquierda y se cortaban; en el celular ocupan el ancho */
+  .notif-dropdown{position:fixed;top:62px;left:12px;right:12px;width:auto;max-height:calc(100dvh - 80px);overflow-y:auto}
+  /* con el menú abierto, el globo del chat tapaba las últimas opciones */
+  body:has(#g7-mobile-nav.open) :is(#ccw,#ccw-heads){display:none}
+}
+
+/* ── Inicio: las pestañas de "Tareas en curso" se deslizan en vez de apretarse ── */
+@media (max-width:640px){
+  .d3-sec-head{flex-wrap:wrap;row-gap:10px}
+  .d3-sec-head>div{min-width:0;max-width:100%}
+  .d3-sec-head>div:has(.d3-wk-tabs){width:100%}
+  .d3-sec-head>div>.d3-wk-tabs{flex:1 1 auto;min-width:0}
+  .d3-sec-head .d3-link{white-space:nowrap;flex:none}
+  .d3-wk-tabs{max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .d3-wk-tabs::-webkit-scrollbar{display:none}
+  .d3-wk-tabs button{flex:none;white-space:nowrap}
+}
+
+/* ── Tareas: la barra de vistas (Lista, Tablero, Calendario…) se desliza ── */
+@media (max-width:640px){
+  .tk-seg{overflow-x:auto;scrollbar-width:none}
+  .tk-seg::-webkit-scrollbar{display:none}
+  .tk-seg button{flex:1 0 auto;white-space:nowrap}
+  /* panel de la tarea: estado y ticket arriba; si no entran con los íconos, los íconos bajan a otra línea */
+  .tk-dh{flex-wrap:wrap;row-gap:8px;padding:10px 12px}
+  .tk-dh .tk-tkchip{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tk-cal-foot{grid-template-columns:minmax(0,1fr)}   /* calendario: el panel de abajo no estira la vista */
+  .tk-cal-h h2{min-width:0}
+  .tk-cal-h .tk-count,.tk-xbar .tk-count{white-space:normal;flex:1 1 100%}   /* la ayuda ("arrastra una tarea…") corta en líneas */
+}
+
+/* ── Admin: el menú de secciones pasa a ser una tira que se desliza, con el buscador arriba ── */
+@media (max-width:860px){
+  .adm-layout{grid-template-columns:minmax(0,1fr)}
+  .adm-nav{display:grid;grid-template-columns:repeat(40,max-content);align-items:center;gap:0 6px;overflow-x:auto;overflow-y:hidden;padding:10px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .adm-nav::-webkit-scrollbar{display:none}
+  .adm-nav>:not(.adm-nav-item){grid-column:1/-1}
+  .adm-nav>.admx-search{position:sticky;left:0;width:calc(100vw - 24px);margin-bottom:8px}
+  .adm-nav-sep,.adm-nav>div:last-child{display:none}
+  .adm-nav-item{width:auto;white-space:nowrap;padding:6px 12px 6px 6px;border:1px solid var(--g7-border-2);border-radius:999px}
+  .adm-nav-item.active{border-color:var(--g7-accent-border)}
+  .adm-nav-item.active::before{display:none}
+  .adm-nav-item.admx-hide{display:none}
+}
+
+/* ── Facturación: los importes grandes entran en las tarjetas de a dos ── */
+@media (max-width:420px){
+  .fc-kpi .num{font-size:17px}
+}
+
+/* ── Listas de los editores visuales (portal, Landing Gen 2.0, Mailing Maker 2.0) ── */
+@media (max-width:768px){
+  html.pbs body.pbe-list{padding-top:0}               /* la barra es pegajosa ahí: sin el hueco de la barra fija */
+  body.pbe-list>main.pbl,.pbl{min-width:0;max-width:100%;padding:20px 14px 60px;box-sizing:border-box}
+  .pbl-h>div{min-width:0;flex-basis:100%}
+  .pbl-grid{grid-template-columns:minmax(0,1fr)}
+  .pbl-card,.pbl-b{min-width:0}
+  .pbl-b b,.pbl-b small,.lp2-url{overflow:hidden;text-overflow:ellipsis}
+  .pbe-seg{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .pbe-seg::-webkit-scrollbar{display:none}
+  .pbe-seg>*{flex:none}
+  .lp2-tools .pbe-seg{min-width:0}
+}
+
+/* ── Comunicaciones (promos/): la columna de filtros pasa arriba como tira que se desliza y la página scrollea entera ── */
+@media (max-width:768px){
+  body:has(#content-wrap.content){height:auto;min-height:100dvh;overflow:visible}
+  .main-layout:has(#sidebar){flex-direction:column;overflow:visible}
+  .main-layout #content-wrap{overflow:visible;padding:12px}
+  #sidebar.sidebar,#sidebar.sidebar.collapsed{width:auto!important;min-width:0;height:auto;display:flex;align-items:center;gap:6px;padding:8px 12px;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--g7-border-2);scrollbar-width:none}
+  #sidebar.sidebar::-webkit-scrollbar{display:none}
+  #sidebar .sb-section{flex:none;margin:0 0 0 6px;padding:0;white-space:nowrap}
+  #sidebar .sb-btn{flex:none;width:auto;white-space:nowrap;border:1px solid var(--g7-border-2);border-radius:999px;padding:6px 11px;margin:0}
+  #sidebar.collapsed .sb-btn,#sidebar.collapsed .sb-section,#sidebar.collapsed .sb-label,#sidebar.collapsed .badge{display:revert}
+  #sidebar>div[style*="flex:1"],#sidebar .collapse-btn{display:none}
+  #sidebar>div:has(.new-content-btn){order:-1;flex:none;padding:0!important}
+  #sidebar .new-content-btn{white-space:nowrap;width:auto!important}
+  .inner-bar{flex-wrap:wrap;row-gap:8px}
+  .inner-bar .search-wrap{flex:1 1 160px;min-width:0}
+  .inner-bar .search-input{width:100%}
+  #filter-bar{padding:8px 12px}
+  #filter-bar .flt{flex:1 1 calc(50% - 6px);min-width:0}
+}
+
+/* ── Mi configuración: el texto de cada fila no se aprieta; si no entra, el control baja a la línea siguiente ── */
+@media (max-width:640px){
+  .cfg-row>.cfg-row-info{flex:1 1 170px;min-width:0}
+}
+
+/* ── Secciones de Admin ── */
+@media (max-width:768px){
+  .hm-layout{grid-template-columns:minmax(0,1fr)!important}                          /* Inicio y accesos */
+  .adm-section>div[style*="space-between"]{flex-wrap:wrap;gap:8px}                   /* título + filtros (Logs y otras) */
+  .in-extra{grid-template-columns:minmax(0,1fr)}                                     /* Integraciones: los datos para copiar */
+  .in-copy{min-width:0}
+  .in-copy code{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nav-item-row{flex-wrap:wrap}                                                      /* Topbar & Logo: el link baja a su propia línea */
+  .nav-item-row input.adm-input{min-width:0!important}
+  .nav-item-row input.adm-input+input.adm-input{flex:1 1 100%!important;order:5}
+}
+
+/* ── Tablas anchas dentro de tarjetas: se deslizan de costado en vez de salirse ── */
+@media (max-width:768px){
+  :is(.card,.g7-card,.adm-card,.cfg-card):has(>table){overflow-x:auto}
+}
+
+/* ── Finanzas y pagos: las tarjetas de medios de pago no exigen 360 px ── */
+@media (max-width:768px){
+  .pa-provs{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ── Ficha del cliente: pestañas Servicios y Facturas ── */
+@media (max-width:900px){
+  .cli-row-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:768px){
+  .adm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .adm-stat{min-width:0}
+}
+
+/* ── Juegos: chips largos, cabecera de cada zona y pie de los formularios ── */
+@media (max-width:768px){
+  .jg-chips .tk-chip{max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gm-dh{gap:10px}
+  .gm-dh .n{min-width:0}
+  .gm-dh .n h3{overflow-wrap:anywhere}
+  .gm-dh #gm-ring svg{width:52px;height:52px}
+  .jf-foot{flex-wrap:wrap;padding:12px 14px}
+}

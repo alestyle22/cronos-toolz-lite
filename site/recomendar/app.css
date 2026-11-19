@@ -1,0 +1,65 @@
+/* recomendar/app.css — "Recomienda Cronos". Usa las variables de g7-theme.css (tema claro y oscuro). */
+*{box-sizing:border-box}
+body{margin:0;background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font)}
+.rc{max-width:1120px;margin:0 auto;padding:24px 24px 80px}
+.rc-hero{padding:28px 30px;border-radius:24px;margin-bottom:16px;border:1px solid var(--g7-border-2);
+  background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--g7-accent) 24%,transparent),transparent 55%),radial-gradient(90% 120% at 100% 100%,color-mix(in srgb,#22c55e 18%,transparent),transparent 60%),var(--g7-bg-3)}
+.rc-kick{margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--g7-text-4)}
+.rc-kick i{margin-right:6px;color:var(--g7-accent)}
+.rc-hero h1{margin:0;font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.rc-hero h1 span{color:var(--g7-accent)}
+.rc-sub{margin:8px 0 0;color:var(--g7-text-3);font-size:14px;line-height:1.55;max-width:680px}
+.rc-card{background:var(--g7-bg-2);border:1px solid var(--g7-border-2);border-radius:18px;padding:20px 22px;margin-bottom:14px}
+.rc-card h2{margin:0 0 6px;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.rc-card p{color:var(--g7-text-3);font-size:14px;line-height:1.55;margin:0 0 10px}
+.rc-m{color:var(--g7-text-4);font-size:12.5px;line-height:1.5}
+.rc-bad{color:#ef4444}
+.rc-empty{text-align:center;padding:36px 20px}
+.rc-empty i{font-size:30px;color:var(--g7-text-4);margin-bottom:10px}
+.rc-loading{padding:40px;text-align:center;color:var(--g7-text-4)}
+.rc-copy{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.rc-copy code{flex:1;min-width:0;overflow-wrap:anywhere;background:var(--g7-bg-3);border:1px dashed var(--g7-accent-border,var(--g7-border-3));border-radius:12px;padding:12px 14px;font-size:13.5px}
+.rc-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--g7-bg-4);color:var(--g7-text);border:1px solid var(--g7-border-3);border-radius:11px;padding:10px 16px;font:700 13px var(--g7-font);cursor:pointer;text-decoration:none}
+.rc-btn.primary{background:var(--g7-accent);color:#000;border-color:transparent}
+.rc-btn:hover{filter:brightness(1.08)}
+.rc-btn:disabled{opacity:.5;cursor:not-allowed}
+.rc-btn:focus-visible,.rc-form input:focus-visible,.rc-form select:focus-visible,.rc-form textarea:focus-visible{outline:2px solid var(--g7-accent);outline-offset:2px}
+.rc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px}
+.rc-stat{background:var(--g7-bg-2);border:1px solid var(--g7-border-2);border-radius:16px;padding:16px 18px}
+.rc-stat small{display:block;color:var(--g7-text-3);font-weight:600;font-size:12px}
+.rc-stat b{display:block;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-top:6px;font-variant-numeric:tabular-nums}
+.rc-stat span{display:block;color:var(--g7-text-4);font-size:12px;margin-top:4px}
+.rc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rc-grid .rc-card{margin-bottom:14px}
+.rc-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rc-list li{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rc-list small{color:var(--g7-text-4)}
+.rc-list .rc-pill{margin-left:auto}
+.rc-pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.rc-form{display:grid;gap:10px}
+.rc-form label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--g7-text-2)}
+.rc-form label small,.rc-pay legend small{font-weight:500;color:var(--g7-text-4)}
+.rc-form input,.rc-form select,.rc-form textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--g7-border-3);background:var(--g7-bg-3);color:var(--g7-text);font:500 14px var(--g7-font)}
+.rc-form textarea{resize:vertical}
+.rc-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rc-opt{display:flex !important;grid-template-columns:none;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--g7-border-3);border-radius:12px;cursor:pointer}
+.rc-opt input{width:18px;height:18px;margin-top:2px;accent-color:var(--g7-accent)}
+.rc-opt span{display:grid;gap:2px}
+.rc-opt small{font-weight:500}
+.rc-opt:has(input:checked){border-color:var(--g7-accent);background:color-mix(in srgb,var(--g7-accent) 8%,transparent)}
+.rc-pay{border:1px solid var(--g7-border-2);border-radius:12px;padding:12px 14px;display:grid;gap:10px;margin:0}
+.rc-pay legend{font-size:13px;font-weight:700;padding:0 6px}
+.rc-scroll{overflow-x:auto}
+.rc-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.rc-tbl th{text-align:left;color:var(--g7-text-4);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--g7-border-2)}
+.rc-tbl td{padding:10px;border-bottom:1px solid var(--g7-border);vertical-align:top}
+.rc-tbl .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rc-terms{white-space:pre-line}
+.rc-foot{text-align:center;margin-top:6px}
+.rc-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--g7-bg-4);color:var(--g7-text);border:1px solid var(--g7-border-3);padding:11px 18px;border-radius:12px;font-weight:600;font-size:13.5px;transition:opacity .2s,transform .2s;z-index:100;max-width:calc(100% - 32px)}
+.rc-toast.on{opacity:1;transform:translate(-50%,0)}
+.rc-toast.bad{border-color:#ef4444}
+@media (max-width:760px){.rc{padding:16px 16px 70px}.rc-grid,.rc-two{grid-template-columns:1fr}.rc-hero{padding:22px}.rc-hero h1{font-size:28px}}
+
+/* Lo que se oculta con el atributo hidden queda oculto aunque su clase le ponga display (grid/flex) */
+.rc-pay[hidden],.rc [hidden]{display:none !important}

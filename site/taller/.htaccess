@@ -1,0 +1,4 @@
+# Las herramientas se abren por su página .php (pide sesión y permiso), no por el HTML directo
+<FilesMatch "\.html$">
+    Require all denied
+</FilesMatch>

@@ -65,6 +65,13 @@ function g7_site_modules(array $mods): array {
     // Juegos (rubro videojuegos o extra): seguimiento del juego, marketing, Steam simulado y Mercado. Ideas y tareas van a Trabajo; bugs a Builds y bugs
     if (g7_jg_enabled()) $mods['juegos'] = ['label' => 'Juegos', 'icon' => 'fa-gamepad', 'group' => 'Gestión', 'paths' => ['juegos/'], 'actions' => ['view', 'edit', 'approve', 'config'], 'grant_actions' => ['approve', 'config'], 'default_mode' => 'everyone'];
     if (g7_site_has('placas_ia')) $mods['placas_ia'] = ['label' => 'Placas IA',          'icon' => 'fa-wand-magic-sparkles', 'group' => 'Diseño',    'paths' => ['placas-ia/'], 'default_mode' => 'admins'];
+    // Afiliados de Cronos (afiliados/, doc AFILIADOS.md). El programa vive en el sitio conectado al base (el que cobra los planes):
+    // ahí está el panel "Afiliados"; en cada agencia está "Recomienda Cronos" (recomendar/), que habla con el base.
+    // Afiliados: view = ver; edit = afiliados, referidos y pedidos; pay = liquidar y pagar; config = ajustes y tasa
+    $main = (string)g7_site('base_url', '') !== '' && strlen((string)g7_site('base_sso_secret', '')) >= 32;
+    if ($main) $mods['afiliados'] = ['label' => 'Afiliados', 'icon' => 'fa-handshake', 'group' => 'Gestión', 'paths' => ['afiliados/index.php', 'afiliados/api.php'], 'actions' => ['view', 'edit', 'pay', 'config'], 'grant_actions' => ['pay', 'config'], 'default_mode' => 'superadmins'];
+    // Recomienda Cronos: view = ver lo ganado; edit = recomendar agencias; config = descontar o cobrar y datos de cobro
+    else $mods['recomendar'] = ['label' => 'Recomienda Cronos', 'icon' => 'fa-handshake', 'group' => 'Gestión', 'paths' => ['recomendar/'], 'actions' => ['view', 'edit', 'config'], 'grant_actions' => ['config'], 'default_mode' => 'admins'];
     if (g7_site_has('materiales') && isset($mods['stock'])) $mods['stock'] = ['label' => 'Materiales', 'icon' => 'fa-folder-open'] + $mods['stock'];
     return $mods;
 }

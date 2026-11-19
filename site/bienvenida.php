@@ -14,6 +14,8 @@ $next = (string)($_GET['next'] ?? '');
 if (!preg_match('#^/toolz/[^\s\\\\]*$#', $next) || strpos($next, '//') !== false || strpos($next, 'bienvenida.php') !== false) $next = '/toolz/';
 $site = g7_setting('platform_name') ?: g7_site('short');
 $v = fn($f) => (int)@filemtime(__DIR__ . '/assets/' . $f);
+// Sonido del onboarding: prendido salvo que la persona lo haya apagado en Mi configuración
+$obSound = ob_pref($db, (int)$currentUser['id'], 'ui_sounds'); $obSound = ($obSound === null || !empty($obSound)) ? '1' : '0';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -24,6 +26,8 @@ $v = fn($f) => (int)@filemtime(__DIR__ . '/assets/' . $f);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/toolz/assets/onboarding.css?v=<?= $v('onboarding.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/onboarding-juice.css?v=<?= $v('onboarding-juice.css') ?>">
+<link rel="stylesheet" href="/toolz/assets/profile-edit.css?v=<?= $v('profile-edit.css') ?>">
 </head>
 <body class="ob-page">
 <?php include __DIR__ . '/topbar.php'; ?>
@@ -38,6 +42,8 @@ $v = fn($f) => (int)@filemtime(__DIR__ . '/assets/' . $f);
 </div>
 <div class="ob-toast" id="ob-toast" role="status" aria-live="polite"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+<script src="/toolz/assets/profile-picker.js?v=<?= $v('profile-picker.js') ?>"></script>
 <script src="/toolz/assets/onboarding.js?v=<?= $v('onboarding.js') ?>"></script>
+<script src="/toolz/assets/onboarding-juice.js?v=<?= $v('onboarding-juice.js') ?>" data-ob-sound="<?= $obSound ?>"></script>
 </body>
 </html>

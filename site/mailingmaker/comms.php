@@ -9,6 +9,9 @@ require_once __DIR__ . '/../csp_lib.php'; g7_csp_enforce();   // CSP estricta (S
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <script src="/toolz/assets/g7-on.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/g7-on.js') ?>"></script><!-- eventos data-on-… (esta página no carga topbar.php) -->
+<!-- movimiento, sonidos y juice de herramientas (MOVIMIENTO.md): esta página tiene su propia barra -->
+<link rel="stylesheet" href="/toolz/assets/g7-juice.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/g7-juice.css') ?>"><link rel="stylesheet" href="/toolz/assets/g7-tools.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/g7-tools.css') ?>">
+<script src="/toolz/assets/g7-juice.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/g7-juice.js') ?>" defer></script><script src="/toolz/assets/g7-tools.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/g7-tools.js') ?>" defer></script>
 <title>Generador de Mailings de Comunicación — <?= htmlspecialchars((string)(g7_pack('mailingmaker', [])['titulo'] ?? g7_site('short')), ENT_QUOTES, 'UTF-8') ?></title>
 <style>
 :root{

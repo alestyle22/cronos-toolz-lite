@@ -67,9 +67,9 @@ function ago(dt) {
 function av(u, size = 26) {
   if (!u) return '';
   const s = `width:${size}px;height:${size}px`;
-  if (u.avatar) return `<img class="tk-av" style="${s}" src="${esc(u.avatar)}" alt="${esc(u.name)}" title="${esc(u.name)}">`;
+  if (u.avatar) return `<img class="tk-av" data-g7-user="${+u.id || ''}" style="${s}" src="${esc(u.avatar)}" alt="${esc(u.name)}" title="${esc(u.name)}">`;
   const c = ['#ff6600', '#a78bfa', '#4ade80', '#60a5fa', '#f59e0b', '#ec4899'][(u.name.charCodeAt(0) || 0) % 6];
-  return `<span class="tk-av" style="${s};background:${c}" title="${esc(u.name)}">${esc((u.name[0] || '?').toUpperCase())}</span>`;
+  return `<span class="tk-av" data-g7-user="${+u.id || ''}" style="${s};background:${c}" title="${esc(u.name)}">${esc((u.name[0] || '?').toUpperCase())}</span>`;
 }
 function avs(ids, max = 3) {
   const us = ids.map(userOf).filter(Boolean);

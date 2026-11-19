@@ -126,6 +126,7 @@ case 'boot': {
 
 // ── Sincronización ──────────────────────────────────────────────
 case 'sync': {
+    if (is_file(__DIR__ . '/../mobile/push.php')) { require_once __DIR__ . '/../mobile/push.php'; mb_push_later(); }   // push a la app (después de responder)
     $after = $int('after'); $open = $int('open');
     $db->prepare('UPDATE g7_users SET last_seen = NOW() WHERE id = ? AND (last_seen IS NULL OR last_seen < NOW() - INTERVAL 30 SECOND)')->execute([$uid]);
     // Limpieza de vez en cuando: los eventos solo sirven para sincronizar (una pestaña vieja recarga todo)

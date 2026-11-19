@@ -4,7 +4,7 @@
 
 const BZ = { d: null, loading: null, plan: null, busy: false, focus: null, editPlan: null, bn: null, tk: null, tkOpen: null, shots: {},
   tkf: { area: '', type: '', status: 'abiertos', site: '', q: '' } };
-const BZ_SECS = { 'base-sitios': bzDrawSitios, 'base-licencias': bzDrawLics, 'base-planes': bzDrawPlans, 'base-banners': bzDrawBanners, 'base-tickets': bzDrawTickets, 'base-red': bzDrawRed };
+const BZ_SECS = { 'base-sitios': bzDrawSitios, 'base-licencias': bzDrawLics, 'base-planes': bzDrawPlans, 'base-banners': bzDrawBanners, 'base-herramientas': bzDrawTools, 'base-tickets': bzDrawTickets, 'base-red': bzDrawRed };
 const BZ_LIC_TAG = { ok: ['Licencia activa', 'ok'], aviso: ['Por vencer', 'warn'], gracia: ['Vencida (gracia)', 'warn'], solo_lectura: ['Solo lectura', 'bad'], suspendida: ['Suspendida', 'bad'], alterada: ['Licencia alterada', 'bad'] };
 const BZ_PLACE = { dashboard: 'Inicio', admin: 'Admin' }, BZ_STYLE = { novedad: 'Novedad', aviso: 'Aviso', promo: 'Promo' };
 const BZ_AREAS = { comercial: ['Comercial', ['demo', 'plan']], soporte: ['Soporte', ['mejora', 'problema']] }, BZ_OPEN = ['nuevo', 'en_curso', 'esperando'];
@@ -38,12 +38,13 @@ function bzDraw() {
   if (!BZ.d) { box.innerHTML = bzCard('Sitio base', 'fa-server', `<div class="bz-msg">${BZ.err ? `<span class="bz-bad">${esc(BZ.err)}</span> Prueba con <b>Actualizar</b> o abre el panel del base.` : '<i class="fa-solid fa-spinner fa-spin"></i> Consultando a cada sitio de la red…'}</div>`); return; }
   box.innerHTML = BZ_SECS[sec]();
   if (sec === 'base-tickets' && !BZ.tk) bzTkLoad();
+  if (sec === 'base-herramientas' && !BZ.tl) bzTlLoad();
 }
 async function bzLoad(force) {
   if (BZ.loading) return BZ.loading;
   if (BZ.d && !force) { bzDraw(); return; }
   if (force && BZ.d) admToast('Consultando a los sitios…');
-  if (force) BZ.tk = null;
+  if (force) { BZ.tk = null; BZ.tl = null; }
   BZ.err = ''; if (!BZ.d) bzDraw();
   BZ.loading = bzApi({ act: 'state' }).then(d => { BZ.d = d; }).catch(e => { BZ.err = e.message; }).finally(() => { BZ.loading = null; bzDraw(); });
   return BZ.loading;
@@ -202,6 +203,39 @@ function bzMods(sel, all) {
 }
 const bzReadMods = box => [...box.querySelectorAll('input:checked')].map(i => i.value);
 
+// ── Limits inside the modules (base B_LIMITS / site LIC_LIMITS) ──
+/** Fields of the limits. vals: what is saved; lic: in a license an empty field = "the plan's" (pl = the plan's values, for the hint). */
+function bzLimits(vals, lic, pl) {
+  const cat = BZ.d.limits_catalog || {}; vals = vals || {}; pl = pl || {};
+  if (!Object.keys(cat).length) return '';
+  const mods = BZ.d.modules || {}, groups = {};
+  Object.entries(cat).forEach(([k, def]) => { (groups[def[0]] = groups[def[0]] || []).push([k, def]); });
+  const show = (k, def) => { const v = pl[k]; if (v === undefined || v === null) return 'sin límite'; return def[2] === 'num' ? String(v) : def[2] === 'bool' ? (v ? 'incluido' : 'no incluido') : (v.length ? v.map(x => def[3][x] || x).join(', ') : 'ninguna'); };
+  const empty = lic ? 'Del plan' : 'Sin límite';
+  const field = (k, def) => {
+    const v = vals[k], has = v !== undefined && v !== null, hint = lic ? `<small class="bz-muted">plan: ${esc(show(k, def))}</small>` : '';
+    if (def[2] === 'num') return `<label class="bz-f"><span class="adm-label">${esc(def[1])} ${hint}</span><input class="adm-input" type="number" min="0" data-lim="${esc(k)}" value="${has ? v : ''}" placeholder="${empty}"></label>`;
+    if (def[2] === 'bool') return `<label class="bz-f"><span class="adm-label">${esc(def[1])} ${hint}</span><select class="adm-select" data-lim="${esc(k)}"><option value="">${empty}</option><option value="1"${has && v ? ' selected' : ''}>Incluido</option><option value="0"${has && !v ? ' selected' : ''}>No incluido</option></select></label>`;
+    return `<div class="bz-f span2"><span class="adm-label">${esc(def[1])} ${hint}</span><select class="adm-select" data-lim="${esc(k)}" data-lim-list="1"><option value="">${empty}</option><option value="some"${has ? ' selected' : ''}>Solo las marcadas</option></select>
+      <div class="bz-mods" data-lim-opts="${esc(k)}">${Object.entries(def[3]).map(([o, l]) => { const on = has && v.includes(o); return `<label class="${on ? 'on' : ''}"><input type="checkbox" value="${esc(o)}"${on ? ' checked' : ''} data-on-change="@parentOn">${esc(l)}</label>`; }).join('')}</div></div>`;
+  };
+  return `<details class="bz-lims" style="margin-top:12px"${Object.keys(vals).some(k => vals[k] !== null && vals[k] !== undefined) ? ' open' : ''}><summary class="adm-label" style="cursor:pointer">Límites dentro de las herramientas</summary>
+    ${Object.entries(groups).map(([m, list]) => `<div style="margin-top:10px"><b style="font-size:13px">${esc(mods[m] || m)}</b><div class="bz-grid" style="margin-top:6px">${list.map(([k, def]) => field(k, def)).join('')}</div></div>`).join('')}
+    <div class="bz-muted" style="margin-top:6px">${lic ? 'Vacío = lo que diga el plan.' : 'Vacío = sin límite. Viajan dentro de la licencia firmada.'}</div></details>`;
+}
+/** Reads the limits of a form. lic: an empty field is sent as null (= the plan's); in a plan it is left out (= no limit). */
+function bzReadLimits(f, lic) {
+  const o = {}, cat = BZ.d.limits_catalog || {};
+  f.querySelectorAll('[data-lim]').forEach(el => {
+    const k = el.dataset.lim, def = cat[k]; if (!def) return;
+    if (el.value === '') { if (lic) o[k] = null; return; }
+    if (def[2] === 'num') o[k] = Number(el.value);
+    else if (def[2] === 'bool') o[k] = el.value === '1';
+    else o[k] = [...f.querySelectorAll(`[data-lim-opts="${k}"] input:checked`)].map(x => x.value);
+  });
+  return o;
+}
+
 // ── Licencias ──
 function bzDrawLics() {
   const d = BZ.d, plans = d.plans;
@@ -230,6 +264,7 @@ function bzDrawLics() {
         </div>
         <div class="bz-modwrap" style="${custom ? '' : 'display:none'}">${bzMods(custom ? l.modules : (pl?.modules || []), custom ? false : !(pl?.modules || []).length)}</div>
         ${Object.keys(d.extras || {}).length ? `<div style="margin-top:12px"><span class="adm-label">Módulos extra (se cobran aparte del plan)</span><div class="bz-mods" data-extras>${Object.entries(d.extras).map(([k, v]) => { const on = (l.extras || []).includes(k); return `<label class="${on ? 'on' : ''}"><input type="checkbox" value="${esc(k)}"${on ? ' checked' : ''} data-on-change="@parentOn">${esc(v)}</label>`; }).join('')}</div></div>` : ''}
+        ${bzLimits(l.limits, true, pl?.limits)}
         <label class="bz-f" style="margin-top:12px"><span class="adm-label">Notas internas</span><textarea class="adm-input" data-k="notes" rows="2" placeholder="Ej.: pagó por transferencia, contacto, condiciones especiales">${esc(l.notes || '')}</textarea></label>
         <div class="bz-foot"><button class="btn btn-primary" data-on-click="bzSaveLic" data-click-1="this"><i class="fa-solid fa-paper-plane"></i> Guardar y enviar</button>${l.plan_id ? `<button class="btn btn-danger" data-on-click="bzRemoveLic" data-click-1="s:${esc(s.id)}">Quitar licencia</button>` : ''}
           <span class="bz-muted">${l.push_error ? '<span class="bz-warn">No se pudo entregar: ' + esc(l.push_error) + '</span>' : l.pushed_at ? 'Entregada ' + new Date(l.pushed_at * 1000).toLocaleString('es-AR') : 'Los campos vacíos toman el valor del plan.'}</span></div>
@@ -246,7 +281,7 @@ async function bzSaveLic(btn) {
   const ex = f.querySelector('[data-extras]');
   const lic = { plan_id: v('plan_id'), expires: v('expires'), status: v('status'), users: v('users'), clients: v('clients'), storage_gb: v('storage_gb'), notes: v('notes'),
     client_types: v('client_types'), rubro: v('rubro'), extras: ex ? bzReadMods(ex) : [],
-    modules: v('modmode') === 'custom' ? bzReadMods(f.querySelector('.bz-modwrap')) : null };
+    modules: v('modmode') === 'custom' ? bzReadMods(f.querySelector('.bz-modwrap')) : null, limits: bzReadLimits(f, true) };
   if (!lic.plan_id) return admToast('Elige un plan', true);
   if (lic.modules && !lic.modules.length) return admToast('Elige al menos una herramienta', true);
   btn.disabled = true; BZ.focus = f.dataset.site;
@@ -272,6 +307,7 @@ function bzDrawPlans() {
         <label class="bz-f span2"><span class="adm-label">Herramientas</span><select class="adm-select" data-k="modmode" data-on-change="bzModWrap" data-change-1="this" data-change-2="s:[data-plan]" data-change-3="s:some"><option value="all">Todas</option><option value="some"${all ? '' : ' selected'}>Solo algunas</option></select></label>
       </div>
       <div class="bz-modwrap" style="${all ? 'display:none' : ''}">${bzMods(p.modules || [], false)}</div>
+      ${bzLimits(p.limits, false)}
       <div class="bz-foot"><button class="btn btn-primary" data-on-click="bzSavePlan" data-click-1="this"><i class="fa-solid fa-floppy-disk"></i> Guardar plan</button>${id ? `<button class="btn btn-danger" data-on-click="bzDelPlan" data-click-1="s:${esc(id)}"${used[id] ? ' disabled title="Lo usa alguna agencia"' : ''}>Borrar</button>` : '<button class="btn btn-ghost" data-on-click="bzReset" data-click-1="s:editPlan" data-click-2="null">Cancelar</button>'}
         ${id && used[id] ? '<span class="bz-muted">Al guardar, las agencias de este plan reciben los topes nuevos.</span>' : ''}</div>
     </div></div>`; };
@@ -280,7 +316,7 @@ function bzDrawPlans() {
 }
 async function bzSavePlan(btn) {
   const f = btn.closest('[data-plan]'), v = k => f.querySelector(`[data-k=${k}]`).value;
-  const plan = { id: f.dataset.plan, name: v('name'), users: v('users'), clients: v('clients'), storage_gb: v('storage_gb'), client_types: v('client_types'), price: v('price'), modules: v('modmode') === 'some' ? bzReadMods(f.querySelector('.bz-modwrap')) : [] };
+  const plan = { id: f.dataset.plan, name: v('name'), users: v('users'), clients: v('clients'), storage_gb: v('storage_gb'), client_types: v('client_types'), price: v('price'), modules: v('modmode') === 'some' ? bzReadMods(f.querySelector('.bz-modwrap')) : [], limits: bzReadLimits(f, false) };
   if (!plan.name.trim()) return admToast('El plan necesita un nombre', true);
   if (v('modmode') === 'some' && !plan.modules.length) return admToast('Elige al menos una herramienta', true);
   btn.disabled = true;
@@ -347,6 +383,74 @@ async function bzBnSave() {
 }
 async function bzBnDel(id) { if (!confirm('¿Borrar este banner? Se saca de todos los sitios.')) return; try { await bzApi({ act: 'banner_delete', id }); admToast('Banner borrado'); bzLoad(true); } catch (e) {} }
 async function bzBnPush(btn) { btn.disabled = true; try { await bzApi({ act: 'banner_push' }); admToast('Banners reenviados'); bzLoad(true); } catch (e) { btn.disabled = false; } }
+
+// ── Catálogo de herramientas (Biblioteca › Catálogo Cronos de las agencias). Doc: toolz/CATALOGO.md ──
+const BZ_TL_ST = { publicada: ['Publicada', 'ok'], borrador: ['Borrador', 'warn'] };
+async function bzTlLoad() { if (BZ.tlLoading) return; BZ.tlLoading = true; try { BZ.tl = await bzApi({ act: 'tool_list' }); } catch (e) { BZ.tl = { tools: [], types: {}, plans: {}, error: e.message }; } BZ.tlLoading = false; bzDraw(); }
+const bzTlUrl = (id, what, v) => `/toolz/admin_base_tool.php?id=${encodeURIComponent(id)}&what=${what}&v=${encodeURIComponent(v || '')}`;
+function bzDrawTools() {
+  const L = BZ.tl; if (!L) return bzCard('Herramientas', 'fa-toolbox', '<div class="bz-msg"><i class="fa-solid fa-spinner fa-spin"></i> Trayendo el catálogo…</div>');
+  const n = L.tools.length;
+  const rows = L.tools.map((t, i) => { const [st, cl] = BZ_TL_ST[t.status] || ['', '']; return `<div class="bz-tl">${t.cover ? `<img src="${bzTlUrl(t.id, 'cover', t.cover)}" alt="" loading="lazy">` : '<span class="ph"><i class="fa-solid fa-toolbox"></i></span>'}
+    <div><b>${esc(t.name)}</b> <span class="bz-tag ${cl}">${st}</span> <span class="bz-tag">${esc(L.types[t.type] || t.type)}</span>${t.plans.length ? ` <span class="bz-tag new"><i class="fa-solid fa-lock"></i> ${esc(t.plans.map(p => L.plans[p] || p).join(', '))}</span>` : ''}
+      <small>${esc(t.short)}</small><small>v${t.ver} · ${esc(t.id)} · ${Math.round(t.size / 1024)} KB${t.tags.length ? ' · #' + t.tags.map(esc).join(' #') : ''}</small></div>
+    <div class="bz-act"><button class="btn btn-ghost btn-sm" title="Subir" data-on-click="bzTlMove" data-click-1="s:${esc(t.id)}" data-click-2="-1"${i ? '' : ' disabled'}><i class="fa-solid fa-arrow-up"></i></button><button class="btn btn-ghost btn-sm" title="Bajar" data-on-click="bzTlMove" data-click-1="s:${esc(t.id)}" data-click-2="1"${i < n - 1 ? '' : ' disabled'}><i class="fa-solid fa-arrow-down"></i></button>
+      <button class="btn btn-ghost btn-sm" data-on-click="bzTlPrev" data-click-1="s:${esc(t.id)}"><i class="fa-solid fa-eye"></i> Probar</button><button class="btn btn-ghost btn-sm" data-on-click="bzTlEdit" data-click-1="s:${esc(t.id)}"><i class="fa-solid fa-pen"></i> Editar</button><button class="btn btn-danger btn-sm" data-on-click="bzTlDel" data-click-1="s:${esc(t.id)}">Borrar</button></div></div>
+    ${BZ.tlPrev === t.id ? `<div style="padding:0 18px 14px"><div class="bz-tframe"><iframe src="${bzTlUrl(t.id, 'html', t.sha256)}" title="Vista previa" sandbox="allow-scripts allow-forms allow-modals allow-downloads allow-popups"></iframe></div></div>` : ''}`; }).join('');
+  return `${L.error ? `<div class="adm-card"><div class="bz-msg bz-bad">${esc(L.error)}</div></div>` : ''}
+    ${BZ.tle ? bzTlForm() : `<div class="adm-card"><div class="bz-msg" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span>Cada herramienta es <b>un solo archivo HTML</b> que trae todo adentro (estilos y scripts), sin servidor. Las agencias se la copian y corre aislada: no ve su sesión ni sus datos. Al subir un HTML nuevo, la versión sube y a las agencias que la tienen les aparece <b>Actualizar</b>.</span><button class="btn btn-primary btn-sm" data-on-click="bzTlEdit" data-click-1="s:"><i class="fa-solid fa-plus"></i> Nueva herramienta</button></div></div>`}
+    ${bzCard(`Herramientas (${n})`, 'fa-toolbox', rows || '<div class="bz-msg">Todavía no hay herramientas.</div>')}`;
+}
+function bzTlEdit(id) {
+  const t = BZ.tl.tools.find(x => x.id === id);
+  BZ.tle = t ? { ...JSON.parse(JSON.stringify(t)), tagsTxt: t.tags.join(', ') } : { id: '', name: '', slug: '', short: '', long: '', type: 'calculadora', tags: [], tagsTxt: '', plans: [], status: 'borrador', cover: '', ver: 0 };
+  BZ.tlPrev = null; bzDraw(); $id('sec-base-herramientas')?.scrollIntoView({ behavior: 'smooth' });
+}
+function bzTlForm() {
+  const t = BZ.tle, L = BZ.tl, f = (label, html, cls = '') => `<label class="bz-f ${cls}"><span class="adm-label">${label}</span>${html}</label>`;
+  const opt = (o, v) => Object.entries(o).map(([k, x]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
+  return bzCard(t.id ? 'Editar herramienta' : 'Nueva herramienta', 'fa-toolbox', `<div class="adm-card-body" data-on-input="bzTlRead" data-on-change="bzTlRead"><div class="bz-grid">
+    ${f('Nombre', `<input class="adm-input" id="bzt-name" maxlength="80" value="${esc(t.name)}" placeholder="Calculadora de tarifa por hora">`, 'span2')}
+    ${t.id ? f('Identificador', `<input class="adm-input" value="${esc(t.id)}" disabled>`) : f('Identificador (opcional)', `<input class="adm-input" id="bzt-slug" maxlength="50" value="${esc(t.slug)}" placeholder="sale del nombre">`)}
+    ${f('Tipo', `<select class="adm-select" id="bzt-type">${opt(L.types, t.type)}</select>`)}
+    ${f('Descripción corta (la tarjeta)', `<input class="adm-input" id="bzt-short" maxlength="220" value="${esc(t.short)}" placeholder="Una o dos frases: qué resuelve.">`, 'span4')}
+    ${f('Descripción larga (la ficha: para qué sirve y cómo se usa)', `<textarea class="adm-input" id="bzt-long" rows="5" maxlength="6000">${esc(t.long)}</textarea>`, 'span4')}
+    ${f('Etiquetas (separadas por coma)', `<input class="adm-input" id="bzt-tags" value="${esc(t.tagsTxt)}" placeholder="precios, presupuesto">`, 'span2')}
+    ${f('Estado', `<select class="adm-select" id="bzt-status"><option value="borrador"${t.status === 'borrador' ? ' selected' : ''}>Borrador (no la ven las agencias)</option><option value="publicada"${t.status === 'publicada' ? ' selected' : ''}>Publicada</option></select>`, 'span2')}
+    ${f(t.id ? `Archivo HTML (versión actual: ${t.ver}; subí uno solo si cambió)` : 'Archivo HTML (hasta 2 MB)', `<input class="adm-input" type="file" id="bzt-html" accept=".html,.htm,text/html" data-on-change="bzTlFile" data-change-1="this">`, 'span2')}
+    ${f('Portada (PNG, JPG o WebP de hasta 1 MB, 16:9)', `<input class="adm-input" type="file" id="bzt-cover" accept="image/png,image/jpeg,image/webp" data-on-change="bzTlCover" data-change-1="this">`, 'span2')}
+    <div class="bz-f span4">${t.html ? `<span class="bz-tag ok"><i class="fa-solid fa-file-code"></i> ${esc(t.htmlName)} · ${Math.round(t.html.length / 1024)} KB listo para subir</span>` : ''} ${t.cover_data ? '<span class="bz-tag ok">Portada nueva lista</span>' : t.cover ? '<label class="bz-chk"><input type="checkbox" id="bzt-nocover"> Quitar la portada</label>' : '<span class="bz-muted">Sin portada: las agencias ven un ícono del tipo.</span>'}</div></div>
+    <div class="adm-label" style="margin-top:14px">Planes que la incluyen <span class="bz-muted">(ninguno marcado = todas las agencias)</span></div>
+    <div class="bz-mods">${Object.entries(L.plans).map(([k, n]) => `<label class="${t.plans.includes(k) ? 'on' : ''}"><input type="checkbox" data-tlplan value="${esc(k)}"${t.plans.includes(k) ? ' checked' : ''} data-on-change="@parentOn">${esc(n)}</label>`).join('')}</div>
+    <div class="bz-foot"><button class="btn btn-primary" id="bzt-save" data-on-click="bzTlSave"><i class="fa-solid fa-floppy-disk"></i> Guardar</button><button class="btn btn-ghost" data-on-click="bzReset" data-click-1="s:tle" data-click-2="null">Cancelar</button></div></div>`);
+}
+function bzTlRead() {
+  const t = BZ.tle, v = id => $id('bzt-' + id); if (!t || !v('name')) return;
+  Object.assign(t, { name: v('name').value, short: v('short').value, long: v('long').value, type: v('type').value, status: v('status').value, tagsTxt: v('tags').value,
+    remove_cover: !!v('nocover')?.checked, plans: [...document.querySelectorAll('[data-tlplan]:checked')].map(x => x.value) });
+  if (v('slug')) t.slug = v('slug').value;
+}
+function bzTlFile(inp) {
+  const f = inp.files[0]; if (!f) return; if (f.size > 2 * 1048576) { admToast('El HTML pesa más de 2 MB', true); inp.value = ''; return; }
+  const r = new FileReader(); r.onload = () => { bzTlRead(); BZ.tle.html = r.result; BZ.tle.htmlName = f.name; bzDraw(); }; r.readAsText(f, 'UTF-8');
+}
+function bzTlCover(inp) {
+  const f = inp.files[0]; if (!f) return; if (f.size > 1048576) { admToast('La portada pesa más de 1 MB', true); inp.value = ''; return; }
+  const r = new FileReader(); r.onload = () => { bzTlRead(); BZ.tle.cover_data = r.result; bzDraw(); }; r.readAsDataURL(f);
+}
+async function bzTlSave() {
+  bzTlRead(); const t = BZ.tle, btn = $id('bzt-save');
+  if (!t.name.trim() || !t.short.trim()) return admToast('Faltan el nombre y la descripción corta', true);
+  if (!t.id && !t.html) return admToast('Falta el archivo HTML', true);
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando…';
+  const tool = { id: t.id, slug: t.slug, name: t.name, short: t.short, long: t.long, type: t.type, status: t.status, plans: t.plans, tags: t.tagsTxt.split(',').map(x => x.trim()).filter(Boolean), remove_cover: t.remove_cover };
+  if (t.html) tool.html = t.html; if (t.cover_data) tool.cover_data = t.cover_data;
+  try { const r = await bzApi({ act: 'tool_save', tool }); BZ.tle = null; admToast(`Guardada (versión ${r.tool.ver}${r.tool.status === 'publicada' ? ', publicada' : ', en borrador'})`); BZ.tl = null; bzTlLoad(); }
+  catch (e) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar'; }
+}
+async function bzTlDel(id) { if (!confirm('¿Borrar esta herramienta del catálogo? Las agencias que ya la agregaron la conservan, pero no van a recibir más versiones.')) return; try { await bzApi({ act: 'tool_delete', id }); admToast('Herramienta borrada'); BZ.tl = null; bzTlLoad(); } catch (e) {} }
+async function bzTlMove(id, dir) { try { await bzApi({ act: 'tool_move', id, dir: +dir }); BZ.tl = null; bzTlLoad(); } catch (e) {} }
+function bzTlPrev(id) { BZ.tlPrev = BZ.tlPrev === id ? null : id; bzDraw(); }
 
 // ── Tickets ──
 async function bzTkLoad() { if (BZ.tkLoading) return; BZ.tkLoading = true; try { BZ.tk = await bzApi({ act: 'tickets' }); } catch (e) { BZ.tk = { tickets: [], types: {}, statuses: {}, error: e.message }; } BZ.tkLoading = false; bzDraw(); }

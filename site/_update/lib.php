@@ -17,7 +17,7 @@ const U_KEEP_BACKUPS = 3;
 // Lo que es de cada sitio: una versión nunca lo toca aunque venga en el paquete
 const U_PROTECTED = ['_private/', 'marcas/', 'config.local.php', 'backups/', 'temp/', 'avatars/', 'covers/', 'link_covers/', 'post_imgs/', 'stock_files/', 'chat_files/', 'pages_files/',
     'client_avatars/', 'facturacion/logos/', 'brand/', 'imghost/', 'landings/', 'promos/imgs/', 'promos/mailings/', 'placasdeportivas/cache/', 'placasdeportivas/imgs/', 'placasdeportivas/sp/cache/',
-    'placasdeportivas/sp/files/', 'placasdeportivas/diarias/refs/', 'placaspaid/imgs/', 'mailingmaker/imgs/', 'landing-gen/heroes/', 'tienda/imgs/', 'propiedades/fotos/', 'juegos/files/', 'builds/files/', 'plugins/backup/storage/', 'monday_cache.json'];
+    'placasdeportivas/sp/files/', 'placasdeportivas/diarias/refs/', 'placaspaid/imgs/', 'mailingmaker/imgs/', 'landing-gen/heroes/', 'tienda/imgs/', 'eventos/media/', 'portal/media/', 'landing-gen-2/imports/', 'tienda/themes/', 'propiedades/fotos/', 'juegos/files/', 'builds/files/', 'plugins/backup/storage/', 'monday_cache.json'];
 
 class UError extends RuntimeException {}
 

@@ -156,6 +156,9 @@ $links = array_map(function($l){$l['tags']=json_decode($l['tags']?:'[]',true);re
 // Las notas compartidas suelen tener usuarios y claves de proveedores: solo se mandan a quien tiene
 // el permiso "Ver notas compartidas" (Admin › Módulos › Biblioteca). Al resto le llega solo que existe.
 $canNotes = g7_can((int)$currentUser['id'], 'links', 'notes');
+// Catálogo Cronos (herramientas del sitio base que se copian a la Biblioteca): permiso aparte y solo si el sitio está conectado. Doc: toolz/CATALOGO.md
+require_once __DIR__ . '/catalogo_lib.php';
+$canCatalog = g7_can((int)$currentUser['id'], 'links', 'catalog') && cat_connected();
 if (!$canNotes) $links = array_map(function($l){ $l['pub_locked'] = trim((string)($l['public_note'] ?? '')) !== ''; $l['public_note'] = ''; return $l; }, $links);
 $notesRows=$db->prepare('SELECT link_id, note FROM g7_link_notes WHERE user_id = ?');$notesRows->execute([$currentUser['id']]);
 $notes=[];foreach($notesRows->fetchAll() as $n)$notes[$n['link_id']]=$n['note'];
@@ -348,6 +351,7 @@ body{background:var(--g7-bg,var(--g7-bg));font-family:var(--g7-font,'Inter',sans
 @media (prefers-reduced-motion:reduce){.lb-card,.lb-cover img{transition:none}}
 .lb-prev-btn:hover{border-color:#ff6600!important;color:#ff6600!important}
 </style>
+<link rel="stylesheet" href="/toolz/assets/biblioteca-look.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/biblioteca-look.css') ?>">
 </head>
 <body>
 <?php include __DIR__ . '/../topbar.php'; ?>
@@ -358,9 +362,10 @@ body{background:var(--g7-bg,var(--g7-bg));font-family:var(--g7-font,'Inter',sans
       <h1>Biblioteca</h1>
       <p id="lb-summary">Recursos y enlaces del equipo</p>
     </div>
-    <?php if ($isAdmin): ?>
+    <?php if ($isAdmin || $canCatalog): ?>
     <div class="lb-actions">
-      <button class="lb-btn" type="button" data-on-click="lbToggleNewCat"><i class="fa-solid fa-folder-plus"></i> Nueva categoría</button>
+      <?php if ($canCatalog): ?><button class="lb-btn" type="button" id="cat-open" title="Herramientas listas para usar que ofrece Cronos"><i class="fa-solid fa-toolbox"></i> Catálogo Cronos</button><?php endif; ?>
+      <?php if ($isAdmin): ?><button class="lb-btn" type="button" data-on-click="lbToggleNewCat"><i class="fa-solid fa-folder-plus"></i> Nueva categoría</button><?php endif; ?>
     </div>
     <?php endif; ?>
   </header>
@@ -393,7 +398,7 @@ body{background:var(--g7-bg,var(--g7-bg));font-family:var(--g7-font,'Inter',sans
     <span id="results-count"></span>
   </div>
 
-  <div id="categories-container"></div>  <div id="categories-container"></div>
+  <div id="categories-container"></div>
   <div id="no-results" class="no-results hidden">
     <i class="fa-solid fa-magnifying-glass" style="font-size:24px;display:block;margin-bottom:12px;opacity:.2"></i>
     No hay recursos que coincidan. Prueba con otra palabra o limpia los filtros.
@@ -545,5 +550,7 @@ body{background:var(--g7-bg,var(--g7-bg));font-family:var(--g7-font,'Inter',sans
 
 <script type="application/json" id="links-data"><?= json_encode(['DATA' => json_decode($dataJSON), 'IS_ADMIN' => (bool)$isAdmin, 'ALL_TAGS' => $allTags], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <script src="links.js?v=<?= (int)@filemtime(__DIR__ . '/links.js') ?>"></script>
+<?php if ($canCatalog): ?><link rel="stylesheet" href="catalogo.css?v=<?= (int)@filemtime(__DIR__ . '/catalogo.css') ?>"><script src="catalogo.js?v=<?= (int)@filemtime(__DIR__ . '/catalogo.js') ?>" defer></script><?php endif; ?>
+<script src="/toolz/assets/biblioteca-look.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/biblioteca-look.js') ?>"></script>
 </body>
 </html>

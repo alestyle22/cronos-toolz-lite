@@ -49,15 +49,21 @@ function g7_pass_min(): int { return max(8, (int)(function_exists('g7_setting') 
  * Cambia la contraseña de la propia persona: pide la actual, que la nueva tenga el largo mínimo y que no sea la misma.
  * Devuelve null si salió bien, o el motivo.
  */
+/** Reglas de una contraseña nueva (largo mínimo, distinta de la actual, no trivial). null si está bien; si no, el motivo. */
+function g7_pass_check_new(string $new, string $confirm, string $currentHash = ''): ?string {
+    if ($new !== $confirm) return 'Las dos contraseñas nuevas no coinciden.';
+    if (mb_strlen($new) < g7_pass_min()) return 'La nueva tiene que tener al menos ' . g7_pass_min() . ' caracteres.';
+    if ($currentHash !== '' && password_verify($new, $currentHash)) return 'La nueva tiene que ser distinta de la actual.';
+    if (preg_match('/^(.)\1+$/u', $new) || in_array(mb_strtolower($new), ['12345678', '123456789', 'password', 'contraseña', 'qwertyui', '11111111'], true)) return 'Esa contraseña es demasiado fácil de adivinar.';
+    return null;
+}
+
 function g7_pass_change(PDO $db, int $uid, string $current, string $new, string $confirm): ?string {
     g7_pass_install($db);
     if (g7_login_locked('pw:' . $uid) > 0) return 'Demasiados intentos. Prueba de nuevo en unos minutos.';
     $q = $db->prepare('SELECT password FROM g7_users WHERE id = ? AND active = 1'); $q->execute([$uid]); $hash = (string)$q->fetchColumn();
     if ($hash === '' || !password_verify($current, $hash)) { g7_login_fail('pw:' . $uid); return 'La contraseña actual no es correcta.'; }
-    if ($new !== $confirm) return 'Las dos contraseñas nuevas no coinciden.';
-    if (mb_strlen($new) < g7_pass_min()) return 'La nueva tiene que tener al menos ' . g7_pass_min() . ' caracteres.';
-    if (password_verify($new, $hash)) return 'La nueva tiene que ser distinta de la actual.';
-    if (preg_match('/^(.)\1+$/u', $new) || in_array(mb_strtolower($new), ['12345678', '123456789', 'password', 'contraseña', 'qwertyui', '11111111'], true)) return 'Esa contraseña es demasiado fácil de adivinar.';
+    if ($why = g7_pass_check_new($new, $confirm, $hash)) return $why;
     $db->prepare('UPDATE g7_users SET password = ?, pass_changed_at = NOW() WHERE id = ?')->execute([password_hash($new, PASSWORD_DEFAULT), $uid]);
     unset($_SESSION['g7_pass_ok']);
     if (function_exists('g7_audit')) g7_audit('auth.pass_change', 'propia', null, $uid);

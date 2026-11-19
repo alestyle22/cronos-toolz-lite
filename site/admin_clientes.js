@@ -567,7 +567,7 @@ async function cliOpenBilling() {
 // ── Acceso al dashboard del cliente ───────────────────────────
 function cliPass() { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const r = crypto.getRandomValues(new Uint32Array(12)); return [...r].map(n => a[n % a.length]).join(''); }
 function cliRenderPortal() {
-  const P = CLI.cur.portal || {}, c = CLI.cur.client, url = location.origin + '/';
+  const P = CLI.cur.portal || {}, c = CLI.cur.client, url = location.origin + (CLI.cur.portal_path || '/');
   $id('cli-portal').innerHTML = cliCard('fa-user-lock', 'Acceso al dashboard', `
     <p style="font-size:12.5px;color:var(--g7-text-3);margin-bottom:14px;line-height:1.55">El cliente entra en <a href="${esc(url)}" target="_blank" style="color:var(--g7-accent)">${esc(url.replace(/^https?:\/\//, ''))}</a> con este email y contraseña, y ve solo sus <b>contenidos</b> y sus <b>facturas</b>.
       ${P.last ? `Último ingreso: ${esc(new Date(P.last.replace(' ', 'T')).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' }))}.` : P.has_pass ? 'Todavía no entró nunca.' : ''}</p>
@@ -577,7 +577,8 @@ function cliRenderPortal() {
       <div class="cli-f"><label class="adm-label">${P.has_pass ? 'Nueva contraseña (vacío = no cambiar)' : 'Contraseña'}</label><div style="display:flex;gap:6px"><input class="adm-input" id="pt-pass" type="text" autocomplete="new-password" placeholder="${P.has_pass ? '••••••••' : 'Mínimo 8 caracteres'}"><button class="btn btn-ghost btn-sm" id="pt-gen" type="button" title="Generar una"><i class="fa-solid fa-wand-magic-sparkles"></i></button></div></div>
     </div>
     <div style="display:flex;justify-content:flex-end"><button class="btn btn-primary" id="pt-save"><i class="fa-solid fa-floppy-disk"></i> Guardar acceso</button></div>
-    <div id="pt-share" style="display:none;margin-top:14px"></div>`);
+    <div id="pt-share" style="display:none;margin-top:14px"></div>`) + '<div id="cli-pdesign"></div>';
+  cliRenderDesign(c.id);
   $id('pt-gen').onclick = () => { $id('pt-pass').value = cliPass(); };
   $id('pt-save').onclick = async () => {
     const email = $id('pt-email').value.trim(), password = $id('pt-pass').value, on = $id('pt-on').checked;
@@ -590,6 +591,38 @@ function cliRenderPortal() {
       box.innerHTML = `<div class="cli-hint" style="text-align:left"><b>Datos para mandarle</b> (la contraseña no se vuelve a mostrar):<pre style="white-space:pre-wrap;margin:8px 0;font:12.5px var(--g7-font);color:var(--g7-text)">${esc(txt)}</pre><button class="btn btn-ghost btn-sm" id="pt-copy"><i class="fa-solid fa-copy"></i> Copiar</button></div>`;
       $id('pt-copy').onclick = () => navigator.clipboard.writeText(txt).then(() => admToast('Copiado'));
     }
+  };
+}
+
+// ── Diseño del portal (constructor: portal/editor/, toolz/PORTAL_BUILDER.md) ──
+async function cliRenderDesign(cid) {
+  cid = +cid;
+  const box = $id('cli-pdesign'); if (!box) return;
+  let s;
+  try {
+    const r = await fetch('/toolz/portal/editor/api.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-PB': '1' }, credentials: 'same-origin', body: JSON.stringify({ action: 'client_state', client_id: cid }) });
+    s = await r.json(); if (!r.ok || s.error) throw new Error(s.error || 'Error');
+  } catch (e) { box.innerHTML = ''; return; }   // sin constructor (versión vieja o Lite): no se muestra nada
+  if (+(CLI.cur.client || {}).id !== cid) return;
+  const def = s.designs.find(d => d.id === s.default);
+  const opt = d => `<option value="${d.id}"${d.id === s.assigned ? ' selected' : ''}>${esc(d.kind === 'client' ? 'Propio: ' + d.name : 'Plantilla: ' + d.name)}${d.live ? '' : ' (sin publicar)'}</option>`;
+  const own = s.designs.find(d => d.kind === 'client' && d.client_id === cid);
+  const eff = s.effective;
+  box.innerHTML = cliCard('fa-wand-magic-sparkles', 'Diseño del portal', `
+    <p style="font-size:12.5px;color:var(--g7-text-3);margin-bottom:12px;line-height:1.55">Hoy ve: <b style="color:var(--g7-text)">${eff ? esc(eff.name) : 'el portal de siempre'}</b>. Puedes darle una plantilla o armarle un diseño propio con bloques.</p>
+    <div class="cli-f"><label class="adm-label" for="pd-sel">Diseño que ve</label>
+      <select class="adm-input" id="pd-sel"><option value="0"${!s.assigned ? ' selected' : ''}>${def ? 'El predeterminado (' + esc(def.name) + ')' : 'El de siempre (sin diseño)'}</option>${s.designs.map(opt).join('')}</select></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px">
+      ${eff ? `<a class="btn btn-ghost" href="/toolz/portal/editor/preview.php?d=${eff.id}&c=${cid}&live=1" target="_blank" rel="noopener"><i class="fa-regular fa-eye"></i> Ver como el cliente</a>` : ''}
+      ${own ? `<a class="btn btn-primary" href="/toolz/portal/editor/?d=${own.id}"><i class="fa-solid fa-pen-ruler"></i> Editar su diseño</a>` : `<a class="btn btn-primary" href="/toolz/portal/editor/?cliente=${cid}&nuevo=1"><i class="fa-solid fa-plus"></i> Crear diseño propio</a>`}
+    </div>`);
+  $id('pd-sel').onchange = async e => {
+    try {
+      const r = await fetch('/toolz/portal/editor/api.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-PB': '1' }, credentials: 'same-origin', body: JSON.stringify({ action: 'assign', client_id: cid, design_id: +e.target.value }) });
+      const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Error');
+      admToast('Listo: el cliente ya ve ese diseño' + (s.designs.find(x => x.id === +e.target.value && !x.live) ? ' (cuando lo publiques)' : ''));
+      cliRenderDesign(cid);
+    } catch (x) { admToast(x.message, true); }
   };
 }
 

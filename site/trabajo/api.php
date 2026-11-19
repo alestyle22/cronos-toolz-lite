@@ -69,9 +69,7 @@ function wk_ticket(PDO $db, array $ctx, int $id): array {
     $q = $db->prepare('SELECT t.*, c.name AS cat_name, c.color AS cat_color FROM g7_wk_tickets t LEFT JOIN g7_wk_ticket_cats c ON c.id = t.category_id WHERE t.id = ?');
     $q->execute([$id]); $t = $q->fetch(PDO::FETCH_ASSOC);
     if (!$t) wk_fail('Ese ticket no existe', 404);
-    $t['agent'] = wk_is_agent($ctx, $t['team_id'] ? (int)$t['team_id'] : null) || ($t['assignee_id'] && (int)$t['assignee_id'] === $ctx['id']);
-    // Ticket = tarea: quien es responsable de su tarea también lo atiende
-    if (!$t['agent'] && $t['task_id']) { $q = $db->prepare('SELECT 1 FROM g7_task_assignees WHERE task_id = ? AND user_id = ?'); $q->execute([(int)$t['task_id'], $ctx['id']]); $t['agent'] = (bool)$q->fetchColumn(); }
+    $t['agent'] = wk_tk_is_agent($db, $ctx, $t);   // misma regla que el portal (lib.php)
     // Colaboradores (tk_collab_lib.php): lo ven y responden, pero no ven las notas internas
     $t['collab'] = !$t['agent'] && (int)$t['requester_id'] !== $ctx['id'] && wk_tkc_is($db, (int)$t['id'], $ctx['id']);
     if (!$t['agent'] && !$t['collab'] && (int)$t['requester_id'] !== $ctx['id']) wk_fail('Ese ticket no existe', 404);

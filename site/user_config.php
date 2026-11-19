@@ -34,13 +34,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$key || $val === null) { echo json_encode(['error'=>'invalid']); exit; }
 
+    // Marco de la foto de perfil (avatar_frame_lib.php): se valida aparte; {} o un tipo desconocido = sin marco
+    if ($key === 'avatar_frame') {
+        require_once __DIR__ . '/avatar_frame_lib.php';
+        echo json_encode(['ok' => true, 'frame' => g7_af_save($db, (int)$me, $val)]);
+        exit;
+    }
+
     // Allowed keys
     $allowed = [
         'theme','accent_color','font_size','sidebar_compact',
         'notif_sound','notif_zumbido','notif_badges','notif_desktop',
         'chat_bubble_size','chat_show_avatars','chat_enter_send','chat_compact',
         'privacy_online','privacy_last_seen','privacy_read_receipts',
-        'dashboard_density','dashboard_animations','home_layout',
+        'dashboard_density','dashboard_animations','home_layout','ui_sounds','motion_force',
     ];
     if (!in_array($key, $allowed)) { echo json_encode(['error'=>'key not allowed']); exit; }
 
@@ -79,7 +86,7 @@ foreach ($tzData['countries'] as $ids) foreach ($ids as $id) $tzData['names'][$i
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Mi configuración - <?= htmlspecialchars(g7_site('short')) ?></title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha384-3B6NwesSXE7YJlcLI9RpRqGf2p/EgVH8BgoKTaUrmKNDkHPStTQ3EyoYjCGXaOTS" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha384-h/hnnw1Bi4nbpD6kE7nYfCXzovi622sY5WBxww8ARKwpdLj5kUWjRuyiXaD1U2JT" crossorigin="anonymous">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif;min-height:100vh}
@@ -138,6 +145,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 
 /* AVATAR */
 .cfg-avatar-wrap{display:flex;align-items:center;gap:16px}
+.cfg-row-frame{flex-wrap:wrap}.cfg-row-frame>#cfg-frame{flex:1 1 100%}
 .cfg-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--g7-border-3);flex-shrink:0}
 .cfg-avatar-placeholder{width:64px;height:64px;border-radius:50%;background:rgba(var(--g7-accent-rgb),.15);border:2px solid rgba(var(--g7-accent-rgb),.3);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
 .btn{border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
@@ -196,6 +204,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 @media(prefers-reduced-motion:reduce){.tz-pop{animation:none}}
 @media(max-width:700px){.cfg-content{padding:20px 16px}.cfg-row{flex-wrap:wrap}.tz-card .cfg-row-info{flex-basis:100%}.tz-card .cfg-toggle{margin-left:auto}.tz-combo,.tz-combo-btn,#tz-city,#tz-zone-wrap,#tz-zone-wrap select{width:100%}.tz-pop{left:0;right:auto;width:100%}.tz-preview-time{font-size:28px}}
 </style>
+<link rel="stylesheet" href="/toolz/assets/user-look.css?v=<?= (int)@filemtime(__DIR__ . '/assets/user-look.css') ?>">
 <script src="/toolz/assets/g7-imgprep.js?v=1"></script>
 </head>
 <body>
@@ -203,7 +212,20 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 
 <div class="cfg-layout">
   <!-- SIDEBAR NAV -->
+<?php
+  // Tarjeta de presentación (menú y Mi perfil)
+  $ucName = (string)($meData['display_name'] ?: $currentUser['username']);
+  $ucAv   = (string)($meData['avatar'] ?? '');
+  $ucIni  = strtoupper(mb_substr($ucName, 0, 1));
+  $ucRole = $isAdmin ? 'Administrador' : 'Miembro';
+  $ucPlace = trim((string)($tzMine['city'] ?? ''));
+  $ucZone = (string)($tzMine['timezone'] ?? '');
+?>
   <nav class="cfg-nav">
+    <div class="ucx-me">
+      <?php if ($ucAv): ?><img class="ucx-me-av ucx-av" src="<?= htmlspecialchars($ucAv) ?>" alt=""><?php else: ?><span class="ucx-me-av ucx-av"><?= htmlspecialchars($ucIni) ?></span><?php endif; ?>
+      <div><b class="ucx-name"><?= htmlspecialchars($ucName) ?></b><small><?= htmlspecialchars($ucRole) ?></small></div>
+    </div>
     <div class="cfg-nav-sep">Cuenta</div>
     <button class="cfg-nav-item active" data-on-click="cfgShow" data-click-1="s:perfil" data-click-2="this">
       <i class="fa-solid fa-user"></i> Mi perfil
@@ -213,6 +235,9 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
     </button>
     <button class="cfg-nav-item" data-on-click="cfgShow" data-click-1="s:seguridad" data-click-2="this">
       <i class="fa-solid fa-shield-halved"></i> Seguridad
+    </button>
+    <button class="cfg-nav-item" data-on-click="cfgShow" data-click-1="s:sesiones" data-click-2="this">
+      <i class="fa-solid fa-location-dot"></i> Dónde iniciaste sesión
     </button>
 <?php $uc_gcal = is_file(__DIR__ . '/integraciones/gcal.php') && (is_file(__DIR__ . '/_private/integrations.php') || is_file(__DIR__ . '/_private/integrations.json')) && (require_once __DIR__ . '/integraciones/gcal.php') && int_ready('google_calendar'); ?>
 <?php if ($uc_gcal): ?>
@@ -250,6 +275,22 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
       <div class="cfg-section-title">Mi perfil</div>
       <div class="cfg-section-sub">Tu información personal visible para el equipo</div>
 
+      <div class="ucx-hero">
+        <div class="ucx-hero-band"></div>
+        <div class="ucx-hero-body">
+          <?php if ($ucAv): ?><img class="ucx-hero-av ucx-av" src="<?= htmlspecialchars($ucAv) ?>" alt=""><?php else: ?><span class="ucx-hero-av ucx-av" data-g7-uid="<?= (int)$me ?>"><?= htmlspecialchars($ucIni) ?></span><?php endif; ?>
+          <div class="ucx-hero-txt">
+            <h2 class="ucx-name"><?= htmlspecialchars($ucName) ?></h2>
+            <p>@<?= htmlspecialchars($currentUser['username']) ?><?= !empty($meData['email']) ? ' · ' . htmlspecialchars($meData['email']) : '' ?></p>
+            <div class="ucx-tags">
+              <span class="ucx-tag" style="--c:<?= $isAdmin ? 'var(--ucx-1)' : 'var(--ucx-2)' ?>"><i class="fa-solid <?= $isAdmin ? 'fa-shield-halved' : 'fa-user' ?>"></i> <?= htmlspecialchars($ucRole) ?></span>
+              <?php if ($ucPlace !== '' || $ucZone !== ''): ?><span class="ucx-tag" style="--c:var(--ucx-4)"><i class="fa-solid fa-location-dot"></i> <?= htmlspecialchars($ucPlace !== '' ? $ucPlace : str_replace('_', ' ', $ucZone)) ?></span><?php endif; ?>
+              <span class="ucx-tag" style="--c:var(--ucx-3)"><i class="fa-solid fa-palette"></i> Tema <?= htmlspecialchars(ucfirst((string)$uc_theme)) ?></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="cfg-card">
         <div class="cfg-card-head"><i class="fa-solid fa-image-portrait"></i><span>Avatar y nombre</span></div>
         <div class="cfg-row">
@@ -261,13 +302,21 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
             <?php if($meData['avatar']): ?>
             <img src="<?= htmlspecialchars($meData['avatar']) ?>" class="cfg-avatar" id="cfg-avatar-img">
             <?php else: ?>
-            <div class="cfg-avatar-placeholder" id="cfg-avatar-img"><?= strtoupper(substr($meData['display_name']?:$currentUser['username'],0,1)) ?></div>
+            <div class="cfg-avatar-placeholder" id="cfg-avatar-img" data-g7-uid="<?= (int)$me ?>"><?= strtoupper(substr($meData['display_name']?:$currentUser['username'],0,1)) ?></div>
             <?php endif; ?>
             <label class="btn btn-ghost" style="cursor:pointer">
               <i class="fa-solid fa-upload"></i> Subir
               <input type="file" accept="image/*" style="display:none" data-on-change="cfgUploadAvatar" data-change-1="this">
             </label>
           </div>
+        </div>
+        <div class="cfg-row cfg-row-frame">
+          <div class="cfg-row-info">
+            <div class="cfg-row-label">Marco de la foto</div>
+            <div class="cfg-row-desc">Se ve alrededor de tu foto en todo Cronos: la barra, el chat, tu perfil y la comunidad</div>
+          </div>
+          <?php require_once __DIR__ . '/avatar_frame_lib.php'; $cfgFrame = g7_af_clean($prefs['avatar_frame'] ?? null); ?>
+          <div id="cfg-frame" data-frame="<?= htmlspecialchars(json_encode($cfgFrame), ENT_QUOTES) ?>"></div>
         </div>
         <div class="cfg-row">
           <div class="cfg-row-info">
@@ -369,31 +418,37 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 
       <div class="cfg-card">
         <div class="cfg-card-head"><i class="fa-solid fa-moon"></i><span>Tema</span></div>
-        <div class="cfg-row">
+        <div class="cfg-row cfg-row-themes">
           <div class="cfg-row-info">
             <div class="cfg-row-label">Tema de la plataforma</div>
             <div class="cfg-row-desc">Afecta todos los colores del sistema</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <?php
-            // Mismos temas que g7-theme.css y que el "Tema por defecto" del admin
-            $themes=[
-              'dark'     =>['label'=>'Oscuro',     'bg'=>'#0a0a0a','card'=>'#18181b','accent'=>'#ff6600'],
-              'midnight' =>['label'=>'Medianoche', 'bg'=>'#060810','card'=>'#141a2a','accent'=>'#60a5fa'],
-              'violet'   =>['label'=>'Violeta',    'bg'=>'#08050f','card'=>'#1a1326','accent'=>'#a855f7'],
-              'green'    =>['label'=>'Verde',      'bg'=>'#040d08','card'=>'#0f2016','accent'=>'#22c55e'],
-              'rose'     =>['label'=>'Rosa',       'bg'=>'#0f050a','card'=>'#24101a','accent'=>'#f43f5e'],
-              'light'    =>['label'=>'Claro',      'bg'=>'#f8f8f8','card'=>'#e8e8ec','accent'=>'#e05500'],
-            ];
-            $currentTheme = pref('theme', function_exists('g7_setting') ? (g7_setting('default_theme') ?: 'dark') : 'dark', $prefs);
-            if (!isset($themes[$currentTheme])) $currentTheme = 'dark';
-            foreach($themes as $key=>$t):
-            ?>
+          <?php
+          // Mismos temas que g7-theme.css, el onboarding y el "Tema por defecto" del admin (theme_list.php)
+          require_once __DIR__ . '/theme_list.php';
+          $themes = g7_themes();
+          $currentTheme = pref('theme', function_exists('g7_setting') ? (g7_setting('default_theme') ?: 'dark') : 'dark', $prefs);
+          if (!isset($themes[$currentTheme])) $currentTheme = 'dark';
+          $groups = g7_theme_groups();
+          $curGroup = g7_theme_group($currentTheme);
+          $gIcons = ['Oscuros' => 'fa-moon', 'Claros' => 'fa-sun', 'Vidrio' => 'fa-gem', 'Especiales' => 'fa-wand-magic-sparkles'];
+          ?>
+          <div class="cfg-themes-tabs" role="tablist">
+            <?php foreach ($groups as $gName => $gThemes): ?>
+            <button type="button" role="tab" class="cfg-themes-tab<?= $gName === $curGroup ? ' on' : '' ?>" data-g="<?= $gName ?>" aria-selected="<?= $gName === $curGroup ? 'true' : 'false' ?>"><i class="fa-solid <?= $gIcons[$gName] ?? 'fa-palette' ?>"></i> <?= $gName ?> <small><?= count($gThemes) ?></small></button>
+            <?php endforeach; ?>
+          </div>
+          <div class="cfg-themes">
+            <?php foreach ($groups as $gName => $gThemes): ?>
+            <div class="cfg-themes-panel" data-g="<?= $gName ?>"<?= $gName === $curGroup ? '' : ' hidden' ?>>
+            <?php foreach($gThemes as $key=>$t): ?>
             <button type="button" class="cfg-theme <?= $currentTheme===$key ? 'active' : '' ?>" data-on-click="cfgSetTheme" data-click-1="s:<?= $key ?>" data-click-2="s:<?= $t['accent'] ?>" id="theme-btn-<?= $key ?>"
-              style="--t-bg:<?= $t['bg'] ?>;--t-card:<?= $t['card'] ?>;--t-acc:<?= $t['accent'] ?>;--t-fg:<?= $key==='light' ? '#222' : '#e4e4e7' ?>">
+              style="--t-bg:<?= $t['bg'] ?>;--t-card:<?= $t['card'] ?>;--t-acc:<?= $t['accent'] ?>;--t-fg:<?= g7_theme_is_light($key) ? '#222' : '#e4e4e7' ?>">
               <span class="cfg-theme-prev"><i></i><b></b><b></b></span>
               <span class="cfg-theme-name"><?= $t['label'] ?></span>
             </button>
+            <?php endforeach; ?>
+            </div>
             <?php endforeach; ?>
           </div>
         </div>
@@ -448,7 +503,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
       </div>
 
       <div class="cfg-card">
-        <div class="cfg-card-head"><i class="fa-solid fa-sidebar"></i><span>Layout</span></div>
+        <div class="cfg-card-head"><i class="fa-solid fa-table-columns"></i><span>Layout</span></div>
         <div class="cfg-row">
           <div class="cfg-row-info">
             <div class="cfg-row-label">Sidebar compacto</div>
@@ -464,11 +519,23 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
         <div class="cfg-row">
           <div class="cfg-row-info">
             <div class="cfg-row-label">Animaciones</div>
-            <div class="cfg-row-desc">Transiciones y efectos de interfaz</div>
+            <div class="cfg-row-desc">Botones que rebotan al tocarlos, ventanas y avisos que entran con resorte</div>
           </div>
           <label class="cfg-toggle">
             <input type="checkbox" <?= pref('dashboard_animations',true,$prefs)?'checked':'' ?>
               data-on-change="cfgSave" data-change-1="s:dashboard_animations" data-change-2="checked">
+            <div class="cfg-toggle-track"></div>
+            <div class="cfg-toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="cfg-row">
+          <div class="cfg-row-info">
+            <div class="cfg-row-label">Animaciones aunque el sistema las apague</div>
+            <div class="cfg-row-desc">Si Windows o el celular tienen "reducir movimiento" (Efectos de animación apagados), Cronos se queda quieto. Con esto se ven igual.<b class="cfg-reduce-note" hidden> Tu equipo las tiene apagadas ahora.</b></div>
+          </div>
+          <label class="cfg-toggle">
+            <input type="checkbox" <?= pref('motion_force',false,$prefs)?'checked':'' ?>
+              data-on-change="cfgSave" data-change-1="s:motion_force" data-change-2="checked">
             <div class="cfg-toggle-track"></div>
             <div class="cfg-toggle-thumb"></div>
           </label>
@@ -544,6 +611,18 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 
       <div class="cfg-card">
         <div class="cfg-card-head"><i class="fa-solid fa-volume-high"></i><span>Sonidos</span></div>
+        <div class="cfg-row">
+          <div class="cfg-row-info">
+            <div class="cfg-row-label">Sonidos de la interfaz</div>
+            <div class="cfg-row-desc">Suaves, al guardar, al abrir o cerrar ventanas, con los interruptores y cuando algo sale bien o falla. Solo en esta cuenta.</div>
+          </div>
+          <label class="cfg-toggle">
+            <input type="checkbox" <?= pref('ui_sounds',false,$prefs)?'checked':'' ?>
+              data-on-change="cfgSave" data-change-1="s:ui_sounds" data-change-2="checked">
+            <div class="cfg-toggle-track"></div>
+            <div class="cfg-toggle-thumb"></div>
+          </label>
+        </div>
         <div class="cfg-row">
           <div class="cfg-row-info">
             <div class="cfg-row-label">Sonido de mensajes</div>
@@ -682,6 +761,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
     </section>
 <?php if ($uc_gcal) include __DIR__ . '/integraciones/perfil_google.php'; ?>
 <?php include __DIR__ . '/perfil_seguridad.php'; ?>
+<?php include __DIR__ . '/perfil_sesiones.php'; ?>
 
   </div><!-- cfg-content -->
 </div><!-- cfg-layout -->
@@ -719,5 +799,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 
 <script src="/toolz/assets/user-config.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-config.js') ?>"></script>
 <script src="/toolz/assets/user-tz.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-tz.js') ?>"></script>
+<script src="/toolz/assets/user-frame.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-frame.js') ?>"></script>
+<script src="/toolz/assets/user-look.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-look.js') ?>"></script>
 </body>
 </html>

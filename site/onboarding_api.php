@@ -5,6 +5,7 @@
  */
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/onboarding_lib.php';
+if (is_file(__DIR__ . '/profile_fields_lib.php')) require_once __DIR__ . '/profile_fields_lib.php';   // herramientas, aptitudes, cumpleaños…
 header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
 $out = function (array $d, int $c = 200) { http_response_code($c); echo json_encode($d, JSON_UNESCAPED_UNICODE); exit; };
 $me = getCurrentUser();
@@ -23,7 +24,7 @@ $state = function () use ($db, $uid) {
     $plat = (string)(g7_setting('platform_name') ?: g7_site('name'));
     $t = $cfg['texts']; foreach ($t as $k => $v) $t[$k] = str_replace('{plataforma}', $plat, $v);
     $prefs = [];
-    foreach (['theme', 'notif_desktop', 'notif_sound', 'privacy_online', 'privacy_read_receipts', 'chat_enter_send'] as $k) { $v = ob_pref($db, $uid, $k); if ($v !== null) $prefs[$k] = $v; }
+    foreach (['theme', 'notif_desktop', 'notif_sound', 'privacy_online', 'privacy_read_receipts', 'chat_enter_send', 'dashboard_animations', 'motion_force', 'ui_sounds'] as $k) { $v = ob_pref($db, $uid, $k); if ($v !== null) $prefs[$k] = $v; }
     $tn = ob_pref($db, $uid, 'tasks_notif');
     if (is_array($tn) && !empty($tn['events'])) { $ev = array_values($tn['events']); $prefs['notif_app'] = (bool)array_filter($ev, fn($e) => !empty($e['app'])); $prefs['notif_email'] = (bool)array_filter($ev, fn($e) => !empty($e['email'])); }
     $req2fa = ob_2fa_required($cfg, $uid, $r);
@@ -31,10 +32,13 @@ $state = function () use ($db, $uid) {
         'status' => $r['status'], 'status_name' => OB_STATUS[$r['status']], 'last_step' => (int)$r['last_step'], 'steps_done' => ob_steps_done($r), 'started' => (bool)$r['started_at'],
         'forced' => (int)$r['forced'], 'force_mode' => $r['force_mode'], 'force_reason' => $r['force_reason'],
         'user' => ['first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'display_name' => $u['display_name'], 'username' => $u['username'], 'avatar' => $u['avatar'],
-            'bio' => $u['bio'], 'position' => $u['position'], 'teams' => $u['teams'], 'department' => $u['department'], 'timezone' => $u['timezone'], 'country' => $u['country'], 'language' => $u['language'] ?: $cfg['defaults']['language']],
+            'bio' => $u['bio'], 'position' => $u['position'], 'teams' => $u['teams'], 'department' => $u['department'], 'timezone' => $u['timezone'], 'country' => $u['country'], 'language' => $u['language'] ?: $cfg['defaults']['language'],
+            'email' => (string)($u['email'] ?? ''), 'phone' => (string)($u['phone'] ?? ''), 'location' => (string)($u['location'] ?? ''), 'birthday' => (string)($u['birthday'] ?? ''), 'joined' => (string)($u['joined'] ?? ''),
+            'tools' => $u['tools'] ?? [], 'aptitudes' => $u['aptitudes'] ?? []],
+        'pf' => defined('PF_TOOLS') ? ['tools' => PF_TOOLS, 'aptitudes' => PF_APTITUDES] : null,
         'missing' => ob_missing($u, $cfg), 'prefs' => $prefs + $cfg['defaults'], 'defaults' => $cfg['defaults'],
         'security' => ['enabled' => g7_totp_enabled($db, $uid), 'required' => $req2fa, 'can_skip' => !$req2fa && $cfg['allow_skip_security'] && $cfg['steps']['security'] !== 'required', 'ack' => (bool)$r['recovery_ack_at'], 'skipped' => (int)$r['security_skipped']],
-        'cfg' => ['steps' => $cfg['steps'], 'fields' => $cfg['fields'], 'texts' => $t, 'colors' => $cfg['colors']], 'langs' => OB_LANGS, 'platform' => $plat,
+        'cfg' => ['steps' => $cfg['steps'], 'fields' => $cfg['fields'], 'texts' => $t, 'colors' => $cfg['colors']], 'langs' => OB_LANGS, 'themes' => ob_themes(), 'platform' => $plat,
         'tz' => function_exists('g7_tz_countries') ? ['countries' => g7_tz_countries(), 'site' => g7_tz_site()] : null, 'pending' => ob_pending_steps($db, $uid, $r),
     ];
 };
@@ -76,11 +80,32 @@ case 'save_profile':
         elseif ($tz !== '' && !in_array($tz, timezone_identifiers_list(), true)) $err['timezone'] = 'Zona horaria no válida';
         elseif ($tz !== '' && $cc === '') { $loc = (new DateTimeZone($tz))->getLocation(); $cc = strtoupper((string)($loc['country_code'] ?? '')); if ($cc === '??') $cc = ''; }
     }
+    // Datos del perfil (los mismos que Comunidad y Mi perfil; profile_fields_lib.php)
+    $pfv = []; $pfApt = null; $pfTools = null;
+    $on = fn($k) => ($F[$k] ?? 'hidden') !== 'hidden' && array_key_exists($k, $p);
+    if ($on('email')) { $em = $s($p['email'], 150);
+        if ($em !== '' && !filter_var($em, FILTER_VALIDATE_EMAIL)) $err['email'] = 'El email no es válido';
+        elseif ($em !== '') { $q = $db->prepare('SELECT id FROM g7_users WHERE (email = ? OR username = ?) AND id <> ? LIMIT 1'); $q->execute([$em, $em, $uid]); if ($q->fetch()) $err['email'] = 'Ese email ya lo usa otra persona'; }
+        if ($F['email'] === 'required' && $em === '') $err['email'] = 'Completá el email';
+        if (!isset($err['email'])) $pfv['email'] = $em; }
+    foreach (['phone' => 40, 'location' => 120] as $k => $max) if ($on($k)) { $v = $s($p[$k], $max);
+        if (preg_match('/[<>]/', $v)) $err[$k] = 'No uses los signos < ni >'; elseif ($F[$k] === 'required' && $v === '') $err[$k] = 'Completá ' . mb_strtolower(OB_FIELDS[$k]); else $pfv[$k] = $v; }
+    foreach (['birthday' => 'birthday', 'joined' => 'joined_at'] as $k => $col) if ($on($k)) { $v = $s($p[$k], 10);
+        if ($v !== '' && !(preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) && strtotime($v) && $v <= date('Y-m-d'))) $err[$k] = 'La fecha no es válida';
+        elseif ($F[$k] === 'required' && $v === '') $err[$k] = 'Completá ' . mb_strtolower(OB_FIELDS[$k]); else $pfv[$col] = $v === '' ? null : $v; }
+    if ($on('tools') && function_exists('pf_clean_tools')) { $pfTools = pf_clean_tools(array_fill_keys((array)$p['tools'], 1)); if ($F['tools'] === 'required' && !$pfTools) $err['tools'] = 'Elegí al menos una herramienta'; }
+    if ($on('aptitudes') && function_exists('pf_clean_aptitudes')) { $pfApt = pf_clean_aptitudes((array)$p['aptitudes']); if ($F['aptitudes'] === 'required' && !$pfApt) $err['aptitudes'] = 'Elegí o escribí al menos una aptitud'; }
     $lang = (string)($p['language'] ?? '');
     if (($F['language'] ?? 'hidden') !== 'hidden' && $lang !== '' && !isset(OB_LANGS[$lang])) $err['language'] = 'Idioma no válido';
     if ($err) $out(['error' => 'Revisá los datos marcados', 'errors' => $err], 422);
     if ($val) $db->prepare('UPDATE g7_users SET ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($val))) . ' WHERE id = ?')->execute([...array_values($val), $uid]);
     if ($team) { $db->prepare('UPDATE g7_team_members SET is_primary = (team_id = ?) WHERE user_id = ?')->execute([$team, $uid]); }
+    try {
+        if ($pfv) $db->prepare('UPDATE g7_users SET ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($pfv))) . ' WHERE id = ?')->execute([...array_values($pfv), $uid]);
+        if ($pfTools !== null) $db->prepare('UPDATE g7_users SET skills_json = ? WHERE id = ?')->execute([json_encode((object)$pfTools), $uid]);
+        if ($pfApt !== null) { pf_install($db); $db->prepare('UPDATE g7_users SET aptitudes = ? WHERE id = ?')->execute([json_encode($pfApt, JSON_UNESCAPED_UNICODE), $uid]); }
+    } catch (Throwable $e) {}
+    $val += $pfv;
     if ($tzWant && ($tz !== '' || $cc !== '') && function_exists('g7_tz_save')) {
         $row = g7_tz_row($uid);
         if ($e = g7_tz_save($uid, $cc, $tz, (string)($row['city'] ?? ''), !empty($row['city_public']))) $out(['error' => $e, 'errors' => ['timezone' => $e]], 422);
@@ -92,9 +117,9 @@ case 'save_profile':
 
 case 'save_prefs':
     $cfg = ob_cfg(); $p = (array)($in['prefs'] ?? []);
-    $theme = in_array($p['theme'] ?? '', ['dark', 'light', 'auto'], true) ? $p['theme'] : $cfg['defaults']['theme'];
+    $theme = ob_theme_ok((string)($p['theme'] ?? '')) ? $p['theme'] : $cfg['defaults']['theme'];
     ob_pref_set($db, $uid, 'theme', $theme);
-    foreach (['notif_desktop', 'notif_sound', 'privacy_online', 'privacy_read_receipts', 'chat_enter_send'] as $k) ob_pref_set($db, $uid, $k, array_key_exists($k, $p) ? !empty($p[$k]) : (bool)$cfg['defaults'][$k]);
+    foreach (['notif_desktop', 'notif_sound', 'privacy_online', 'privacy_read_receipts', 'chat_enter_send', 'dashboard_animations', 'motion_force', 'ui_sounds'] as $k) ob_pref_set($db, $uid, $k, array_key_exists($k, $p) ? !empty($p[$k]) : (bool)($cfg['defaults'][$k] ?? false));
     if (isset($p['language']) && isset(OB_LANGS[$p['language']])) ob_pref_set($db, $uid, 'language', $p['language']);
     if (isset($p['timezone']) && $p['timezone'] !== '' && function_exists('g7_tz_save') && in_array((string)$p['timezone'], timezone_identifiers_list(), true)) {
         $row = g7_tz_row($uid); $loc = (new DateTimeZone((string)$p['timezone']))->getLocation(); $cc = strtoupper((string)($loc['country_code'] ?? '')); if ($cc === '??') $cc = (string)($row['country'] ?? '');
@@ -159,7 +184,7 @@ case 'admin_state':
             'forced' => (int)$r['forced'], 'force_mode' => (string)$r['force_mode'], 'force_reason' => (string)$r['force_reason'], 'require_2fa' => (int)$r['require_2fa'], 'reminded_at' => $r['reminded_at'],
             'twofa' => (int)$r['totp_on'], 'twofa_required' => ob_2fa_required($cfg, (int)$r['id'], $r), 'skipped' => (int)$r['security_skipped'], 'missing' => ob_missing($u, $cfg)];
     }, $rows);
-    $out(['users' => $users, 'stats' => ob_stats($db), 'cfg' => $cfg, 'status' => OB_STATUS, 'fields' => OB_FIELDS, 'langs' => OB_LANGS,
+    $out(['users' => $users, 'stats' => ob_stats($db), 'cfg' => $cfg, 'status' => OB_STATUS, 'fields' => OB_FIELDS, 'langs' => OB_LANGS, 'themes' => ob_themes(),
         'policy' => ['scope' => g7_totp_scope(), 'scopes' => G7_TOTP_SCOPES], 'is_super' => function_exists('g7_super_ok') && g7_super_ok($uid)]);
 
 case 'admin_cfg':
