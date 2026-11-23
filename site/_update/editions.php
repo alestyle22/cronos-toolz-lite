@@ -18,19 +18,19 @@ function u_editions(): array {
             // Apagados por el sitio (modulos_off): ni los admins los prenden. Los que ademÃ¡s no traen archivos estÃ¡n en 'exclude'
             'modules_off' => ['paletas', 'popups', 'pages', 'planify', 'placas_diarias', 'placas_paid', 'promos_gen', 'placas', 'imghost', 'recolorear', 'renombrador',
                 'claude', 'linkgen', 'encuesta', 'linkstats', 'status', 'tienda', 'monday', 'facturacion', 'pagos', 'propiedades', 'vencimientos',
-                'turnos', 'talentos', 'builds', 'juegos', 'placas_ia', 'resto', 'eventos', 'landings2', 'social', 'yourweb', 'mailing2', 'blog', 'mockups'],
+                'turnos', 'talentos', 'builds', 'juegos', 'placas_ia', 'resto', 'eventos', 'landings2', 'yourweb', 'mailing2', 'blog', 'mockups'],
             // Archivos o carpetas (terminan en /) que no se instalan. Ninguno puede ser cargado por un archivo que sÃ­ viaja (lo controla release.php)
             'exclude' => ['paletas/', 'placasdeportivas/', 'placaspaid/', 'placas-ia/', 'sport_placas.html', 'sport_placas.php', 'popup-gen/', 'pages.php', 'planify.php',
                 'imghost.php', 'imghost_album.php', 'recolorearsvg.html', 'recolorearsvg.php', 'renombrador.html', 'renombrador.php', 'claude/',
                 'linkgen/', 'linkgenerator.html', 'linkgenerator.php', 'encuesta/', 'linkstats/', 'r/', 'status.php',
                 'tienda/', 'monday.php', 'monday_widget.php', 'facturacion/', 'pagos/', 'pagar/', 'portal/', 'admin_portal.php', 'admin_portal.js',
                 'portal_cfg_api.php', 'portal_cfg_lib.php', 'propiedades/', 'vencimientos/', 'turnos/', 'talentos/', 'builds/', 'juegos/', 'tasking/', 'resto/', 'eventos/', 'landing-gen-2/',
-                'social/', 'social_file.php', 'social_media.php', 'social_report.php',   // Social Studio (1.0.77) es de la edición completa   // Biblioteca (links/ y sus guías guias/) está en la Lite desde la 1.0.54
+                // Social Studio (social/, con Profile Studio) está en la Lite desde la decisión del 2026-11-23, igual que el Taller y Bienestar   // Biblioteca (links/ y sus guías guias/) está en la Lite desde la 1.0.54
                 'yourweb/',   // Your Web (1.0.81): junta Landing Gen 2.0, Mailing Maker 2.0, el blog y la Tienda, que son de la edición completa
                 'mailing-2/', 'blog/', 'mockups/',   // Mailing Maker 2.0, Blog Studio y Mockup Studio: edición completa (decisión 2026-11-19; Taller y Bienestar sí van en la Lite)
                 'afiliados/'],   // Afiliados (1.0.75): el panel vive solo en el Cronos principal (completo, cobra los planes con pagos/); la Lite usa recomendar/
             // Excepciones dentro de lo excluido: archivos sueltos que sÃ­ viajan porque los usa algo de la ediciÃ³n
-            'keep' => ['juegos/reportes_lib.php'],   // Trabajo â€º Tickets lee los reportes que llegan de un juego
+            'keep' => ['juegos/reportes_lib.php', 'eventos/pdf_lib.php'],   // pdf_lib: Social Studio arma con él el PDF de los informes   // Trabajo â€º Tickets lee los reportes que llegan de un juego
         ],
     ];
 }
