@@ -1,7 +1,7 @@
 <?php
 // Versión de este paquete de instalación y sus archivos (los usa instalar.php para el actualizador).
 return array (
-  'version' => '1.0.82',
+  'version' => '1.0.83',
   'edition' => 'lite',
   'files' => 
   array (
