@@ -35,17 +35,17 @@ function tmRenderTeamList(teams){
     return;
   }
   list.innerHTML = teams.map(t=>`
-    <div class="tm-team-item ${currentTeam?.id==t.id?'active':''}" id="tli-${t.id}" data-on-click="tmSelectTeam" data-click-1="j:${t.id}">
+    <div class="tm-team-item ${currentTeam?.id==t.id?'active':''}" id="tli-${t.id}" data-on-click="tmSelectTeam" data-click-1="j:${t.id}"${t.depth ? ` style="margin-left:${Math.min(t.depth,3)*16}px"` : ''}>
       <div class="tm-team-avatar" style="background:${esc(t.color)}">${teamInitial(t.name)}</div>
       <div>
-        <div class="tm-team-name">${esc(t.name)}</div>
+        <div class="tm-team-name">${t.depth ? '<i class="fa-solid fa-turn-up fa-rotate-90" style="font-size:9px;opacity:.5;margin-right:4px"></i>' : ''}${esc(t.name)}</div>
         <div class="tm-team-count">${t.member_count||0} miembro${t.member_count!=1?'s':''}</div>
       </div>
     </div>`).join('');
 }
 
 function tmFilterTeams(q){
-  const f = allTeams.filter(t=>t.name.toLowerCase().includes(q.toLowerCase()));
+  const f = allTeams.filter(t=>(t.path||t.name).toLowerCase().includes(q.toLowerCase()));
   tmRenderTeamList(f);
 }
 
@@ -70,7 +70,7 @@ async function tmSelectTeam(id){
 // ── RENDER TEAM DETAIL ────────────────────────────────
 function tmRenderTeamDetail(d){
   const {team, members, config} = d;
-  const canEdit = IS_ADMIN || members.some(m=>m.id==MY_ID && m.team_role==='admin');
+  const canEdit = IS_ADMIN || !!d.can_edit || members.some(m=>m.id==MY_ID && m.team_role==='admin');   // can_edit: también el admin de un equipo de arriba
 
   $('tm-content').innerHTML = `
     <!-- HEADER -->
@@ -78,8 +78,11 @@ function tmRenderTeamDetail(d){
       <div class="tm-head-avatar" style="background:${esc(team.color)}">${teamInitial(team.name)}</div>
       <div style="flex:1;min-width:0">
         <div class="tm-head-name">${esc(team.name)}</div>
+        ${d.parent ? `<div class="tm-head-meta" style="margin:0 0 2px"><i class="fa-solid fa-turn-up fa-rotate-90"></i> Subequipo de <a href="#" style="color:inherit" data-on-click="@stop|tmSelectTeam" data-click2-1="j:${d.parent.id}">${esc(d.parent.path)}</a></div>` : ''}
         <div class="tm-head-meta">${esc(team.description||'Sin descripción')} · ${members.length} miembro${members.length!=1?'s':''}</div>
+        ${(d.children||[]).length ? `<div class="tm-head-meta" style="margin-top:4px">Subequipos: ${d.children.map(c=>`<a href="#" style="color:var(--g7-accent)" data-on-click="tmSelectTeam" data-click-1="j:${c.id}">${esc(c.name)}</a>`).join(' · ')}</div>` : ''}
       </div>
+      ${canEdit && d.can_sub ? `<button class="btn btn-ghost btn-sm" data-on-click="tmOpenCreate" data-click-1="j:${team.id}"><i class="fa-solid fa-sitemap"></i> Nuevo subequipo</button>` : ''}
       ${IS_ADMIN ? `<button class="btn btn-danger btn-sm" data-on-click="tmDeleteTeam" data-click-1="j:${team.id}"><i class="fa-solid fa-trash"></i> Eliminar</button>` : ''}
     </div>
 
@@ -210,7 +213,14 @@ async function tmSaveSettings(teamId){
 }
 
 // ── CREATE TEAM ───────────────────────────────────────
-function tmOpenCreate(){ $('tc-name').value=''; $('tc-desc').value=''; $('tc-error').style.display='none'; $('tm-create-modal').classList.add('open'); setTimeout(()=>$('tc-name').focus(),50); }
+let tmCreateParent = 0;   // subequipo: el equipo donde va
+function tmOpenCreate(parent){
+  tmCreateParent = +parent || 0;
+  const p = tmCreateParent ? allTeams.find(t=>+t.id===tmCreateParent) : null;
+  const title = document.querySelector('#tm-create-modal .tm-modal-title');
+  if (title) title.innerHTML = `<i class="fa-solid fa-${p?'sitemap':'plus'}" style="color:var(--g7-accent);margin-right:8px"></i>${p ? 'Nuevo subequipo de ' + esc(p.name) : 'Nuevo equipo'}`;
+  $('tc-name').value=''; $('tc-desc').value=''; $('tc-error').style.display='none'; $('tm-create-modal').classList.add('open'); setTimeout(()=>$('tc-name').focus(),50);
+}
 function tmCloseCreate(){ $('tm-create-modal').classList.remove('open'); }
 
 document.getElementById('tc-color')?.addEventListener('input', e=>{
@@ -223,10 +233,10 @@ async function tmCreateTeam(){
   err.style.display='none';
   if(!name){ err.textContent='El nombre es requerido'; err.style.display='block'; return; }
   const r=await fetch(TM_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    action:'create_team', name, color:$('tc-color').value, description:$('tc-desc').value
+    action:'create_team', name, color:$('tc-color').value, description:$('tc-desc').value, parent_id: tmCreateParent
   })});
   const d=await r.json();
-  if(d.ok){ tmCloseCreate(); tmToast('Equipo creado ✓'); tmLoadTeams(); }
+  if(d.ok){ tmCloseCreate(); tmToast(tmCreateParent ? 'Subequipo creado ✓' : 'Equipo creado ✓'); await tmLoadTeams(); if (tmCreateParent) tmSelectTeam(+d.team_id); }
   else { err.textContent=d.error||'Error al crear'; err.style.display='block'; }
 }
 

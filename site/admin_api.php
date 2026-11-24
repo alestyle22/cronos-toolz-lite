@@ -12,6 +12,7 @@ $__ok = function (array $extra = []) { echo json_encode(['ok' => true] + $extra,
 $__err = function (string $msg, int $code = 400) { http_response_code($code); echo json_encode(['error' => $msg], JSON_UNESCAPED_UNICODE); exit; };
 $__int = fn($v) => (int)$v;
 $__ids = fn($a) => array_values(array_unique(array_filter(array_map('intval', is_array($a) ? $a : []))));
+require_once __DIR__ . '/teams_lib.php';   // subequipos (g7_teams.parent_id)
 
 // ─────────────────────────────────────────────────────────────
 // Inicio: accesos rápidos y secciones (admin_home.js)
@@ -45,7 +46,9 @@ function adm_snapshot(PDO $db): array {
     $users = $db->query("SELECT id, username, display_name, email, role, active, avatar, position, created_at, last_login, last_seen FROM g7_users ORDER BY active DESC, COALESCE(NULLIF(display_name,''), username)")->fetchAll();
     foreach ($users as &$__u) $__u['is_super'] = g7_is_super((int)$__u['id']);
     unset($__u);
-    $teams = $db->query("SELECT id, name, slug, description, color, active FROM g7_teams ORDER BY name")->fetchAll();
+    g7_team_parents($db);   // asegura la columna parent_id
+    // En árbol: cada equipo seguido de sus subequipos (parent_id, depth y path)
+    $teams = g7_team_tree_sort($db, $db->query("SELECT id, name, slug, description, color, active FROM g7_teams ORDER BY name")->fetchAll());
     $members = $db->query("SELECT team_id, user_id, role, is_primary FROM g7_team_members")->fetchAll();
     $grants = $db->query("SELECT team_id, module, action FROM g7_team_permissions")->fetchAll();
     $overrides = $db->query("SELECT user_id, module, action, effect FROM g7_user_permissions")->fetchAll();
@@ -109,7 +112,7 @@ function adm_snapshot(PDO $db): array {
 
     return [
         'me' => (int)(getCurrentUser()['id'] ?? 0),
-        'modules' => $modOut, 'users' => $userOut, 'teams' => array_values($teamOut), 'brands' => $brandOut,
+        'modules' => $modOut, 'users' => $userOut, 'teams' => array_values($teamOut), 'team_max_depth' => G7_TEAM_MAX_DEPTH, 'brands' => $brandOut,
         'settings_schema' => $schema, 'settings' => $settings,
         'modes' => array_filter([
             'everyone' => ['label' => 'Todos', 'desc' => 'Cualquier usuario activo', 'icon' => 'fa-globe'],
@@ -347,18 +350,22 @@ case 'team_save':
     $color = preg_match('/^#[0-9a-fA-F]{6}$/', $in['color'] ?? '') ? $in['color'] : '#ff6600';
     $desc = mb_substr(trim((string)($in['description'] ?? '')), 0, 500);
     if ($name === '') $__err('El equipo necesita un nombre');
+    $parent = $__int($in['parent_id'] ?? 0) ?: null;   // subequipo: dentro de qué equipo está
+    if ($why = g7_team_parent_problem($db, $id, $parent)) $__err($why);
     if ($id) {
         $db->prepare("UPDATE g7_teams SET name=?, color=?, description=?, active=? WHERE id=?")->execute([$name, $color, $desc, empty($in['inactive']) ? 1 : 0, $id]);
-        g7_audit('team.update', "team:$id", ['name' => $name], $__me);
+        if (array_key_exists('parent_id', $in) && $parent !== (g7_team_parents($db)[$id] ?? null)) g7_team_set_parent($db, $id, $parent);
+        g7_audit('team.update', "team:$id", ['name' => $name, 'parent' => $parent], $__me);
     } else {
         $slug = trim(preg_replace('/[^a-z0-9]+/', '_', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $name) ?: $name)), '_') ?: 'equipo';
         $chk = $db->prepare("SELECT COUNT(*) FROM g7_teams WHERE slug=?"); $chk->execute([$slug]);
         if ($chk->fetchColumn()) $slug .= '_' . time();
         $db->prepare("INSERT INTO g7_teams (name, slug, description, color, created_by) VALUES (?,?,?,?,?)")->execute([$name, $slug, $desc, $color, $__me]);
         $id = (int)$db->lastInsertId();
+        if ($parent) g7_team_set_parent($db, $id, $parent);
         $ins = $db->prepare("INSERT IGNORE INTO g7_team_permissions (team_id, module, action) VALUES (?,?,?)");
         foreach ((array)($in['copy_from_grants'] ?? []) as $g) { [$m, $a] = array_pad(explode('.', (string)$g, 2), 2, 'view'); $ins->execute([$id, $m, $a]); }
-        g7_audit('team.create', "team:$id", ['name' => $name], $__me);
+        g7_audit('team.create', "team:$id", ['name' => $name, 'parent' => $parent], $__me);
     }
     if (array_key_exists('brand_ids', $in)) {
         $db->prepare("DELETE FROM g7_brand_access WHERE subject_type='team' AND subject_id=?")->execute([$id]);
@@ -371,6 +378,7 @@ case 'team_delete':
     $id = $__int($in['id'] ?? 0);
     $n = $db->prepare("SELECT name FROM g7_teams WHERE id=?"); $n->execute([$id]); $name = $n->fetchColumn();
     if (!$name) $__err('Equipo no encontrado');
+    g7_team_before_delete($db, $id);   // sus subequipos suben un nivel
     foreach (["DELETE FROM g7_team_members WHERE team_id=?", "DELETE FROM g7_team_permissions WHERE team_id=?", "DELETE FROM g7_team_config WHERE team_id=?",
               "DELETE FROM g7_brand_access WHERE subject_type='team' AND subject_id=?", "DELETE FROM g7_teams WHERE id=?"] as $sql) $db->prepare($sql)->execute([$id]);
     g7_audit('team.delete', "team:$id", ['name' => $name], $__me);
@@ -497,7 +505,7 @@ case 'config_export':
         'brand_access' => $db->query("SELECT subject_type, subject_id, brand_id FROM g7_brand_access")->fetchAll(),
         'team_permissions' => $db->query("SELECT team_id, module, action FROM g7_team_permissions")->fetchAll(),
         'user_permissions' => $db->query("SELECT user_id, module, action, effect FROM g7_user_permissions")->fetchAll(),
-        'teams' => $db->query("SELECT id, name, slug, color, description, active FROM g7_teams")->fetchAll(),
+        'teams' => (g7_team_parents($db) ? $db->query("SELECT id, name, slug, color, description, active, parent_id FROM g7_teams")->fetchAll() : []),
         'team_members' => $db->query("SELECT team_id, user_id, role, is_primary FROM g7_team_members")->fetchAll(),
     ];
     g7_audit('config.export', '', null, $__me);
@@ -506,6 +514,7 @@ case 'config_export':
 case 'config_import':
     $data = $in['data'] ?? null; $parts = (array)($in['parts'] ?? []);
     if (!is_array($data) || ($data['format'] ?? '') !== 'g7-toolz-config') $__err('El archivo no es un respaldo de configuración de Toolz');
+    g7_team_parents($db);   // la columna parent_id antes de abrir la transacción (un ALTER la cerraría)
     $db->beginTransaction();
     try {
         if (in_array('config', $parts, true)) {
@@ -529,6 +538,9 @@ case 'config_import':
         if (in_array('teams', $parts, true)) {
             $st = $db->prepare("INSERT INTO g7_teams (id, name, slug, color, description, active, created_by) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name), color=VALUES(color), description=VALUES(description), active=VALUES(active)");
             foreach ((array)$data['teams'] as $t) $st->execute([(int)$t['id'], $t['name'], $t['slug'], $t['color'], $t['description'], (int)$t['active'], $__me]);
+            // subequipos (respaldos de antes de la 1.0.84 no lo traen: quedan como estaban)
+            $st = $db->prepare("UPDATE g7_teams SET parent_id = ? WHERE id = ?");
+            foreach ((array)$data['teams'] as $t) if (array_key_exists('parent_id', $t)) $st->execute([(int)$t['parent_id'] ?: null, (int)$t['id']]);
             $db->exec("DELETE FROM g7_team_members");
             $st = $db->prepare("INSERT IGNORE INTO g7_team_members (team_id, user_id, role, is_primary) VALUES (?,?,?,?)");
             foreach ((array)$data['team_members'] as $m) $st->execute([(int)$m['team_id'], (int)$m['user_id'], $m['role'], (int)$m['is_primary']]);

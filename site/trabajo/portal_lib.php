@@ -7,6 +7,7 @@
  */
 require_once __DIR__ . '/form_lib.php';
 require_once __DIR__ . '/estimate_lib.php';
+require_once __DIR__ . '/../teams_lib.php';   // subdepartamentos (g7_teams.parent_id)
 
 const PT_DAYS = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'];
 const PT_OFF_KINDS = ['feriado' => 'Feriado', 'vacaciones' => 'Vacaciones', 'ausencia' => 'Ausencia', 'bloqueo' => 'Bloqueo'];
@@ -165,7 +166,7 @@ function pt_dept(PDO $db, int $teamId): ?array {
            ->execute([$teamId, (string)$r['team_desc'], preg_match('/^#[0-9a-f]{6}$/i', (string)$r['team_color']) ? $r['team_color'] : '#ff6600', json_encode(PT_DEFAULT_HOURS), pt_now()]);
         return pt_dept($db, $teamId);
     }
-    return pt_dept_norm($r);
+    return pt_dept_norm($r) + ['parent_id' => g7_team_parents($db)[$teamId] ?? null];   // subdepartamento: de quién depende
 }
 function pt_dept_norm(array $r): array {
     $o = ['id' => (int)$r['id'], 'name' => (string)$r['name'], 'active' => (int)$r['active']];
@@ -178,8 +179,8 @@ function pt_dept_norm(array $r): array {
 function pt_depts(PDO $db, bool $activeOnly = true): array {
     $ids = $db->query('SELECT id FROM g7_teams' . ($activeOnly ? ' WHERE active = 1' : '') . ' ORDER BY name')->fetchAll(PDO::FETCH_COLUMN);
     $out = []; foreach ($ids as $id) if ($d = pt_dept($db, (int)$id)) $out[] = $d;
-    usort($out, fn($a, $b) => [$a['position'], $a['name']] <=> [$b['position'], $b['name']]);
-    return $out;
+    // Como árbol: cada departamento seguido de sus subdepartamentos (depth y path), hermanos por orden y nombre
+    return g7_team_tree_sort($db, $out, fn($d) => sprintf('%05d', $d['position']) . mb_strtolower($d['name']));
 }
 
 // ── Roles del portal ─────────────────────────────────────────
@@ -196,6 +197,15 @@ function pt_role(PDO $db, array $ctx, int $teamId): ?string {
 }
 /** ¿Configura el departamento? (nombre, horarios, categorías, formularios). */
 function pt_can_config(PDO $db, array $ctx, int $teamId): bool { return in_array(pt_role($db, $ctx, $teamId), ['admin', 'dept_admin'], true); }
+/** ¿Nombra o saca al jefe de este departamento? Administración, o la jefatura de un departamento de arriba (subdepartamentos). */
+function pt_can_appoint(PDO $db, array $ctx, int $teamId): bool {
+    if ($ctx['role'] === 'admin') return true;
+    return (bool)array_intersect(g7_team_ancestors($db, $teamId), $ctx['lead']);
+}
+/** ¿Puede crear un subdepartamento dentro de este? (quien lo configura, si no se pasa del máximo de niveles) */
+function pt_can_sub(PDO $db, array $ctx, int $teamId): bool {
+    return pt_can_config($db, $ctx, $teamId) && g7_team_depth($db, $teamId) < G7_TEAM_MAX_DEPTH;
+}
 /** ¿Aprueba, asigna y cambia fechas? */
 function pt_can_manage(PDO $db, array $ctx, int $teamId): bool { return in_array(pt_role($db, $ctx, $teamId), ['admin', 'dept_admin', 'responsable'], true); }
 /** ¿Puede pedirle algo a este departamento? */

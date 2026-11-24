@@ -230,6 +230,36 @@ Se filtran por período (7 días, 30 días, 90 días o 12 meses) y por departame
 - **Auditoría:** `g7_wk_pt_audit` registra la configuración, los envíos, la sobrecarga, las etapas, las aprobaciones, las asignaciones y los cambios de fecha. Se ve en Departamentos › Historial. Las publicaciones de formularios quedan además en `g7_audit`.
 - **Sin datos ficticios:** el portal arranca vacío y sin categorías ni formularios de ejemplo.
 
+## Subdepartamentos y subequipos (1.0.84, completa y Lite)
+
+Un departamento puede tener subdepartamentos. Como un departamento es un equipo de Admin › Equipos, un subdepartamento es también un subequipo.
+
+- **Dónde se guarda:** en `g7_teams.parent_id`. La columna la crea sola `teams_lib.php` la primera vez (`g7_config` `teams_schema` = 1). En instalaciones nuevas ya viene en `install/schema.php`.
+- **Niveles:** hasta 4 (`G7_TEAM_MAX_DEPTH`), es decir, departamento › sub › sub › sub. No se permiten ciclos.
+- **Configuración:** un subdepartamento es un departamento completo, con su gente, horarios, capacidad, categorías, automatizaciones y sus propios formularios.
+  - Al crearlo arranca con la configuración de su departamento (horarios, capacidad, quién puede pedir, aprobación, anticipación) y con sus permisos de módulos.
+  - Después se cambia aparte.
+- **Jefe:**
+  - El jefe del subdepartamento (admin de su equipo) lo configura y arma sus formularios.
+  - La jefatura de arriba también lo administra: `wk_ctx` suma a `lead` todos los departamentos de abajo, e `isTeamAdmin` mira los equipos de arriba.
+  - El jefe de un subdepartamento lo nombra o lo saca administración o la jefatura de arriba (`pt_can_appoint`). El propio jefe del subdepartamento no puede.
+- **Quién crea:**
+  - Un subdepartamento lo crea quien configura el de arriba (`dept_create` con `parent_id` y `lead_id` opcional), si no se pasa de niveles (`pt_can_sub`).
+  - Los departamentos de primer nivel los sigue creando solo administración.
+- **Mover:** solo administración, desde General › Depende de (`dept_save` con `parent_id`) o desde Admin › Equipos › Dentro de. Al moverlo, su rama va con él.
+- **Borrar un equipo:** sus subequipos suben un nivel (`g7_team_before_delete`).
+- **Avisos y escalado:** un subdepartamento sin jefe le avisa a la jefatura de arriba (`wk_team_people` con `$leads`), y si nadie, a administración.
+- **Portal (quien pide):**
+  - El inicio muestra los departamentos de primer nivel; los subdepartamentos aparecen al buscar.
+  - En la página de un departamento se ven sus subdepartamentos, y las migas llevan hasta los de arriba.
+- **Configurar:** la pestaña **Subdepartamentos** lista cada uno con su jefe, su gente y sus formularios, y tiene el botón **Nuevo subdepartamento**.
+- **Trabajo:** los selectores de departamento muestran el camino ("Marketing › Redes").
+- **Admin › Equipos y la página Equipos:**
+  - árbol, **Dentro de** y **Nuevo subequipo**;
+  - el admin de un equipo ve y administra sus subequipos aunque no sea miembro;
+  - el respaldo de configuración guarda `parent_id`.
+- **Prueba:** `dev/test_subdepartamentos.php` (64 pruebas).
+
 ## Pruebas
 ```bash
 G7_TEST_DB="127.0.0.1;port=3407" php -d extension=gd dev/test_portal_solicitudes.php

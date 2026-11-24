@@ -11,6 +11,7 @@ require_once __DIR__ . '/../tareas_lib.php';
 require_once __DIR__ . '/link_lib.php';   // ticket = tarea, pausa del SLA y avisos de tickets
 require_once __DIR__ . '/tk_collab_lib.php';   // colaboradores y menciones en los tickets (TICKETS_COLABORADORES.md)
 require_once __DIR__ . '/portal_lib.php';   // Portal de Solicitudes por departamento (SOLICITUDES.md)
+require_once __DIR__ . '/../teams_lib.php';   // subdepartamentos: el jefe de un departamento también lo es de los de abajo
 
 const WK_ROLES = [
     'admin'       => 'Administrador',
@@ -237,6 +238,12 @@ function wk_ctx(PDO $db, int $uid): array {
     $q = $db->prepare('SELECT m.team_id, m.role FROM g7_team_members m JOIN g7_teams t ON t.id = m.team_id AND t.active = 1 WHERE m.user_id = ?'); $q->execute([$uid]);
     $teams = []; $lead = [];
     foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) { $teams[] = (int)$r['team_id']; if ($r['role'] === 'admin') $lead[] = (int)$r['team_id']; }
+    // Subdepartamentos: quien es jefe de un departamento también lo es de todos los que tiene debajo (los activos)
+    if ($lead) {
+        $all = g7_team_descendants($db, $lead);
+        $act = array_map('intval', $db->query('SELECT id FROM g7_teams WHERE active = 1 AND id IN (' . wk_ints($all) . ')')->fetchAll(PDO::FETCH_COLUMN));
+        $lead = array_values(array_unique(array_merge($lead, $act)));
+    }
     $role = $gr === 'admin' ? 'admin' : ($wr === 'director' ? 'director' : ($lead ? 'jefe' : ($wr === 'solicitante' ? 'solicitante' : 'empleado')));
     return $cache[$uid] = ['id' => $uid, 'role' => $role, 'label' => WK_ROLES[$role], 'teams' => $teams, 'lead' => $lead, 'all' => in_array($role, ['admin', 'director'], true)];
 }
@@ -483,7 +490,7 @@ const WK_FORM_TYPES = ['section' => 'Título de sección', 'text' => 'Texto cort
 /** ¿Atiende pedidos de este departamento? (admin/director siempre; si no, ser de ese equipo). Sin departamento: solo admin/director. */
 function wk_is_agent(array $ctx, ?int $teamId): bool {
     if ($ctx['all']) return true;
-    return $teamId && in_array($teamId, $ctx['teams'], true);
+    return $teamId && (in_array($teamId, $ctx['teams'], true) || in_array($teamId, $ctx['lead'], true));   // lead: también los subdepartamentos de su jefe
 }
 /**
  * ¿Atiende ESTE ticket? Una sola regla para Trabajo (api.php wk_ticket) y el portal (portal_api.php pa_ticket), que antes
@@ -514,6 +521,8 @@ function wk_team_people(PDO $db, ?int $teamId, bool $leads = false): array {
     $q = $db->prepare('SELECT m.user_id FROM g7_team_members m JOIN g7_users u ON u.id = m.user_id AND u.active = 1 WHERE m.team_id = ?' . ($leads ? " AND m.role = 'admin'" : ''));
     $q->execute([$teamId]);
     $out = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
+    // Un subdepartamento sin jefe: le toca a la jefatura del de arriba (y si nadie, a administración)
+    if (!$out && $leads) { $par = g7_team_parents($db)[$teamId] ?? null; if ($par) return wk_team_people($db, $par, true); }
     return $out ?: ($leads ? wk_team_people($db, null) : []);
 }
 

@@ -531,3 +531,11 @@ body.pt-noscroll{overflow:hidden}
 }
 @media (prefers-reduced-motion:reduce){.pt-dept,.pt-row,.pt-form,.pt-hero,.pt-kpi,.pt-table tbody tr,.pt-msg,.pt-est-lines li,.pt-dd,.pt-done,.pt-cfg-b,.pt-chart path,.pt-done-ic *{animation:none!important;stroke-dashoffset:0!important}.pt-sk{animation:none}*{transition-duration:0s!important}}
 @media print{.pt-filters,.pt-mbar,.pt-cfg-nav,.pt-compose,.pt-acts{display:none!important}}
+/* Subdepartamentos (1.0.84) */
+.pt-dept-up{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--g7-text-4,#8b8b94);margin-bottom:2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-dept-up i{font-size:9px;opacity:.7}
+.pt-dept.sub .pt-dept-bn{height:64px}
+.pt-cfg-h .pt-dept-up{margin-bottom:4px}
+.pt-subs{margin-bottom:22px}
+.pt-subs .pt-dept-bn{height:64px}
+@media (max-width:640px){.pt-fitem.pt-subrow{flex-wrap:wrap}.pt-fitem.pt-subrow .m{flex:1 1 calc(100% - 60px);min-width:0}.pt-fitem.pt-subrow .wk-btn{flex:1 1 0;justify-content:center}}

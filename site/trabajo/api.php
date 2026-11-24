@@ -157,8 +157,9 @@ case 'boot':
     tk_run_reminders($db);
     wk_sla_sweep($db);
     if (wb_enabled()) wb_sync($db);   // tickets del sitio base (solo en el Toolz conectado; como mucho cada minuto)
-    $teams = $db->query('SELECT id, name, color FROM g7_teams WHERE active = 1 ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($teams as &$t) $t['id'] = (int)$t['id']; unset($t);
+    // Departamentos en árbol: los subdepartamentos van debajo del suyo y se nombran con su camino ("Marketing › Diseño")
+    $teams = array_map(fn($t) => ['id' => (int)$t['id'], 'name' => $t['path'], 'short' => $t['name'], 'color' => $t['color'], 'parent_id' => $t['parent_id'], 'depth' => $t['depth']],
+        g7_team_tree_sort($db, $db->query('SELECT id, name, color FROM g7_teams WHERE active = 1 ORDER BY name')->fetchAll(PDO::FETCH_ASSOC)));
     wk_out(['me' => ['id' => $uid, 'role' => $ctx['role'], 'label' => $ctx['label'], 'teams' => $ctx['teams'], 'lead' => $ctx['lead']],
         'admin' => $ctx['role'] === 'admin', 'team_view' => $ctx['all'] || (bool)$ctx['lead'],
         'can_boards' => $ctx['role'] !== 'solicitante', 'general' => wk_general_id($db),

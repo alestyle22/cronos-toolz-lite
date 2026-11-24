@@ -448,10 +448,9 @@ function getUserPermissions(int $userId, string $role = ''): array {
 function isTeamAdmin(int $userId, int $teamId): bool {
     try {
         $db   = getDB();
-        $stmt = $db->prepare("SELECT role FROM g7_team_members WHERE user_id=? AND team_id=?");
-        $stmt->execute([$userId, $teamId]);
-        $role = $stmt->fetchColumn();
-        return $role === 'admin';
+        // Jefe del equipo o de uno de los de arriba (subequipos, 1.0.84)
+        require_once __DIR__ . '/teams_lib.php';
+        return g7_team_led_by($db, $userId, $teamId);
     } catch (Exception $e) {
         return false;
     }

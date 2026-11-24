@@ -358,18 +358,31 @@ function accRenderTeams() {
   g.innerHTML = S.teams.map(t => {
     const mem = t.members.map(m => userById(m.user_id)).filter(Boolean);
     const nMods = new Set(t.grants.filter(x => x.endsWith('.view')).map(x => x.split('.')[0])).size;
-    return `<div class="acc-card" data-on-click="accTeamOpen" data-click-1="j:${t.id}" style="${t.active ? '' : 'opacity:.55'}"><div class="acc-card-stripe" style="background:${esc(t.color)}"></div>
-      <h4>${esc(t.name)}${t.active ? '' : ' <span class="badge badge-inactive">Inactivo</span>'}</h4><p>${esc(t.description || '')}</p>
+    const par = t.parent_id ? teamById(t.parent_id) : null, kids = S.teams.filter(x => x.parent_id === t.id).length;
+    return `<div class="acc-card${t.depth ? ' acc-card-sub' : ''}" data-on-click="accTeamOpen" data-click-1="j:${t.id}" style="${t.active ? '' : 'opacity:.55'}${t.depth ? `;--lvl:${Math.min(t.depth, 3)}` : ''}"><div class="acc-card-stripe" style="background:${esc(t.color)}"></div>
+      ${par ? `<div class="acc-muted" style="font-size:10.5px;margin-bottom:2px"><i class="fa-solid fa-turn-up fa-rotate-90" style="margin-right:4px"></i>Subequipo de ${esc(par.path || par.name)}</div>` : ''}
+      <h4>${esc(t.name)}${t.active ? '' : ' <span class="badge badge-inactive">Inactivo</span>'}${kids ? ` <span class="badge" style="background:var(--g7-bg-5);color:var(--g7-text-3)">${kids} subequipo${kids > 1 ? 's' : ''}</span>` : ''}</h4><p>${esc(t.description || '')}</p>
       <div class="acc-avs">${mem.slice(0, 8).map(u => `<span title="${esc(uName(u))}">${avatar(u, 26)}</span>`).join('')}${mem.length > 8 ? `<span class="acc-av" style="width:26px;height:26px;background:var(--g7-bg-5);color:var(--g7-text-3)">+${mem.length - 8}</span>` : ''}</div>
       <div class="acc-chips">${t.brands.map(b => brandById(b)).filter(Boolean).map(b => chip(b.name, b.color)).join('') || '<span class="acc-muted">Sin marcas</span>'}</div>
       <div class="acc-kv"><span><b>${mem.length}</b>miembros</span><span><b>${nMods}</b>módulos con permiso</span></div></div>`;
   }).join('');
 }
-function accTeamOpen(id) {
-  const t = id ? teamById(id) : null;
+function accTeamOpen(id, parent = 0) {
+  const t = id ? teamById(id) : null, p = !t && parent ? teamById(parent) : null;
   DR.kind = 'team'; DR.id = id; DR.tab = 'info';
-  DR.draft = t ? { name: t.name, color: t.color, description: t.description || '', inactive: !t.active, brand_ids: [...t.brands] } : { name: '', color: '#ff6600', description: '', inactive: false, brand_ids: [], copy_from: '' };
+  DR.draft = t ? { name: t.name, color: t.color, description: t.description || '', inactive: !t.active, brand_ids: [...t.brands], parent_id: t.parent_id || 0 }
+    : { name: '', color: p ? p.color : '#ff6600', description: '', inactive: false, brand_ids: p ? [...p.brands] : [], copy_from: p ? String(p.id) : '', parent_id: p ? p.id : 0 };   // un subequipo arranca con los permisos y marcas de su equipo
   accDrawerOpen();
+}
+/** Subequipo nuevo dentro del equipo abierto. */
+function accTeamNewSub(parent) { accTeamOpen(0, parent); }
+/** Equipos donde puede ir este (ni él ni uno de los suyos), con su camino. */
+function accTeamParentOpts(id, sel) {
+  const below = new Set(id ? [id] : []);
+  let grew = true; while (grew) { grew = false; S.teams.forEach(x => { if (x.parent_id && below.has(x.parent_id) && !below.has(x.id)) { below.add(x.id); grew = true; } }); }
+  const height = id ? Math.max(...[...below].map(b => { let h = 1, c = teamById(b); while (c && c.id !== id && c.parent_id) { h++; c = teamById(c.parent_id); } return h; })) : 1;
+  return `<option value="0">Ninguno (equipo de primer nivel)</option>` + S.teams.filter(x => !below.has(x.id) && (x.depth || 0) + 1 + height <= (S.team_max_depth || 4))
+    .map(x => `<option value="${x.id}"${+sel === x.id ? ' selected' : ''}>${esc(x.path || x.name)}</option>`).join('');
 }
 function accTeamTabs() { return [['info', 'Datos', 'fa-pen'], ['members', 'Miembros', 'fa-users', !DR.id], ['perms', 'Permisos', 'fa-key', !DR.id]]; }
 function accTeamBody() {
@@ -379,9 +392,13 @@ function accTeamBody() {
         <div><label class="adm-label">Nombre *</label><input class="adm-input" value="${esc(d.name)}" data-on-input="@set" data-input-1="s:DR.draft.name" data-input-2="value"></div>
         <div><label class="adm-label">Color</label><div style="display:flex;gap:6px"><input type="color" value="${esc(d.color)}" data-on-input="accColorInput" data-input-1="this" style="width:38px;height:33px;border:none;background:none;cursor:pointer"><input class="adm-input" value="${esc(d.color)}" data-on-input="@set" data-input-1="s:DR.draft.color" data-input-2="value"></div></div>
         <div style="grid-column:1/-1"><label class="adm-label">Descripción</label><textarea class="adm-input" data-on-input="@set" data-input-1="s:DR.draft.description" data-input-2="value">${esc(d.description)}</textarea></div>
+        <div style="grid-column:1/-1"><label class="adm-label">Dentro de</label><select class="adm-select" data-on-change="@set" data-change-1="s:DR.draft.parent_id" data-change-2="value">${accTeamParentOpts(DR.id, d.parent_id)}</select>
+          <div class="acc-help" style="margin-top:4px">Un subequipo es un equipo completo (sus miembros, su admin, sus permisos). En Trabajo es un subdepartamento: tiene su propia configuración y sus formularios. El admin del equipo de arriba también lo administra.</div></div>
       </div>
+      ${t ? `<div class="acc-sub-h">Subequipos</div>${S.teams.filter(x => x.parent_id === t.id).map(x => `<div class="acc-list-row" style="cursor:pointer" data-on-click="accTeamOpen" data-click-1="j:${x.id}">${chip(x.name, x.color)}<span class="acc-muted" style="flex:1">${x.members.length} miembros</span><i class="fa-solid fa-chevron-right acc-muted"></i></div>`).join('') || '<div class="acc-muted" style="margin-bottom:6px">Sin subequipos</div>'}
+        ${(t.depth || 0) + 1 < (S.team_max_depth || 4) ? `<button class="btn btn-sm" style="margin-top:6px" data-on-click="accTeamNewSub" data-click-1="j:${t.id}"><i class="fa-solid fa-plus"></i> Nuevo subequipo</button>` : ''}` : ''}
       ${t ? `<div class="acc-field-row"><div><div class="lbl">Equipo activo</div><div class="acc-help">Un equipo inactivo deja de dar permisos y marcas a sus miembros.</div></div><div class="ctl narrow">${toggle('acc-td-active', !d.inactive, 'accSetInactive', 'this')}</div></div>` : `
-      <div class="acc-field"><label class="adm-label">Copiar permisos de</label><select class="adm-select" data-on-change="@set" data-change-1="s:DR.draft.copy_from" data-change-2="value"><option value="">Empezar sin permisos</option>${S.teams.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div>`}
+      <div class="acc-field"><label class="adm-label">Copiar permisos de</label><select class="adm-select" data-on-change="@set" data-change-1="s:DR.draft.copy_from" data-change-2="value"><option value="">Empezar sin permisos</option>${S.teams.map(x => `<option value="${x.id}"${String(x.id) === String(d.copy_from) ? ' selected' : ''}>${esc(x.path || x.name)}</option>`).join('')}</select></div>`}
       <div class="acc-sub-h">Marcas del equipo</div>
       <div class="acc-help" style="margin-bottom:6px">Todos los miembros ven estas marcas.</div>
       ${S.brands.map(b => `<div class="acc-list-row"><label class="acc-check"><input type="checkbox" ${d.brand_ids.includes(b.id) ? 'checked' : ''} data-on-change="accBrandToggle" data-change-1="this" data-change-2="j:${b.id}">${chip(b.name, b.color)}</label></div>`).join('')}
@@ -409,7 +426,7 @@ function accTeamBody() {
 }
 async function accTeamSave() {
   const d = DR.draft;
-  const payload = { id: DR.id || 0, name: d.name, color: d.color, description: d.description, inactive: d.inactive, brand_ids: d.brand_ids };
+  const payload = { id: DR.id || 0, name: d.name, color: d.color, description: d.description, inactive: d.inactive, brand_ids: d.brand_ids, parent_id: +d.parent_id || 0 };
   if (!DR.id && d.copy_from) payload.copy_from_grants = teamById(d.copy_from)?.grants || [];
   const r = await accApi('team_save', payload);
   admToast(DR.id ? 'Equipo actualizado ✓' : 'Equipo creado ✓');

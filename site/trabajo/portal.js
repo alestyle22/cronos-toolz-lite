@@ -53,6 +53,7 @@ async function renderPortal(arg, arg2) {
   const approvals = b.depts.some(d => ['admin', 'dept_admin', 'responsable'].includes(d.role)) ? await ptApi('tickets', { scope: 'approval', per: 6 }) : null;
   const me = ptPerson(b.me.id);
   const cards = b.depts.filter(d => d.portal_on || d.role !== 'requester');
+  const tops = cards.filter(d => !d.up || !cards.some(c => c.id === d.up));
   M.innerHTML = `
     <div class="pt-hero">
       <div><span class="pt-kicker"><i class="fa-solid fa-inbox"></i> Portal de solicitudes</span>
@@ -69,28 +70,31 @@ async function renderPortal(arg, arg2) {
       </div>
     </div>
     ${approvals && approvals.total ? `<div class="pt-alert"><i class="fa-solid fa-stamp"></i><div><b>${approvals.total} solicitud${approvals.total > 1 ? 'es esperan' : ' espera'} tu aprobación</b><span>${approvals.rows.slice(0, 3).map(t => esc(t.code + ' · ' + t.subject)).join(' — ')}</span></div><a class="wk-btn sm" href="#gestion/aprobar">Revisar</a></div>` : ''}
-    <h2 class="pt-h2">Departamentos <small>${cards.length}</small></h2>
-    <div class="pt-grid" id="pt-depts">${cards.map((d, i) => ptDeptCard(d, i)).join('') || `<div class="pt-empty-big"><i class="fa-solid fa-building"></i><b>Todavía no hay departamentos en el portal</b><span>${b.admin ? 'Creá el primero en Configurar.' : 'Cuando administración los configure, aparecen acá.'}</span>${b.admin ? '<a class="wk-btn primary" href="#portal-config/nuevo"><i class="fa-solid fa-plus"></i> Crear departamento</a>' : ''}</div>`}</div>
+    <h2 class="pt-h2">Departamentos <small>${tops.length}</small></h2>
+    <div class="pt-grid" id="pt-depts">${cards.map((d, i) => ptDeptCard(d, i, !tops.includes(d))).join('') || `<div class="pt-empty-big"><i class="fa-solid fa-building"></i><b>Todavía no hay departamentos en el portal</b><span>${b.admin ? 'Creá el primero en Configurar.' : 'Cuando administración los configure, aparecen acá.'}</span>${b.admin ? '<a class="wk-btn primary" href="#portal-config/nuevo"><i class="fa-solid fa-plus"></i> Crear departamento</a>' : ''}</div>`}</div>
     <div class="pt-h2-row"><h2 class="pt-h2">Tus últimas solicitudes</h2><a class="wk-link" href="#solicitudes/mias">Ver todas</a></div>
     <div class="pt-mylist">${mine.rows.length ? mine.rows.map(ptMyRow).join('') : `<div class="pt-empty"><i class="fa-regular fa-paper-plane"></i><b>No hiciste pedidos todavía</b><span>Elegí un departamento para empezar.</span></div>`}</div>`;
   $('pt-q').addEventListener('input', e => {
     const q = e.target.value.trim().toLowerCase();
-    M.querySelectorAll('#pt-depts .pt-dept').forEach(c => { c.hidden = q && !c.dataset.q.includes(q); });
+    M.querySelectorAll('#pt-depts .pt-dept').forEach(c => { c.hidden = q ? !c.dataset.q.includes(q) : c.dataset.sub === '1'; });
   });
   bindPtRows(M);
 }
-function ptDeptCard(d, i) {
+/** Tarjeta de un departamento. sub = es un subdepartamento en la grilla del inicio: queda oculto hasta que se busca. */
+function ptDeptCard(d, i, sub = false) {
   const load = d.open !== null && d.open !== undefined ? `<span class="pt-dept-open" title="Solicitudes abiertas"><i class="fa-solid fa-layer-group"></i>${d.open}</span>` : '';
-  return `<a class="pt-dept" href="#solicitudes/d/${d.id}" style="--c:${esc(d.color)};--i:${i}" data-q="${esc((d.name + ' ' + d.description).toLowerCase())}">
+  const up = sub && d.path ? d.path.split(' › ').slice(0, -1).join(' › ') : '';
+  const what = [d.forms ? d.forms + ' formulario' + (d.forms > 1 ? 's' : '') : '', d.subs ? d.subs + ' subdepartamento' + (d.subs > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') || 'Sin formularios publicados';
+  return `<a class="pt-dept${sub ? ' sub' : ''}" href="#solicitudes/d/${d.id}" style="--c:${esc(d.color)};--i:${i}" data-q="${esc(((d.path || d.name) + ' ' + d.description).toLowerCase())}"${sub ? ' data-sub="1" hidden' : ''}>
     <span class="pt-dept-bn"${d.banner ? ` style="background-image:url('portal_file.php?img=${esc(d.banner)}')"` : ''}><span class="pt-dept-ic"><i class="fa-solid ${esc(d.icon)}"></i></span>${load}${!d.portal_on ? '<span class="pt-off">Oculto</span>' : ''}</span>
-    <span class="pt-dept-b"><b>${esc(d.name)}</b><span>${esc(d.description || 'Pedidos al departamento')}</span>
-    <em>${d.forms ? d.forms + ' formulario' + (d.forms > 1 ? 's' : '') : 'Sin formularios publicados'}<i class="fa-solid fa-arrow-right"></i></em></span></a>`;
+    <span class="pt-dept-b">${up ? `<small class="pt-dept-up"><i class="fa-solid fa-turn-up fa-rotate-90"></i>${esc(up)}</small>` : ''}<b>${esc(d.name)}</b><span>${esc(d.description || 'Pedidos al departamento')}</span>
+    <em>${what}<i class="fa-solid fa-arrow-right"></i></em></span></a>`;
 }
 function ptMyRow(t) {
   const s = ptStage(t.stage);
   return `<a class="pt-row" href="#solicitudes/t/${t.id}" style="--c:${esc(s.color)}">
     <span class="pt-row-ic"><i class="fa-solid ${esc(s.icon)}"></i></span>
-    <span class="pt-row-m"><b>${esc(t.subject)}</b><small>${esc(t.code)} · ${esc((PT.boot.depts.find(d => d.id === t.team_id) || {}).name || '')} · pedida ${ago(t.created_at)}</small></span>
+    <span class="pt-row-m"><b>${esc(t.subject)}</b><small>${esc(t.code)} · ${esc((d => d.path || d.name || '')(PT.boot.depts.find(d => d.id === t.team_id) || {}))} · pedida ${ago(t.created_at)}</small></span>
     ${t.committed_date ? `<span class="pt-row-d${t.late ? ' late' : ''}"><i class="fa-regular fa-calendar"></i>${ptDate(t.committed_date)}</span>` : ''}
     ${ptChip(s)}</a>`;
 }
@@ -124,7 +128,8 @@ async function renderDept(id) {
   const d = r.dept;
   const roots = r.cats.filter(c => !c.parent_id);
   const lbl = p => p === null ? 'gray' : p <= d.green_pct ? 'green' : p <= d.yellow_pct ? 'yellow' : 'red';
-  M.innerHTML = `<div class="pt-crumbs"><a href="#solicitudes">Portal</a><i class="fa-solid fa-chevron-right"></i><span>${esc(d.name)}</span></div>
+  const subs = r.subs || [];
+  M.innerHTML = `<div class="pt-crumbs"><a href="#solicitudes">Portal</a>${(r.up || []).map(u => `<i class="fa-solid fa-chevron-right"></i><a href="#solicitudes/d/${u.id}">${esc(u.name)}</a>`).join('')}<i class="fa-solid fa-chevron-right"></i><span>${esc(d.name)}</span></div>
     <div class="pt-dhero" style="--c:${esc(d.color)}"${d.banner ? ` data-bn="1"` : ''}>
       ${d.banner ? `<span class="pt-dhero-img" style="background-image:url('portal_file.php?img=${esc(d.banner)}')"></span>` : ''}
       <span class="pt-dhero-ic"><i class="fa-solid ${esc(d.icon)}"></i></span>
@@ -133,9 +138,11 @@ async function renderDept(id) {
     </div>
     <div class="pt-dcols">
       <div>
-        <h2 class="pt-h2">¿Qué querés pedir?</h2>
+        ${subs.length ? `<h2 class="pt-h2">Subdepartamentos <small>${subs.length}</small></h2>
+          <div class="pt-grid pt-subs">${subs.map((s, i) => ptDeptCard({ ...s, open: null }, i)).join('')}</div>` : ''}
+        ${r.forms.length || !subs.length ? `<h2 class="pt-h2">¿Qué querés pedir${subs.length ? ` directamente a ${esc(d.name)}` : ''}?</h2>` : ''}
         <div class="pt-forms">${r.forms.map((f, i) => `<a class="pt-form" href="#solicitudes/f/${f.id}" style="--c:${esc(f.color)};--i:${i}"><span class="pt-form-ic"><i class="fa-solid ${esc(f.icon)}"></i></span><span><b>${esc(f.name)}</b><small>${esc(f.description || 'Completá el formulario')}</small></span><i class="fa-solid fa-arrow-right go"></i></a>`).join('')
-          || `<div class="pt-empty"><i class="fa-regular fa-file-lines"></i><b>Este departamento todavía no publicó formularios</b>${['admin', 'dept_admin'].includes(r.role) ? `<a class="wk-btn sm" href="#portal-config/${d.id}/formularios">Crear uno</a>` : ''}</div>`}</div>
+          || (subs.length ? '' : `<div class="pt-empty"><i class="fa-regular fa-file-lines"></i><b>Este departamento todavía no publicó formularios</b>${['admin', 'dept_admin'].includes(r.role) ? `<a class="wk-btn sm" href="#portal-config/${d.id}/formularios">Crear uno</a>` : ''}</div>`)}</div>
         ${roots.length ? `<h2 class="pt-h2">Lo que hace <small>${d.show_estimate ? 'con su tiempo base' : ''}</small></h2>
           <div class="pt-catlist">${roots.map(c => { const kids = r.cats.filter(x => x.parent_id === c.id); const fl = c.form_id && r.forms.some(f => f.id === c.form_id); return `<${fl ? `a href="#solicitudes/f/${c.form_id}"` : 'div'} class="pt-catc${fl ? ' link' : ''}" style="--c:${esc(c.color)}"><span class="ic">${c.image ? `<span style="background-image:url('portal_file.php?img=${esc(c.image)}')"></span>` : `<i class="fa-solid ${esc(c.icon || 'fa-shapes')}"></i>`}</span><div><b>${esc(c.name)}</b>${c.description ? `<small>${esc(c.description)}</small>` : ''}
             ${kids.length ? `<ul>${kids.map(k => `<li><span>${esc(k.name)}</span>${d.show_estimate && k.base_min ? `<em>${PTFmt.fmtMin(k.base_min)}</em>` : ''}</li>`).join('')}</ul>` : (d.show_estimate && c.base_min ? `<em class="one">${PTFmt.fmtMin(c.base_min)}</em>` : '')}${fl ? '<span class="pt-catgo">Pedir <i class="fa-solid fa-arrow-right"></i></span>' : ''}</div></${fl ? 'a' : 'div'}>`; }).join('')}</div>` : ''}

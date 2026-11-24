@@ -50,6 +50,7 @@
 /* Grillas de tarjetas */
 .acc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .acc-card{background:var(--g7-bg-3);border:1px solid var(--g7-border-2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .15s;position:relative;overflow:hidden}
+.acc-card-sub{background:var(--g7-bg-2);border-style:dashed}
 .acc-card:hover{border-color:var(--g7-accent-border)}
 .acc-card-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
 .acc-card h4{font-size:14px;font-weight:800;margin-bottom:3px;display:flex;align-items:center;gap:7px}

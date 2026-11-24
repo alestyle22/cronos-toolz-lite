@@ -103,17 +103,18 @@ function int_market(): array {
             require_once dirname(__DIR__) . '/pagos/lib.php';
             $desc = ['mercadopago' => 'Checkout Pro con tarjetas, dinero en cuenta y medios locales de Argentina y Latinoamérica.', 'stripe' => 'Tarjetas internacionales, Apple Pay y Google Pay. Ideal para USD y EUR.',
                 'paypal' => 'Pagos internacionales con cuenta PayPal o tarjeta, en USD y EUR. Reembolsos y avisos verificados.',
-                'transfer' => 'Datos bancarios por moneda, referencia única y comprobante. Una persona la aprueba.',
+                'transfer' => 'Varias cuentas bancarias, cada una con su moneda. El comprador sube el comprobante y una persona lo aprueba.',
                 // 2026-11-16: Venezuela, cripto, Uruguay y España
                 'pagomovil' => 'Venezuela: pago al teléfono del comercio en bolívares, con la tasa del día para cobrar lo que está en dólares.',
                 'zelle' => 'Dólares desde bancos de EE. UU., muy usado en Venezuela. El comprador carga el código y una persona lo aprueba.',
                 'zinli' => 'Billetera en dólares de Venezuela y Panamá. El comprador carga la referencia y una persona lo aprueba.',
+                'binancepers' => 'USDT a tu cuenta personal de Binance. El comprador sube la captura y una persona lo aprueba.',
                 'binancepay' => 'USDT desde la cuenta de Binance del comprador, con la API de comercios. Se confirma consultando a Binance.',
                 'usdt' => 'USDT por la red TRON a tu propia billetera, sin intermediarios. Se verifica solo en la cadena.',
                 'dlocalgo' => 'Uruguay y la región: tarjetas locales, Abitab, RedPagos, Prex y más medios locales.',
                 'redsys' => 'España: tarjeta con el TPV virtual de tu banco.',
                 'bizum' => 'España: pago con el móvil desde el banco, por el mismo TPV de Redsys.'];
-            foreach (['mercadopago', 'stripe', 'paypal', 'transfer', 'pagomovil', 'zelle', 'zinli', 'binancepay', 'usdt', 'dlocalgo', 'redsys', 'bizum'] as $id) {
+            foreach (['mercadopago', 'stripe', 'paypal', 'transfer', 'pagomovil', 'zelle', 'zinli', 'binancepers', 'binancepay', 'usdt', 'dlocalgo', 'redsys', 'bizum'] as $id) {
                 if (!isset(pay_providers()[$id])) continue;
                 $p = pay_provider_public($id); $err = $p['last_error'] && (!$p['last_ok'] || $p['last_error']['at'] > $p['last_ok']);
                 $add('pay_' . $id, $p['label'], 'pagos', $p['icon'], $p['color'], $desc[$id], $p['ready'] ? ($err ? 'warn' : 'ok') : ($p['on'] ? 'warn' : 'off'), ['url' => '/toolz/pagos/admin/#medios']);

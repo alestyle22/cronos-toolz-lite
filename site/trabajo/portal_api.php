@@ -208,14 +208,22 @@ case 'boot':
         $q = $db->prepare('SELECT COUNT(*) FROM g7_wk_forms WHERE team_id = ? AND active = 1 AND version > 0 AND is_template = 0'); $q->execute([$d['id']]);
         $q2 = $db->prepare("SELECT COUNT(*) FROM g7_wk_tickets WHERE team_id = ? AND status IN ('abierto', 'en_curso', 'esperando')"); $q2->execute([$d['id']]);
         $depts[] = ['id' => $d['id'], 'name' => $d['name'], 'description' => $d['description'], 'icon' => $d['icon'], 'color' => $d['color'], 'banner' => $d['banner'],
-                    'portal_on' => $d['portal_on'], 'role' => $role, 'forms' => (int)$q->fetchColumn(), 'open' => in_array($role, ['admin', 'dept_admin', 'responsable', 'member'], true) ? (int)$q2->fetchColumn() : null];
+                    'portal_on' => $d['portal_on'], 'role' => $role, 'forms' => (int)$q->fetchColumn(), 'open' => in_array($role, ['admin', 'dept_admin', 'responsable', 'member'], true) ? (int)$q2->fetchColumn() : null,
+                    'parent_id' => $d['parent_id'], 'path' => $d['path'], 'can_sub' => pt_can_sub($db, $ctx, $d['id'])];
     }
+    // Subdepartamentos: el padre visible más cercano (si el directo no se ve, el de más arriba) y cuántos tiene debajo
+    $vis = array_column($depts, null, 'id'); $par = g7_team_parents($db);
+    foreach ($depts as &$x) { $p = $x['parent_id']; while ($p && !isset($vis[$p])) $p = $par[$p] ?? null; $x['up'] = $p; }
+    unset($x);
+    foreach ($depts as &$x) { $me_ = $x['id']; $x['subs'] = count(array_filter($depts, fn($y) => $y['up'] === $me_)); }
+    unset($x);
     $st = pt_stages($db);
     pa_out(['me' => ['id' => $uid, 'role' => $ctx['role'], 'teams' => $ctx['teams'], 'lead' => $ctx['lead']], 'admin' => $ctx['role'] === 'admin', 'all' => $ctx['all'],
         'depts' => $depts, 'stages' => $st['stages'], 'trans' => $st['trans'], 'priorities' => $cfg['priorities'], 'people' => pa_people($db), 'today' => pt_today(),
         'types' => array_map(fn($t) => $t[0], PT_TYPES), 'off_kinds' => PT_OFF_KINDS, 'file_ext' => PT_FILE_EXT, 'img_ext' => PT_IMG_EXT,
         'old_requests' => (int)$db->query('SELECT COUNT(*) FROM g7_wk_requests')->fetchColumn() > 0,
-        'teams' => array_map(fn($t) => ['id' => (int)$t['id'], 'name' => $t['name']], $db->query('SELECT id, name FROM g7_teams WHERE active = 1 ORDER BY name')->fetchAll(PDO::FETCH_ASSOC)),   // portal aparte (solicitudes/): no tiene el arranque de Trabajo
+        'teams' => array_map(fn($t) => ['id' => (int)$t['id'], 'name' => $t['name'], 'path' => $t['path'], 'depth' => $t['depth']], g7_team_tree_sort($db, $db->query('SELECT id, name FROM g7_teams WHERE active = 1 ORDER BY name')->fetchAll(PDO::FETCH_ASSOC))),   // portal aparte (solicitudes/): no tiene el arranque de Trabajo
+        'max_depth' => G7_TEAM_MAX_DEPTH,
         'filters' => json_decode((string)$db->query("SELECT pref_value FROM g7_user_prefs WHERE user_id = $uid AND pref_key = 'wk_pt_filters'")->fetchColumn(), true) ?: []]);
 
 case 'dept_home':
@@ -229,8 +237,21 @@ case 'dept_home':
     $to = date('Y-m-d', strtotime('+13 days'));
     $cap = pt_capacity($db, $d, pt_today(), $to); $com = pt_committed($db, $d['id'], pt_today(), $to);
     $load = []; foreach ($cap as $day => $c) $load[] = ['day' => $day, 'work' => $c['work'], 'pct' => $c['usable'] ? (int)round(($com[$day]['min'] ?? 0) * 100 / $c['usable']) : null];
+    // Subdepartamentos que esta persona ve y los departamentos de arriba (para las migas)
+    $subs = [];
+    foreach (g7_team_children($db, $d['id']) as $cid) {
+        $c = pt_dept($db, $cid); if (!$c || !$c['active']) continue;
+        $cr = pt_role($db, $ctx, $cid); if (!$cr || (!$c['portal_on'] && !in_array($cr, ['admin', 'dept_admin'], true))) continue;
+        $q = $db->prepare('SELECT COUNT(*) FROM g7_wk_forms WHERE team_id = ? AND active = 1 AND version > 0 AND is_template = 0'); $q->execute([$cid]);
+        $subs[] = ['id' => $cid, 'name' => $c['name'], 'description' => $c['description'], 'icon' => $c['icon'], 'color' => $c['color'], 'banner' => $c['banner'], 'portal_on' => $c['portal_on'],
+                   'forms' => (int)$q->fetchColumn(), 'subs' => count(g7_team_children($db, $cid)), 'position' => $c['position']];
+    }
+    usort($subs, fn($a, $b) => [$a['position'], $a['name']] <=> [$b['position'], $b['name']]);
+    $up = [];
+    foreach (array_reverse(g7_team_ancestors($db, $d['id'])) as $aid) { $a = pt_dept($db, $aid); if ($a && pt_role($db, $ctx, $aid)) $up[] = ['id' => $aid, 'name' => $a['name']]; }
     pa_out(['dept' => ['id' => $d['id'], 'name' => $d['name'], 'description' => $d['description'], 'icon' => $d['icon'], 'color' => $d['color'], 'banner' => $d['banner'],
-            'show_estimate' => $d['show_estimate'], 'green_pct' => $d['green_pct'], 'yellow_pct' => $d['yellow_pct']], 'role' => $role, 'forms' => $forms, 'cats' => pa_cats($db, $d['id']), 'load' => $load]);
+            'show_estimate' => $d['show_estimate'], 'green_pct' => $d['green_pct'], 'yellow_pct' => $d['yellow_pct']], 'role' => $role, 'forms' => $forms, 'cats' => pa_cats($db, $d['id']), 'load' => $load,
+            'subs' => $subs, 'up' => $up]);
 
 case 'form_get':   // el formulario para llenarlo (versión publicada) + el borrador de quien pide
     [$f, $v, $d] = pa_usable_form($db, $ctx, (int)($in['form_id'] ?? 0));
@@ -658,7 +679,14 @@ case 'ticket_msg':   // respuesta pública o nota interna, con adjuntos (mismo c
 
 // ── Configuración del departamento ───────────────────────────
 case 'dept_create':
-    if ($ctx['role'] !== 'admin') pa_fail('Solo administración crea departamentos', 403);
+    // Un subdepartamento (parent_id) lo crea quien configura el de arriba; uno de primer nivel, solo administración
+    $parent = (int)($in['parent_id'] ?? 0);
+    $pd = $parent ? pa_dept($db, $parent) : null;
+    if ($pd) { if (!pt_can_config($db, $ctx, $pd['id'])) pa_fail('Solo administración o la jefatura de ' . $pd['name'] . ' crean subdepartamentos ahí', 403); }
+    elseif ($ctx['role'] !== 'admin') pa_fail('Solo administración crea departamentos', 403);
+    if ($pd && ($why = g7_team_parent_problem($db, 0, $pd['id']))) pa_fail($why);
+    $leadId = (int)($in['lead_id'] ?? 0);
+    if ($leadId) { $q = $db->prepare('SELECT 1 FROM g7_users WHERE id = ? AND active = 1'); $q->execute([$leadId]); if (!$q->fetchColumn()) pa_fail('Esa persona no existe'); }
     $name = pt_s($in['name'] ?? '', 100); if ($name === '') pa_fail('Poné un nombre');
     $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name)), '-') ?: 'depto';
     $base = $slug; $i = 1;
@@ -666,10 +694,20 @@ case 'dept_create':
     $color = preg_match('/^#[0-9a-f]{6}$/i', (string)($in['color'] ?? '')) ? strtolower($in['color']) : '#ff6600';
     $db->prepare('INSERT INTO g7_teams (name, slug, description, color, created_by) VALUES (?, ?, ?, ?, ?)')->execute([$name, $slug, pt_s($in['description'] ?? '', 500), $color, $uid]);
     $id = (int)$db->lastInsertId();
+    if ($pd) {
+        g7_team_set_parent($db, $id, $pd['id']);
+        // Arranca con la configuración de su departamento (horarios, capacidad, quién pide, aprobación…) y sus permisos de módulos
+        $cp = ['visibility', 'requesters', 'hours', 'cap_day_min', 'safety_pct', 'reserve_pct', 'min_lead_h', 'max_lead_d', 'green_pct', 'yellow_pct', 'overload', 'show_estimate', 'est_unit', 'approval', 'auto_assign'];
+        $db->prepare('INSERT INTO g7_wk_dept (team_id, ' . implode(', ', $cp) . ', description, color, updated_at) SELECT ?, ' . implode(', ', $cp) . ', ?, ?, ? FROM g7_wk_dept WHERE team_id = ?')
+           ->execute([$id, pt_s($in['description'] ?? '', 2000), $color, pt_now(), $pd['id']]);
+        g7_team_copy_permissions($db, $pd['id'], $id);
+    }
     pt_dept($db, $id);
     $db->prepare('UPDATE g7_wk_dept SET icon = ?, color = ? WHERE team_id = ?')->execute([preg_match('/^fa-[a-z0-9-]{1,36}$/', (string)($in['icon'] ?? '')) ? $in['icon'] : 'fa-building', $color, $id]);
-    g7_audit('work_pt_dept_create', 'departamento #' . $id, ['name' => $name], $uid);
-    pt_audit($db, $id, null, $uid, 'dept_create', ['name' => $name]);
+    if ($leadId) $db->prepare("INSERT INTO g7_team_members (team_id, user_id, role) VALUES (?, ?, 'admin') ON DUPLICATE KEY UPDATE role = 'admin'")->execute([$id, $leadId]);
+    g7_audit('work_pt_dept_create', 'departamento #' . $id, ['name' => $name, 'parent' => $pd['id'] ?? null], $uid);
+    pt_audit($db, $id, null, $uid, 'dept_create', ['name' => $name, 'parent' => $pd['id'] ?? null, 'lead' => $leadId ?: null]);
+    if ($pd) pt_audit($db, $pd['id'], null, $uid, 'sub_create', ['id' => $id, 'name' => $name]);
     pa_out(['id' => $id]);
 
 case 'dept_get':
@@ -690,7 +728,25 @@ case 'dept_get':
     $to = date('Y-m-d', strtotime('+13 days'));
     $cap = pt_capacity($db, $d, pt_today(), $to); $com = pt_committed($db, $d['id'], pt_today(), $to);
     $next = []; foreach ($cap as $day => $c) $next[] = ['day' => $day, 'work' => $c['work'], 'cap' => $c['usable'], 'raw' => $c['cap'], 'committed' => $com[$day]['min'] ?? 0, 'closed' => $c['closed']];
+    $subs = [];
+    foreach (g7_team_children($db, $d['id']) as $cid) {
+        $c = pt_dept($db, $cid); if (!$c) continue;
+        $mem = pt_members($db, $cid);
+        $q = $db->prepare('SELECT COUNT(*) FROM g7_wk_forms WHERE team_id = ? AND is_template = 0'); $q->execute([$cid]);
+        $subs[] = ['id' => $cid, 'name' => $c['name'], 'icon' => $c['icon'], 'color' => $c['color'], 'active' => $c['active'], 'portal_on' => $c['portal_on'], 'forms' => (int)$q->fetchColumn(),
+                   'members' => count($mem), 'leads' => array_values(array_map(fn($m) => $m['name'], array_filter($mem, fn($m) => $m['lead']))), 'subs' => count(g7_team_children($db, $cid)), 'position' => $c['position']];
+    }
+    usort($subs, fn($a, $b) => [$a['position'], $a['name']] <=> [$b['position'], $b['name']]);
+    $up = array_map(function ($aid) use ($db) { $a = pt_dept($db, $aid); return ['id' => $aid, 'name' => $a['name'] ?? '']; }, array_reverse(g7_team_ancestors($db, $d['id'])));
+    // Adónde se puede mover (solo administración): cualquier departamento que no sea él ni uno de los suyos, sin pasarse de niveles
+    $moves = null;
+    if ($ctx['role'] === 'admin') {
+        $moves = [];
+        foreach (g7_team_tree_sort($db, $db->query('SELECT id, name FROM g7_teams WHERE active = 1')->fetchAll(PDO::FETCH_ASSOC)) as $t)
+            if (!g7_team_parent_problem($db, $d['id'], (int)$t['id'])) $moves[] = ['id' => (int)$t['id'], 'path' => $t['path']];
+    }
     pa_out(['dept' => $d, 'role' => $role, 'can_config' => in_array($role, ['admin', 'dept_admin'], true), 'members' => pt_members($db, $d['id']), 'offs' => $offs,
+        'subs' => $subs, 'up' => $up, 'can_sub' => pt_can_sub($db, $ctx, $d['id']), 'can_appoint' => pt_can_appoint($db, $ctx, $d['id']), 'moves' => $moves, 'max_depth' => G7_TEAM_MAX_DEPTH,
         'day_caps' => $q->fetchAll(PDO::FETCH_ASSOC), 'cats' => pa_cats($db, $d['id'], true), 'forms' => $forms, 'autos' => $autos, 'next' => $next,
         'boards' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $db->query('SELECT id, name FROM g7_wk_boards WHERE archived = 0 ORDER BY is_default DESC, name')->fetchAll(PDO::FETCH_ASSOC))]);
 
@@ -718,6 +774,11 @@ case 'dept_save':
         'position' => $int('position', 0, 999, $d['position']),
     ];
     if ($vals['yellow_pct'] < $vals['green_pct']) $vals['yellow_pct'] = $vals['green_pct'];
+    if (array_key_exists('parent_id', $x) && (int)$x['parent_id'] !== (int)$d['parent_id']) {   // cambiar de quién depende
+        if ($ctx['role'] !== 'admin') pa_fail('Solo administración mueve un departamento a otro', 403);
+        try { g7_team_set_parent($db, $d['id'], (int)$x['parent_id'] ?: null); } catch (RuntimeException $e) { pa_fail($e->getMessage()); }
+        pt_audit($db, $d['id'], null, $uid, 'dept_move', ['from' => $d['parent_id'], 'to' => (int)$x['parent_id'] ?: null]);
+    }
     $db->prepare('UPDATE g7_wk_dept SET ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($vals))) . ', updated_by = ?, updated_at = ? WHERE team_id = ?')->execute([...array_values($vals), $uid, pt_now(), $d['id']]);
     if (isset($x['name']) && ($n = pt_s($x['name'], 100)) !== '' && $n !== $d['name']) $db->prepare('UPDATE g7_teams SET name = ? WHERE id = ?')->execute([$n, $d['id']]);
     $db->prepare('UPDATE g7_teams SET color = ?, description = ? WHERE id = ?')->execute([$vals['color'], mb_substr($vals['description'], 0, 500), $d['id']]);
@@ -747,11 +808,11 @@ case 'member_remove':
     $u = (int)($in['user_id'] ?? 0);
     $q = $db->prepare('SELECT 1 FROM g7_users WHERE id = ? AND active = 1'); $q->execute([$u]); if (!$q->fetchColumn()) pa_fail('Esa persona no existe');
     if ($act === 'member_add') {
-        $role = ($in['role'] ?? '') === 'admin' && $ctx['role'] === 'admin' ? 'admin' : 'member';
+        $role = ($in['role'] ?? '') === 'admin' && pt_can_appoint($db, $ctx, $d['id']) ? 'admin' : 'member';   // el jefe lo nombra administración o la jefatura de arriba
         $db->prepare('INSERT INTO g7_team_members (team_id, user_id, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = IF(? = \'admin\', \'admin\', role)')->execute([$d['id'], $u, $role, $role]);
     } else {
         $q = $db->prepare('SELECT role FROM g7_team_members WHERE team_id = ? AND user_id = ?'); $q->execute([$d['id'], $u]);
-        if ($q->fetchColumn() === 'admin' && $ctx['role'] !== 'admin') pa_fail('Solo administración saca a un jefe del departamento', 403);
+        if ($q->fetchColumn() === 'admin' && !pt_can_appoint($db, $ctx, $d['id'])) pa_fail('Solo administración o la jefatura de arriba sacan a un jefe del departamento', 403);
         $db->prepare('DELETE FROM g7_team_members WHERE team_id = ? AND user_id = ?')->execute([$d['id'], $u]);
         $db->prepare('DELETE FROM g7_wk_member_cap WHERE team_id = ? AND user_id = ?')->execute([$d['id'], $u]);
     }

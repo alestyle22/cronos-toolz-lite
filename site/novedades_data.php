@@ -12,6 +12,29 @@
  * Doc: toolz/NOVEDADES.md
  */
 return [
+    // Transferencia con varias cuentas por moneda, Binance Pay personal y portal de comprobantes (2026-11-24). Solo admins con pagos.
+    '1.0.84' => [
+        'date' => '2026-11-24',
+        'title' => 'Subdepartamentos, cuentas bancarias por moneda y comprobantes',
+        'slides' => [
+            ['icon' => 'fa-sitemap', 'color' => '#8b5cf6', 'title' => 'Subdepartamentos y subequipos',
+             'text' => 'Un departamento ahora puede tener subdepartamentos, y un equipo, subequipos. Cada uno tiene su jefe, su gente, su configuración y sus propios formularios, que arma su jefe.',
+             'chips' => [['fa-user-tie', 'Un jefe por área'], ['fa-file-lines', 'Sus formularios'], ['fa-layer-group', 'Hasta 4 niveles']],
+             'link' => '/toolz/trabajo/#solicitudes', 'module' => 'tareas'],
+            ['icon' => 'fa-building-columns', 'color' => '#0ea5e9', 'title' => 'Varias cuentas para transferir',
+             'text' => 'Cargá todas las cuentas bancarias que uses, cada una con su moneda y sus datos completos. Si hay más de una en la misma moneda, el comprador elige a cuál transferir.',
+             'chips' => [['fa-coins', 'Una moneda por cuenta'], ['fa-list-check', 'Datos completos'], ['fa-globe', 'Pagos del exterior']],
+             'link' => '/toolz/pagos/admin/#medios', 'module' => 'pagos', 'role' => 'admin'],
+            ['icon' => 'fa-file-invoice-dollar', 'color' => '#22c55e', 'title' => 'Comprobantes para aprobar',
+             'text' => 'Quien paga por transferencia sube el comprobante. En Finanzas y pagos › Comprobantes los ves en grande, filtrás por cuenta o moneda y aprobás o rechazás cada pago.',
+             'chips' => [['fa-upload', 'Comprobante obligatorio'], ['fa-filter', 'Filtros'], ['fa-check', 'Aprobación a mano']],
+             'link' => '/toolz/pagos/admin/#transferencias', 'module' => 'pagos', 'role' => 'admin'],
+            ['icon' => 'fa-wallet', 'color' => '#c99400', 'title' => 'Binance Pay con tu cuenta personal',
+             'text' => 'Un medio nuevo para cobrar en USDT a tu cuenta de Binance sin la API de comercios: el comprador envía, sube la captura y vos lo aprobás.',
+             'chips' => [['fa-dollar-sign', 'USDT'], ['fa-image', 'Captura'], ['fa-user-check', 'Con revisión']],
+             'link' => '/toolz/pagos/admin/#medios', 'module' => 'pagos', 'role' => 'admin'],
+        ],
+    ],
     // Blog Studio + Your Web (solo admins de entrada) y Mockup Studio, Paletas y marco de la foto para todos (2026-11-18).
     '1.0.81' => [
         'date' => '2026-11-18',

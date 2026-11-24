@@ -5,6 +5,8 @@ require_once __DIR__ . '/csp_lib.php'; g7_csp_enforce();   // CSP estricta en mo
 $isAdmin     = ($currentUser['role'] === 'admin');
 $db          = getDB();
 $me          = $currentUser['id'];
+require_once __DIR__ . '/teams_lib.php';   // subequipos: el admin de un equipo también administra los de abajo
+g7_team_parents($db);
 
 // Solo admins globales o admins de algún equipo
 $myTeams = getUserTeams($me);
@@ -44,7 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                LEFT JOIN g7_users u ON u.id=t.created_by
                GROUP BY t.id ORDER BY t.name";
         $teams = $db->query($sql)->fetchAll();
-        echo json_encode(['ok'=>true, 'teams'=>$teams]); exit;
+        // Subequipos de los equipos que administra (aunque no sea miembro)
+        if (!$isAdmin) {
+            $led = array_map(fn($t) => (int)$t['id'], array_filter($teams, fn($t) => ($t['my_role'] ?? '') === 'admin'));
+            $have = array_map(fn($t) => (int)$t['id'], $teams);
+            $more = array_diff(g7_team_descendants($db, $led), $have);
+            if ($more) $teams = array_merge($teams, $db->query("SELECT t.*, COUNT(tm.user_id) as member_count, u.display_name as creator_name, 'admin' as my_role
+                FROM g7_teams t LEFT JOIN g7_team_members tm ON tm.team_id=t.id LEFT JOIN g7_users u ON u.id=t.created_by
+                WHERE t.id IN (" . implode(',', array_map('intval', $more)) . ") GROUP BY t.id")->fetchAll());
+        }
+        $teams = g7_team_tree_sort($db, $teams);
+        echo json_encode(['ok'=>true, 'teams'=>$teams, 'max_depth'=>G7_TEAM_MAX_DEPTH]); exit;
     }
 
     // ── GET TEAM DETAIL ───────────────────────────────
@@ -76,13 +88,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cfg = $db->prepare("SELECT * FROM g7_team_config WHERE team_id=?");
         $cfg->execute([$teamId]); $cfg = $cfg->fetch();
 
-        echo json_encode(['ok'=>true, 'team'=>$team, 'members'=>$members, 'permissions'=>$perms, 'config'=>$cfg]);
+        // Subequipos: de qué equipo depende, cuáles tiene y si puede crear otro
+        $names = $db->query("SELECT id, name FROM g7_teams")->fetchAll(PDO::FETCH_KEY_PAIR);
+        $par = g7_team_parents($db)[$teamId] ?? null;
+        $kids = array_map(fn($c) => ['id' => $c, 'name' => $names[$c] ?? ''], g7_team_children($db, $teamId));
+        echo json_encode(['ok'=>true, 'team'=>$team, 'members'=>$members, 'permissions'=>$perms, 'config'=>$cfg,
+            'parent' => $par ? ['id' => $par, 'path' => g7_team_path($db, $par, $names)] : null, 'children' => $kids,
+            'can_edit' => $isAdmin || isTeamAdmin($me, $teamId), 'can_sub' => g7_team_depth($db, $teamId) < G7_TEAM_MAX_DEPTH]);
         exit;
     }
 
     // ── CREATE TEAM ───────────────────────────────────
     if ($act === 'create_team') {
-        if (!$isAdmin) { echo json_encode(['error'=>'Solo admins globales']); exit; }
+        // Un subequipo lo crea un admin global o el admin del equipo de arriba; uno de primer nivel, solo un admin global
+        $parent = (int)($in['parent_id'] ?? 0);
+        if ($parent ? (!$isAdmin && !isTeamAdmin($me, $parent)) : !$isAdmin) { echo json_encode(['error'=>$parent ? 'Solo el admin de ese equipo crea subequipos' : 'Solo admins globales']); exit; }
+        if ($why = g7_team_parent_problem($db, 0, $parent ?: null)) { echo json_encode(['error'=>$why]); exit; }
         $name  = trim($in['name'] ?? '');
         $color = $in['color'] ?? '#ff6600';
         $desc  = trim($in['description'] ?? '');
@@ -96,6 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("INSERT INTO g7_teams (name,slug,description,color,created_by) VALUES (?,?,?,?,?)")
            ->execute([$name, $slug, $desc, $color, $me]);
         $teamId = $db->lastInsertId();
+
+        if ($parent) {
+            // Subequipo: queda dentro de su equipo y arranca con sus permisos. Quien lo crea ya lo administra desde arriba (no se suma)
+            g7_team_set_parent($db, (int)$teamId, $parent);
+            g7_team_copy_permissions($db, $parent, (int)$teamId);
+            echo json_encode(['ok'=>true, 'team_id'=>$teamId, 'slug'=>$slug]); exit;
+        }
 
         // Add creator as team admin
         $db->prepare("INSERT INTO g7_team_members (team_id,user_id,role,is_primary) VALUES (?,?,?,0)")
@@ -134,6 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$isAdmin) { echo json_encode(['error'=>'Solo admins globales']); exit; }
         $teamId = (int)($in['team_id'] ?? 0);
         if ($teamId === 1) { echo json_encode(['error'=>'No se puede eliminar el equipo principal']); exit; }
+        g7_team_before_delete($db, $teamId);   // sus subequipos suben un nivel
         $db->prepare("DELETE FROM g7_team_members WHERE team_id=?")->execute([$teamId]);
         $db->prepare("DELETE FROM g7_team_permissions WHERE team_id=?")->execute([$teamId]);
         $db->prepare("DELETE FROM g7_team_config WHERE team_id=?")->execute([$teamId]);

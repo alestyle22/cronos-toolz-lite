@@ -34,7 +34,7 @@ async function renderManage(arg) {
     </div>
     <div class="pt-filters" id="ptm-f">
       <label class="pt-search sm"><i class="fa-solid fa-magnifying-glass"></i><input data-f="q" placeholder="Buscar (T-0012, título…)" value="${esc(PTM.f.q || '')}"></label>
-      <select class="wk-in sm" data-f="team_id"><option value="">Todos los departamentos</option>${depts.map(d => `<option value="${d.id}"${+PTM.f.team_id === d.id ? ' selected' : ''}>${esc(d.name)}</option>`).join('')}</select>
+      <select class="wk-in sm" data-f="team_id"><option value="">Todos los departamentos</option>${depts.map(d => `<option value="${d.id}"${+PTM.f.team_id === d.id ? ' selected' : ''}>${esc(d.path || d.name)}</option>`).join('')}</select>
       <select class="wk-in sm" data-f="stage"><option value="">Todas las etapas</option>${b.stages.map(s => `<option value="${esc(s.id)}"${PTM.f.stage === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
       <select class="wk-in sm" data-f="priority"><option value="">Cualquier prioridad</option>${b.priorities.map(p => `<option value="${esc(p.id)}"${PTM.f.priority === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
       <select class="wk-in sm" data-f="assignee_id"><option value="">Cualquier responsable</option><option value="0"${PTM.f.assignee_id === '0' ? ' selected' : ''}>Sin asignar</option>${b.people.map(p => `<option value="${p.id}"${String(PTM.f.assignee_id) === String(p.id) ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
@@ -182,21 +182,24 @@ async function renderPortalConfig(arg, tab) {
   if (arg === 'etapas') return ptStagesPage();
   if (+arg) return ptDeptConfig(+arg, tab || 'general');
   const list = b.depts.filter(d => ['admin', 'dept_admin', 'responsable'].includes(d.role));
-  M.innerHTML = `<div class="wk-h"><div><h1>Configurar el portal<span>.</span></h1><p>Cada departamento define quién le puede pedir, sus horarios y capacidad, sus categorías con tiempos y sus formularios.</p></div>
+  const upName = d => (b.depts.find(x => x.id === d.up) || {}).path || '';
+  M.innerHTML = `<div class="wk-h"><div><h1>Configurar el portal<span>.</span></h1><p>Cada departamento (y cada subdepartamento) define quién le puede pedir, sus horarios y capacidad, sus categorías con tiempos y sus formularios.</p></div>
     <div class="wk-h-a">${b.admin ? '<a class="wk-btn" href="#portal-config/etapas"><i class="fa-solid fa-diagram-next"></i> Etapas</a><button type="button" class="wk-btn primary" id="pt-new-dept"><i class="fa-solid fa-plus"></i> Nuevo departamento</button>' : ''}</div></div>
-    <div class="pt-grid">${list.map((d, i) => `<a class="pt-dept cfg" href="#portal-config/${d.id}" style="--c:${esc(d.color)};--i:${i}"><span class="pt-dept-bn"${d.banner ? ` style="background-image:url('portal_file.php?img=${esc(d.banner)}')"` : ''}><span class="pt-dept-ic"><i class="fa-solid ${esc(d.icon)}"></i></span>${!d.portal_on ? '<span class="pt-off">Oculto</span>' : ''}</span><span class="pt-dept-b"><b>${esc(d.name)}</b><span>${d.forms} formulario${d.forms === 1 ? '' : 's'} · ${d.open ?? 0} abiertas</span><em>Configurar<i class="fa-solid fa-arrow-right"></i></em></span></a>`).join('') || '<div class="pt-empty-big"><i class="fa-solid fa-building"></i><b>No configurás ningún departamento</b></div>'}</div>`;
-  $('pt-new-dept')?.addEventListener('click', ptNewDept);
+    <div class="pt-grid">${list.map((d, i) => `<a class="pt-dept cfg${d.up ? ' sub' : ''}" href="#portal-config/${d.id}" style="--c:${esc(d.color)};--i:${i}"><span class="pt-dept-bn"${d.banner ? ` style="background-image:url('portal_file.php?img=${esc(d.banner)}')"` : ''}><span class="pt-dept-ic"><i class="fa-solid ${esc(d.icon)}"></i></span>${!d.portal_on ? '<span class="pt-off">Oculto</span>' : ''}</span><span class="pt-dept-b">${d.up ? `<small class="pt-dept-up"><i class="fa-solid fa-turn-up fa-rotate-90"></i>${esc(upName(d))}</small>` : ''}<b>${esc(d.name)}</b><span>${d.forms} formulario${d.forms === 1 ? '' : 's'} · ${d.open ?? 0} abiertas${d.subs ? ` · ${d.subs} sub` : ''}</span><em>Configurar<i class="fa-solid fa-arrow-right"></i></em></span></a>`).join('') || '<div class="pt-empty-big"><i class="fa-solid fa-building"></i><b>No configurás ningún departamento</b></div>'}</div>`;
+  $('pt-new-dept')?.addEventListener('click', () => ptNewDept());
   if (arg === 'nuevo' && b.admin) ptNewDept();
 }
-function ptNewDept() {
-  const dlg = $('wk-dlg'), st = { icon: 'fa-building', color: '#ff6600' };
-  dlg.innerHTML = `<div class="wk-dlg-in"><h3>Nuevo departamento</h3><label class="pt-lbl">Nombre</label><input class="wk-in" id="pt-nd-n" maxlength="100" placeholder="Ej.: Diseño, Audiovisual, RR. HH."><label class="pt-lbl">Descripción</label><input class="wk-in" id="pt-nd-d" maxlength="500" placeholder="Qué le pueden pedir">
+/** Nuevo departamento, o subdepartamento de `parent` ({id, name, color}): arranca con la configuración y los permisos del de arriba. */
+function ptNewDept(parent = null) {
+  const dlg = $('wk-dlg'), st = { icon: parent ? 'fa-sitemap' : 'fa-building', color: parent?.color || '#ff6600' };
+  dlg.innerHTML = `<div class="wk-dlg-in"><h3>${parent ? 'Nuevo subdepartamento de ' + esc(parent.name) : 'Nuevo departamento'}</h3><label class="pt-lbl">Nombre</label><input class="wk-in" id="pt-nd-n" maxlength="100" placeholder="${parent ? 'Ej.: Redes, Edición, Selección' : 'Ej.: Diseño, Audiovisual, RR. HH.'}"><label class="pt-lbl">Descripción</label><input class="wk-in" id="pt-nd-d" maxlength="500" placeholder="Qué le pueden pedir">
+    ${parent ? `<label class="pt-lbl">Jefe del subdepartamento</label><select class="wk-in" id="pt-nd-l"><option value="">Lo elijo después</option>${PT.boot.people.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>` : ''}
     <label class="pt-lbl">Ícono</label>${ptIconPick(st.icon, 'icon')}<label class="pt-lbl">Color</label>${ptColorPick(st.color, 'color')}
-    <p class="pt-muted">Es un equipo como los de Admin › Equipos: después sumás a su gente y la configurás acá.</p>
+    <p class="pt-muted">${parent ? `Arranca con los horarios, la capacidad, quién puede pedir y los permisos de ${esc(parent.name)}; después lo cambiás. Su jefe lo configura y arma sus formularios, y la jefatura de ${esc(parent.name)} también lo puede administrar.` : 'Es un equipo como los de Admin › Equipos: después sumás a su gente y la configurás acá.'}</p>
     <div class="acts"><button type="button" class="wk-btn" data-x>Cancelar</button><button type="button" class="pt-btn primary" id="pt-nd-go">Crear</button></div></div>`;
   dlg.showModal(); ptBindPickers(dlg, st); $('pt-nd-n').focus();
   dlg.querySelector('[data-x]').addEventListener('click', () => dlg.close());
-  $('pt-nd-go').addEventListener('click', async () => { try { const r = await ptApi('dept_create', { name: $('pt-nd-n').value, description: $('pt-nd-d').value, icon: st.icon, color: st.color }); dlg.close(); toast('Departamento creado'); location.hash = 'portal-config/' + r.id + '/disponibilidad'; } catch (e) { toast(e.message, true); } });
+  $('pt-nd-go').addEventListener('click', async () => { try { const r = await ptApi('dept_create', { name: $('pt-nd-n').value, description: $('pt-nd-d').value, icon: st.icon, color: st.color, parent_id: parent?.id || 0, lead_id: +($('pt-nd-l')?.value || 0) }); dlg.close(); toast(parent ? 'Subdepartamento creado' : 'Departamento creado'); PT.boot = null; location.hash = 'portal-config/' + r.id + (parent ? '/general' : '/disponibilidad'); } catch (e) { toast(e.message, true); } });
 }
 async function ptDeptConfig(id, tab) {
   const M = $('wk-main');
@@ -204,13 +207,13 @@ async function ptDeptConfig(id, tab) {
   const r = await ptApi('dept_get', { team_id: id });
   const d = r.dept, can = r.can_config;
   const tabs = [['general', 'fa-id-card', 'General'], ['disponibilidad', 'fa-clock', 'Horarios y capacidad'], ['equipo', 'fa-users', 'Equipo'], ['ausencias', 'fa-plane', 'Ausencias y feriados'],
-    ['categorias', 'fa-shapes', 'Categorías y tiempos'], ['formularios', 'fa-file-lines', 'Formularios'], ['automatizaciones', 'fa-robot', 'Automatizaciones'], ['historial', 'fa-clock-rotate-left', 'Historial']];
-  M.innerHTML = `<div class="pt-crumbs"><a href="#portal-config">Configurar</a><i class="fa-solid fa-chevron-right"></i><span>${esc(d.name)}</span></div>
-    <div class="pt-cfg-h" style="--c:${esc(d.color)}"><span class="pt-dhero-ic"><i class="fa-solid ${esc(d.icon)}"></i></span><div><h1>${esc(d.name)}</h1><p>${can ? 'Todo lo que cambies acá se aplica al momento. Lo que mueve la capacidad recalcula la carga de las solicitudes abiertas.' : 'Solo lectura: lo configuran administración o la jefatura del departamento.'}</p></div><a class="wk-btn sm" href="#solicitudes/d/${d.id}"><i class="fa-solid fa-eye"></i> Ver como quien pide</a></div>
+    ['categorias', 'fa-shapes', 'Categorías y tiempos'], ['formularios', 'fa-file-lines', 'Formularios'], ['subdepartamentos', 'fa-sitemap', 'Subdepartamentos' + (r.subs.length ? ` <small>${r.subs.length}</small>` : '')], ['automatizaciones', 'fa-robot', 'Automatizaciones'], ['historial', 'fa-clock-rotate-left', 'Historial']];
+  M.innerHTML = `<div class="pt-crumbs"><a href="#portal-config">Configurar</a>${r.up.map(u => `<i class="fa-solid fa-chevron-right"></i><a href="#portal-config/${u.id}">${esc(u.name)}</a>`).join('')}<i class="fa-solid fa-chevron-right"></i><span>${esc(d.name)}</span></div>
+    <div class="pt-cfg-h" style="--c:${esc(d.color)}"><span class="pt-dhero-ic"><i class="fa-solid ${esc(d.icon)}"></i></span><div>${r.up.length ? `<small class="pt-dept-up"><i class="fa-solid fa-turn-up fa-rotate-90"></i>Subdepartamento de ${esc(r.up.map(u => u.name).join(' › '))}</small>` : ''}<h1>${esc(d.name)}</h1><p>${can ? 'Todo lo que cambies acá se aplica al momento. Lo que mueve la capacidad recalcula la carga de las solicitudes abiertas.' : 'Solo lectura: lo configuran administración o la jefatura del departamento.'}</p></div><a class="wk-btn sm" href="#solicitudes/d/${d.id}"><i class="fa-solid fa-eye"></i> Ver como quien pide</a></div>
     <div class="pt-cfg"><nav class="pt-cfg-nav">${tabs.map(([k, i, l]) => `<a href="#portal-config/${id}/${k}" class="${k === tab ? 'on' : ''}"><i class="fa-solid ${i}"></i>${l}</a>`).join('')}</nav><div class="pt-cfg-b" id="pt-cfg-b"></div></div>`;
   const B = $('pt-cfg-b');
   const reload = () => ptDeptConfig(id, tab);
-  ({ general: ptCfgGeneral, disponibilidad: ptCfgHours, equipo: ptCfgTeam, ausencias: ptCfgOffs, categorias: ptCfgCats, formularios: ptCfgForms, automatizaciones: ptCfgAutos, historial: ptCfgAudit }[tab] || ptCfgGeneral)(B, r, reload);
+  ({ general: ptCfgGeneral, disponibilidad: ptCfgHours, equipo: ptCfgTeam, ausencias: ptCfgOffs, categorias: ptCfgCats, formularios: ptCfgForms, subdepartamentos: ptCfgSubs, automatizaciones: ptCfgAutos, historial: ptCfgAudit }[tab] || ptCfgGeneral)(B, r, reload);
   if (!can) B.querySelectorAll('input,select,textarea,button:not(.pt-ro-ok)').forEach(x => { x.disabled = true; });
 }
 const ptSave = async (B, team_id, dept, msg = 'Guardado') => { try { const r = await ptApi('dept_save', { team_id, dept }); toast(r.recalc ? `${msg}: se recalcularon ${r.recalc} solicitudes` : msg); return true; } catch (e) { toast(e.message, true); return false; } };
@@ -227,6 +230,8 @@ function ptCfgGeneral(B, r, reload) {
       <div id="g-req-t" class="pt-checks"${d.visibility === 'teams' ? '' : ' hidden'}>${teams.map(t => `<label><input type="checkbox" value="${t.id}"${d.requesters.teams.includes(t.id) ? ' checked' : ''}>${esc(t.name)}</label>`).join('')}</div>
       <div id="g-req-p" class="pt-checks"${d.visibility === 'people' ? '' : ' hidden'}>${PT.boot.people.map(p => `<label><input type="checkbox" value="${p.id}"${d.requesters.users.includes(p.id) ? ' checked' : ''}>${esc(p.name)}</label>`).join('')}</div>
       <p class="pt-muted">La gente del departamento y administración siempre pueden pedir.</p></div>
+    ${r.moves ? `<div class="wk-card"><h3>Depende de</h3><select class="wk-in" id="g-par"><option value="0">Ninguno (departamento de primer nivel)</option>${r.moves.map(t => `<option value="${t.id}"${t.id === d.parent_id ? ' selected' : ''}>${esc(t.path)}</option>`).join('')}</select>
+      <p class="pt-muted">Si lo ponés dentro de otro, pasa a ser su subdepartamento: la jefatura de arriba también lo administra. Su configuración y sus formularios no cambian.</p></div>` : ''}
     <div class="wk-card"><h3>Cómo se atiende</h3>
       <label class="pt-sw"><input type="checkbox" id="g-appr"${d.approval ? ' checked' : ''}><span></span>Los pedidos necesitan aprobación antes de empezar</label>
       <label class="pt-sw"><input type="checkbox" id="g-auto"${d.auto_assign ? ' checked' : ''}><span></span>Asignación automática según disponibilidad, capacidad y especialidad</label>
@@ -241,7 +246,7 @@ function ptCfgGeneral(B, r, reload) {
     const vis = B.querySelector('[name=g-vis]:checked').value;
     if (await ptSave(B, r.dept.id, { name: $('g-name').value, portal_on: $('g-on').checked, description: $('g-desc').value, icon: st.icon, color: st.color, banner: st.banner, visibility: vis,
       requesters: { teams: [...$('g-req-t').querySelectorAll('input:checked')].map(x => +x.value), users: [...$('g-req-p').querySelectorAll('input:checked')].map(x => +x.value) },
-      approval: $('g-appr').checked, auto_assign: $('g-auto').checked, show_estimate: $('g-est').checked, est_unit: $('g-unit').value, position: +$('g-pos').value })) { PT.boot = null; reload(); }
+      approval: $('g-appr').checked, auto_assign: $('g-auto').checked, show_estimate: $('g-est').checked, est_unit: $('g-unit').value, position: +$('g-pos').value, ...($('g-par') ? { parent_id: +$('g-par').value } : {}) })) { PT.boot = null; reload(); }
   });
 }
 async function ptImgUp(file, team) {
@@ -298,7 +303,7 @@ function ptCfgTeam(B, r, reload) {
   B.innerHTML = `<div class="wk-card"><h3>Integrantes <small>${r.members.length}</small></h3>
     <p class="pt-muted">Quién produce, con qué dedicación y en qué es especialista. Los responsables aprueban, asignan y cambian fechas.</p>
     <div class="pt-members">${r.members.map(m => `<div class="pt-mem" data-u="${m.id}">
-      <div class="pt-mem-h">${av(ptPerson(m.id), 34)}<div><b>${esc(m.name)}</b><small>${m.lead ? 'Jefe del departamento' : m.is_resp ? 'Responsable' : 'Miembro'}</small></div><span class="sp"></span>${r.can_config && !m.lead ? `<button type="button" class="pt-ic" data-rm="${m.id}" title="Sacar del departamento"><i class="fa-solid fa-user-minus"></i></button>` : ''}</div>
+      <div class="pt-mem-h">${av(ptPerson(m.id), 34)}<div><b>${esc(m.name)}</b><small>${m.lead ? 'Jefe del ' + (r.up.length ? 'sub' : '') + 'departamento' : m.is_resp ? 'Responsable' : 'Miembro'}</small></div><span class="sp"></span>${r.can_config && (!m.lead || r.can_appoint) ? `<button type="button" class="pt-ic" data-rm="${m.id}" title="Sacar del departamento"><i class="fa-solid fa-user-minus"></i></button>` : ''}</div>
       <div class="pt-mem-b">
         <label class="pt-sw sm"><input type="checkbox" data-k="works"${m.works ? ' checked' : ''}><span></span>Toma trabajo</label>
         <label class="pt-sw sm"><input type="checkbox" data-k="is_resp"${m.is_resp ? ' checked' : ''}><span></span>Responsable</label>
@@ -308,7 +313,7 @@ function ptCfgTeam(B, r, reload) {
       <div class="pt-mem-hours"${m.hours ? '' : ' hidden'}>${ptHoursEditor(m.hours || d.hours, 'm' + m.id)}</div>
       ${cats.length ? `<div class="pt-skills"><span>Especialidad:</span>${cats.map(c => `<label class="pt-skill${m.skills.includes(c.id) ? ' on' : ''}" style="--c:${esc(c.color)}"><input type="checkbox" value="${c.id}"${m.skills.includes(c.id) ? ' checked' : ''}>${esc(c.name)}</label>`).join('')}</div>` : ''}
       <div class="pt-mem-a"><button type="button" class="wk-btn sm" data-save="${m.id}"><i class="fa-solid fa-check"></i> Guardar</button></div></div>`).join('')}</div>
-    ${r.can_config ? `<form class="pt-inline" id="t-add"><select class="wk-in"><option value="">Sumar a alguien…</option>${others.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>${PT.boot.admin ? '<label class="pt-sw sm"><input type="checkbox"><span></span>Como jefe</label>' : ''}<button class="wk-btn sm" type="submit"><i class="fa-solid fa-user-plus"></i> Sumar</button></form>` : ''}</div>`;
+    ${r.can_config ? `<form class="pt-inline" id="t-add"><select class="wk-in"><option value="">Sumar a alguien…</option>${others.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>${r.can_appoint ? '<label class="pt-sw sm"><input type="checkbox"><span></span>Como jefe</label>' : ''}<button class="wk-btn sm" type="submit"><i class="fa-solid fa-user-plus"></i> Sumar</button></form>` : ''}</div>`;
   ptBindHours(B);
   B.querySelectorAll('.pt-mem').forEach(c => {
     c.querySelector('[data-k=own]').addEventListener('change', e => { c.querySelector('.pt-mem-hours').hidden = !e.target.checked; });
@@ -401,6 +406,16 @@ function ptCfgForms(B, r, reload) {
   B.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', async () => { await ptApi('form_state', { id: +b.dataset.act, op: 'active', on: +b.dataset.on }); reload(); }));
   B.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => { if (!confirm('¿Borrar este formulario? Si ya tiene solicitudes, se desactiva.')) return; try { const x = await ptApi('form_state', { id: +b.dataset.del, op: 'delete' }); toast(x.msg || 'Borrado'); reload(); } catch (e) { toast(e.message, true); } }));
 }
+function ptCfgSubs(B, r, reload) {
+  const d = r.dept;
+  B.innerHTML = `<div class="wk-card"><h3>Subdepartamentos <span class="sp"></span>${r.can_sub ? '<button type="button" class="wk-btn sm primary pt-ro-ok" id="s-new"><i class="fa-solid fa-plus"></i> Nuevo subdepartamento</button>' : ''}</h3>
+    <p class="pt-muted">Un subdepartamento se configura igual que un departamento: su gente, horarios, capacidad, categorías, automatizaciones y sus propios formularios. Su jefe lo administra y arma los formularios; la jefatura de ${esc(d.name)} también puede.</p>
+    <div class="pt-flist">${r.subs.map(s => `<div class="pt-fitem pt-subrow" style="--c:${esc(s.color)}"><span class="ic"><i class="fa-solid ${esc(s.icon)}"></i></span><div class="m"><b>${esc(s.name)}${s.active ? '' : ' <em>(inactivo)</em>'}</b><small>${s.leads.length ? 'Jefe: ' + esc(s.leads.join(', ')) : '<em>Sin jefe</em>'} · ${s.members} integrante${s.members === 1 ? '' : 's'} · ${s.forms} formulario${s.forms === 1 ? '' : 's'}${s.subs ? ` · ${s.subs} sub` : ''}${s.portal_on ? '' : ' · oculto en el portal'}</small></div>
+      <a class="wk-btn sm pt-ro-ok" href="#portal-config/${s.id}/formularios"><i class="fa-solid fa-file-lines"></i> Formularios</a><a class="wk-btn sm primary pt-ro-ok" href="#portal-config/${s.id}"><i class="fa-solid fa-sliders"></i> Configurar</a></div>`).join('')
+      || `<div class="pt-empty"><i class="fa-solid fa-sitemap"></i><b>Sin subdepartamentos</b><span>${r.can_sub ? 'Dividí el departamento en áreas, cada una con su jefe y sus formularios.' : g7MaxSubMsg(r)}</span></div>`}</div>`;
+  $('s-new')?.addEventListener('click', () => ptNewDept({ id: d.id, name: d.name, color: d.color }));
+}
+const g7MaxSubMsg = r => r.can_config ? `Llegó al máximo de ${r.max_depth} niveles.` : 'Los crea administración o la jefatura del departamento.';
 const PT_EVENTS = { created: 'Entra una solicitud', approved: 'Se aprueba', rejected: 'Se rechaza', stage: 'Cambia de etapa', date: 'Cambia la fecha', comment: 'Hay un comentario', due_soon: 'Se entrega mañana', late: 'Está atrasada' };
 function ptCfgAutos(B, r, reload) {
   const d = r.dept;
@@ -438,7 +453,7 @@ function ptCfgAutos(B, r, reload) {
 async function ptCfgAudit(B, r) {
   B.innerHTML = `<div class="wk-card"><h3>Historial</h3><div id="au">${ptSk(3)}</div></div>`;
   const x = await ptApi('audit', { team_id: r.dept.id });
-  const L = { dept_create: 'creó el departamento', dept_save: 'cambió la configuración', member_save: 'cambió un integrante', member_add: 'sumó a alguien', member_remove: 'sacó a alguien', off_save: 'cargó una ausencia o feriado', cat_save: 'guardó una categoría', form_new: 'creó un formulario', form_publish: 'publicó un formulario', submit: 'hizo una solicitud', overload: 'aceptó sobrecarga', stage: 'cambió una etapa', approve: 'aprobó', reject: 'rechazó', assign: 'asignó', dates: 'cambió fecha o estimación' };
+  const L = { dept_create: 'creó el departamento', sub_create: 'creó un subdepartamento', dept_move: 'lo movió de departamento', dept_save: 'cambió la configuración', member_save: 'cambió un integrante', member_add: 'sumó a alguien', member_remove: 'sacó a alguien', off_save: 'cargó una ausencia o feriado', cat_save: 'guardó una categoría', form_new: 'creó un formulario', form_publish: 'publicó un formulario', submit: 'hizo una solicitud', overload: 'aceptó sobrecarga', stage: 'cambió una etapa', approve: 'aprobó', reject: 'rechazó', assign: 'asignó', dates: 'cambió fecha o estimación' };
   $('au').innerHTML = x.rows.length ? `<ul class="pt-audit">${x.rows.map(a => `<li>${av(ptPerson(a.user_id), 22)}<span><b>${esc(ptPerson(a.user_id)?.name || 'Sistema')}</b> ${esc(L[a.action] || a.action)}${a.ticket_id ? ` <a href="#solicitudes/t/${a.ticket_id}">T-${String(a.ticket_id).padStart(4, '0')}</a>` : ''}${a.detail && (a.detail.reason || a.detail.note) ? ` <em>"${esc(a.detail.reason || a.detail.note)}"</em>` : ''}</span><time>${ago(a.at)}</time></li>`).join('')}</ul>` : '<p class="pt-muted">Sin movimientos.</p>';
 }
 async function ptStagesPage() {
@@ -466,7 +481,7 @@ async function renderPortalMetrics() {
   const to = PT.boot.today, from = new Date(new Date(to + 'T12:00:00') - (PTX.per - 1) * 864e5).toISOString().slice(0, 10);
   M.innerHTML = `<div class="wk-h"><div><h1>Métricas del portal<span>.</span></h1><p>Tickets, tiempos, capacidad y cumplimiento. Comparado con el período anterior del mismo largo.</p></div>
     <div class="wk-h-a"><div class="wk-tabs" id="mx-per">${[[7, '7 días'], [30, '30 días'], [90, '90 días'], [365, '12 meses']].map(([k, l]) => `<button type="button" data-p="${k}" class="${PTX.per === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <select class="wk-in sm" id="mx-t"><option value="">Todos mis departamentos</option>${b.depts.filter(d => d.role !== 'requester').map(d => `<option value="${d.id}"${+PTX.team_id === d.id ? ' selected' : ''}>${esc(d.name)}</option>`).join('')}</select></div></div>
+    <select class="wk-in sm" id="mx-t"><option value="">Todos mis departamentos</option>${b.depts.filter(d => d.role !== 'requester').map(d => `<option value="${d.id}"${+PTX.team_id === d.id ? ' selected' : ''}>${esc(d.path || d.name)}</option>`).join('')}</select></div></div>
     <div id="mx">${ptSk(6)}</div>`;
   M.querySelectorAll('#mx-per [data-p]').forEach(x => x.addEventListener('click', () => { PTX.per = +x.dataset.p; renderPortalMetrics(); }));
   $('mx-t').addEventListener('change', e => { PTX.team_id = e.target.value; renderPortalMetrics(); });

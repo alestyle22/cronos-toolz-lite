@@ -414,7 +414,7 @@ async function boardDialog(id = 0, tab = 'general') {
   let b = { name: '', description: '', color: COLORS[0], icon: ICONS[0], team_id: W.me.lead[0] || W.me.teams[0] || null, visibility: 'public', members: [], can_manage: true, is_default: 0 };
   let globalSt = W.cfg.statuses;
   if (id) { try { const g = await api('board_get', { id }); b = g.board; globalSt = g.global_statuses; } catch (e) { toast(e.message, true); return; } }
-  const teams = W.teams.filter(t => W.me.role === 'admin' || W.me.role === 'director' || W.me.teams.includes(t.id) || t.id === b.team_id);
+  const teams = W.teams.filter(t => W.me.role === 'admin' || W.me.role === 'director' || W.me.teams.includes(t.id) || W.me.lead.includes(t.id) || t.id === b.team_id);
   const d = openDlg(`<h3>${id ? 'Editar tablero' : 'Nuevo tablero'}</h3>
     ${id && b.can_manage ? `<div class="wk-tabs"><button type="button" data-tab="general" class="on">General</button><button type="button" data-tab="statuses">Estados</button><button type="button" data-tab="fields">Campos</button></div>` : ''}
     <div data-pane="statuses" hidden></div><div data-pane="fields" hidden></div>
@@ -2214,7 +2214,7 @@ async function renderProject(id) {
 }
 function projectDialog(p = null) {
   const v = p || { name: '', description: '', client_id: null, team_id: W.me.lead[0] || W.me.teams[0] || null, owner_id: W.me.id, status: 'planificado', start_date: W.today, due_date: '', budget_min: null, color: COLORS[0], visibility: 'public' };
-  const teams = W.teams.filter(t => W.me.role === 'admin' || W.me.role === 'director' || W.me.teams.includes(t.id) || t.id === v.team_id);
+  const teams = W.teams.filter(t => W.me.role === 'admin' || W.me.role === 'director' || W.me.teams.includes(t.id) || W.me.lead.includes(t.id) || t.id === v.team_id);
   const d = openDlg(`<h3>${p ? 'Editar proyecto' : 'Nuevo proyecto'}</h3>
     <label class="wk-f"><span>Nombre</span><input class="wk-in" id="pd-name" maxlength="120" value="${esc(v.name)}" placeholder="Ej.: Lanzamiento de la web nueva"></label>
     <label class="wk-f"><span>Descripción</span><textarea class="wk-in" id="pd-desc" rows="2" maxlength="5000">${esc(v.description || '')}</textarea></label>

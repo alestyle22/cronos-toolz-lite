@@ -547,8 +547,10 @@ CREATE TABLE IF NOT EXISTS `g7_teams` (
   `created_by` int(11) NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime DEFAULT current_timestamp(),
+  `parent_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`),
+  KEY `parent_id` (`parent_id`),
   KEY `idx_slug` (`slug`),
   KEY `idx_active` (`active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
