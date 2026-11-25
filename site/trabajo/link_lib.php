@@ -89,7 +89,8 @@ function wk_tk_status_fields(array $t, string $s, string $at): array {
         $f['paused_at'] = null; $f['paused_min'] = (int)($t['paused_min'] ?? 0) + $min;
         $shift = fn($d) => $d ? date('Y-m-d H:i:s', strtotime($d) + $min * 60) : null;
         if (!$t['first_response_at'] && $t['first_response_due']) $f['first_response_due'] = $shift($t['first_response_due']);
-        if ($t['resolution_due'] && !in_array($s, ['resuelto', 'cerrado'], true)) $f['resolution_due'] = $shift($t['resolution_due']);
+        // La fecha comprometida de un pedido del portal no se corre con la pausa
+        if ($t['resolution_due'] && !in_array($s, ['resuelto', 'cerrado'], true) && !wk_tk_committed_due($t)) $f['resolution_due'] = $shift($t['resolution_due']);
         // Si con la pausa el plazo volvió a quedar por delante, puede volver a avisar
         $flags = (int)($t['breach_flags'] ?? 0);
         if (isset($f['first_response_due']) && $f['first_response_due'] > $at) $flags &= ~(1 | 4);
@@ -98,8 +99,31 @@ function wk_tk_status_fields(array $t, string $s, string $at): array {
     }
     return $f;
 }
+/** Vencimiento de un pedido del portal: el final del día de su fecha comprometida. null = no es del portal o no tiene fecha. */
+function wk_tk_committed_due(array $t): ?string {
+    return ($t['origin'] ?? '') === 'form' && !empty($t['committed_date']) ? $t['committed_date'] . ' 23:59:59' : null;
+}
+/**
+ * Pedidos del portal: la resolución vence con la fecha comprometida. Si cambia la fecha se recalcula, y si se quita vuelve el plazo
+ * de la categoría (o ninguno). Los avisos de vencido y por vencer se rearman solo si el plazo nuevo está por delante.
+ */
+function wk_tk_due_sync(PDO $db, int $id, array $f): array {
+    $moved = array_key_exists('committed_date', $f);
+    if (!$moved && !array_key_exists('resolution_due', $f)) return $f;
+    $t = wk_tk_row($db, $id);
+    if (!$t || ($t['origin'] ?? '') !== 'form') return $f;
+    $n = array_merge($t, $f);
+    $due = wk_tk_committed_due($n);
+    if ($due === null && !$moved) return $f;
+    if ($due === null) $due = (wk_tk_dues($db, $n, (string)$n['priority']) ?? [])['resolution_due'] ?? null;
+    $f['resolution_due'] = $due;
+    $flags = (int)($f['breach_flags'] ?? $t['breach_flags'] ?? 0);
+    $f['breach_flags'] = $due === null || $due > tk_now() ? $flags & ~(2 | 8) : $flags | ((int)($t['breach_flags'] ?? 0) & (2 | 8));
+    return $f;
+}
 function wk_tk_set(PDO $db, int $id, array $f): void {
     if (!$f) return;
+    $f = wk_tk_due_sync($db, $id, $f);
     $f['updated_at'] = $f['updated_at'] ?? tk_now();
     $db->prepare('UPDATE g7_wk_tickets SET ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($f))) . ' WHERE id = ?')->execute([...array_values($f), $id]);
     if (function_exists('pt_on_ticket_set')) pt_on_ticket_set($db, $id, $f);   // etapa del portal y carga por día (portal_lib.php)
@@ -114,11 +138,26 @@ function wk_tk_dues(PDO $db, array $t, string $priority): ?array {
     $sla = wk_sla_for($db, $t['category_id'] ? (int)$t['category_id'] : null, $priority);
     if (!$sla) return null;
     $c0 = strtotime($t['created_at']) + (int)($t['paused_min'] ?? 0) * 60;
-    return ['first_response_due' => date('Y-m-d H:i:s', $c0 + $sla['response'] * 60), 'resolution_due' => date('Y-m-d H:i:s', $c0 + $sla['resolution'] * 60)];
+    return ['first_response_due' => date('Y-m-d H:i:s', $c0 + $sla['response'] * 60),
+            'resolution_due' => wk_tk_committed_due($t) ?? date('Y-m-d H:i:s', $c0 + $sla['resolution'] * 60)];   // en el portal manda la fecha comprometida
 }
 /** Plazo de los tickets que nacen en el chat (tareas rápidas), en minutos. 0 = usan los plazos de su categoría. CHAT_ACCIONES.md */
 function wk_tk_chat_min(PDO $db): int {
     return max(0, min(500000, (int)wk_cfg_get($db, 'work_tk_chat_min', '240')));
+}
+/** Una sola vez: los pedidos del portal que ya estaban abiertos pasan a vencer con su fecha comprometida (sin avisar de nuevo por los ya pasados). */
+function wk_tk_due_backfill(PDO $db): void {
+    if ($db->query("SELECT 1 FROM g7_config WHERE cfg_key = 'work_due_committed'")->fetchColumn()) return;
+    $now = tk_now();
+    $rows = $db->query("SELECT id, task_id, committed_date FROM g7_wk_tickets WHERE origin = 'form' AND committed_date IS NOT NULL AND status IN ('abierto', 'en_curso', 'esperando')")->fetchAll(PDO::FETCH_ASSOC);
+    $u = $db->prepare("UPDATE g7_wk_tickets SET resolution_due = ?, breach_flags = IF(? > ?, breach_flags & ~10, breach_flags | 10) WHERE id = ?");
+    $x = $db->prepare('UPDATE g7_tasks SET due_date = ? WHERE id = ? AND completed_at IS NULL');
+    foreach ($rows as $r) {
+        $due = $r['committed_date'] . ' 23:59:59';
+        $u->execute([$due, $due, $now, (int)$r['id']]);
+        if ($r['task_id']) $x->execute([$r['committed_date'], (int)$r['task_id']]);
+    }
+    $db->exec("INSERT INTO g7_config (cfg_key, cfg_value) VALUES ('work_due_committed', '1') ON DUPLICATE KEY UPDATE cfg_value = '1'");
 }
 /** Avisa al base de un cambio de estado (si el ticket vino de ahí). */
 function wk_tk_base_status(PDO $db, array $t, string $status, ?int $by): void {

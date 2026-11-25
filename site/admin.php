@@ -574,24 +574,9 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
             </label>
           </div>
           <div>
-            <div style="font-size:13px;font-weight:600;margin-bottom:10px">Tipo de sonido</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="sound-type-selector">
-              <button class="adm-sound-btn active" data-type="beep" data-on-click="admSetSoundType" data-click-1="s:beep" data-click-2="this">
-                <i class="fa-solid fa-wave-square" style="font-size:20px;margin-bottom:5px"></i>
-                <span>Beep</span>
-                <span style="font-size:9px;opacity:.6">Electrónico</span>
-              </button>
-              <button class="adm-sound-btn" data-type="soft" data-on-click="admSetSoundType" data-click-1="s:soft" data-click-2="this">
-                <i class="fa-solid fa-bell" style="font-size:20px;margin-bottom:5px"></i>
-                <span>Suave</span>
-                <span style="font-size:9px;opacity:.6">Campana</span>
-              </button>
-              <button class="adm-sound-btn" data-type="pop" data-on-click="admSetSoundType" data-click-1="s:pop" data-click-2="this">
-                <i class="fa-solid fa-circle-dot" style="font-size:20px;margin-bottom:5px"></i>
-                <span>Pop</span>
-                <span style="font-size:9px;opacity:.6">Burbuja</span>
-              </button>
-            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:10px">Estilo de los sonidos</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px" id="sound-type-selector"></div>
+            <div style="font-size:11px;color:var(--g7-text-4);margin-top:8px">El estilo de todos, salvo quien elija otro en su configuración.</div>
             <button class="btn btn-ghost btn-sm" style="margin-top:10px" data-on-click="admPreviewSound"><i class="fa-solid fa-play"></i> Previsualizar sonido</button>
           </div>
         </div>
@@ -763,6 +748,9 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
       <div class="adm-title">Contenido</div>
       <div class="adm-sub">Estadísticas y accesos rápidos de gestión</div>
       <div id="adm-content-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px"></div>
+      <!-- Contenido de usuarios eliminados o desactivados (admin_contenido.js, user_content_lib.php) -->
+      <div class="adm-card" style="margin-bottom:24px"><div class="adm-card-head"><div class="adm-card-title"><i class="fa-solid fa-right-left"></i> Pasar contenido a otro usuario</div></div>
+        <div class="adm-card-body"><div id="uc-box"><div class="acc-muted">Cargando…</div></div></div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <a href="/toolz/content.php" class="adm-card" style="text-decoration:none;transition:border-color .2s" data-hov>
           <div class="adm-card-body" style="display:flex;align-items:center;gap:12px">
@@ -952,6 +940,8 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
 
 <script src="/toolz/assets/admin-page.js?v=<?= (int)@filemtime(__DIR__ . '/assets/admin-page.js') ?>"></script>
 <script src="/toolz/admin_ui.js?v=<?= @filemtime(__DIR__ . '/admin_ui.js') ?>"></script>
+<script src="/toolz/assets/sound-picker.js?v=<?= (int)@filemtime(__DIR__ . '/assets/sound-picker.js') ?>"></script>
+<script src="/toolz/admin_contenido.js?v=<?= @filemtime(__DIR__ . '/admin_contenido.js') ?>"></script>
 <script src="/toolz/assets/admin-look.js?v=<?= (int)@filemtime(__DIR__ . '/assets/admin-look.js') ?>"></script>
 </body>
 </html>

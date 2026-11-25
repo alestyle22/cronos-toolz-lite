@@ -24,6 +24,8 @@ ch_install();
 
 // ── Descarga de archivos ────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Fondo propio del chat (look_lib.php): solo lo ve quien lo subió
+    if (($_GET['action'] ?? '') === 'look_img') { require_once __DIR__ . '/look_lib.php'; ch_look_img_out($uid, (string)($_GET['f'] ?? '')); }
     if (($_GET['action'] ?? '') !== 'file') fail('Pedido inválido');
     $q = $db->prepare('SELECT f.*, m.deleted_at FROM g7_ch_files f LEFT JOIN g7_ch_messages m ON m.id = f.message_id WHERE f.id = ?');
     $q->execute([(int)($_GET['id'] ?? 0)]);
@@ -64,6 +66,10 @@ if (($_SERVER['HTTP_X_CH'] ?? '') !== '1') fail('Pedido inválido', 403);
 
 // ── Subida en partes ────────────────────────────────────────────
 if (is_dir(CH_TMP) && mt_rand(1, 30) === 1) foreach (glob(CH_TMP . '/*') ?: [] as $d) if (is_dir($d) && filemtime($d) < time() - 86400) { array_map('unlink', glob("$d/*") ?: []); @unlink("$d/.owner"); @rmdir($d); }
+if (($_POST['action'] ?? '') === 'look_img') {
+    require_once __DIR__ . '/look_lib.php';
+    try { out(['ok' => true, 'file' => ch_look_img_store($uid, $_FILES['img'] ?? null)]); } catch (RuntimeException $e) { fail($e->getMessage()); }
+}
 if (($_POST['action'] ?? '') === 'up_chunk') {
     $tok = (string)($_POST['token'] ?? ''); $idx = (int)($_POST['index'] ?? -1);
     if (!preg_match('/^[a-f0-9]{32}$/', $tok) || $idx < 0 || $idx > 20000) fail('Pedido inválido');
@@ -81,6 +87,21 @@ if (($_POST['action'] ?? '') === 'up_chunk') {
 $in = json_decode(file_get_contents('php://input'), true) ?: [];
 $act = (string)($in['action'] ?? '');
 $int = fn($k) => (int)($in[$k] ?? 0);
+// Burbuja cerrada y sin novedades (la mayoría de las consultas): se contesta sin cargar usuarios ni conversaciones
+if ($act === 'sync' && !$int('open') && empty($in['presence'])) {
+    $after = $int('after'); $max = ch_last_event();
+    if ($after <= $max && $after > 0) {
+        $q = $db->prepare('SELECT 1 FROM g7_ch_events WHERE id > ? AND (conv_id IN (SELECT conv_id FROM g7_ch_members WHERE user_id = ?) OR conv_id = 0 OR target_user = ?) LIMIT 1');
+        $q->execute([$after, $uid, $uid]);
+        if (!$q->fetchColumn()) {
+            if (is_file(__DIR__ . '/../mobile/push.php')) { require_once __DIR__ . '/../mobile/push.php'; mb_push_later(); }
+            $db->prepare('UPDATE g7_users SET last_seen = NOW() WHERE id = ? AND (last_seen IS NULL OR last_seen < NOW() - INTERVAL 30 SECOND)')->execute([$uid]);
+            ch_dispatch();
+            // Avanza por los eventos ajenos, con margen por si alguno se está guardando
+            out(['ok' => true, 'last_event' => max($after, $max - 20), 'more' => false, 'messages' => [], 'convs' => [], 'gone' => [], 'now' => date('Y-m-d H:i:s')]);
+        }
+    }
+}
 $users = ch_users();
 $me['role'] = $users[$uid]['role'] ?? $me['role'];
 $admin = ch_is_admin($me);
@@ -110,6 +131,7 @@ switch ($act) {
 
 // ── Arranque ────────────────────────────────────────────────────
 case 'boot': {
+    require_once __DIR__ . '/look_lib.php';
     $db->prepare('UPDATE g7_users SET last_seen = NOW() WHERE id = ?')->execute([$uid]);
     $cats = $db->query('SELECT id, name, sort FROM g7_ch_categories ORDER BY sort, id')->fetchAll(PDO::FETCH_ASSOC);
     $pub = [];
@@ -120,7 +142,7 @@ case 'boot': {
     out(['ok' => true, 'me' => ['id' => $uid, 'admin' => $admin], 'users' => $pub, 'teams' => $teams, 'categories' => $cats,
         'convs' => ch_conv_summaries($uid), 'last_event' => ch_last_event(), 'statuses' => CH_STATUSES,
         'max_bytes' => ch_max_bytes(), 'exts' => array_values(array_diff(array_merge(G7_EXT_IMG, G7_EXT_MEDIA, G7_EXT_DOCS), ch_policy()['blocked_ext'])),
-        'prefs' => ch_prefs($uid), 'notif_unread' => (int)$db->query("SELECT COUNT(*) FROM g7_ch_notifs WHERE user_id = $uid AND read_at IS NULL")->fetchColumn(),
+        'look' => ch_look_get($db, $uid), 'prefs' => ch_prefs($uid), 'notif_unread' => (int)$db->query("SELECT COUNT(*) FROM g7_ch_notifs WHERE user_id = $uid AND read_at IS NULL")->fetchColumn(),
         'tasks' => !function_exists('g7_can') || g7_can($uid, 'tareas')]);
 }
 
@@ -152,7 +174,7 @@ case 'sync': {
     $mine = array_column($summ, 'id');
     foreach (array_keys($gone) as $g) if (in_array($g, $mine, true)) unset($gone[$g]);
     $messages = array_values(array_filter(ch_messages_by_ids($msgIds, $uid), fn($m) => in_array($m['conv_id'], $mine, true) || $m['conv_id'] === $openOk));
-    $res = ['ok' => true, 'last_event' => $last, 'more' => count($ev) === 400, 'messages' => $messages, 'convs' => $summ, 'gone' => array_keys($gone)];
+    $res = ['ok' => true, 'last_event' => $last, 'more' => count($ev) === 400, 'messages' => $messages, 'convs' => $summ, 'gone' => array_keys($gone), 'now' => date('Y-m-d H:i:s')];
     if ($notifIds) {
         $res['notifs'] = array_map(fn($n) => ['id' => (int)$n['id'], 'kind' => $n['kind'], 'conv_id' => $n['conv_id'] ? (int)$n['conv_id'] : null, 'message_id' => $n['message_id'] ? (int)$n['message_id'] : null,
             'actor_id' => (int)$n['actor_id'], 'extra' => $n['extra'], 'created_at' => $n['created_at'], 'read' => (bool)$n['read_at']],
@@ -167,6 +189,7 @@ case 'sync': {
         $res['typing'] = array_map('intval', $t->fetchAll(PDO::FETCH_COLUMN));
     }
     if (!empty($in['presence'])) {
+        pr_sweep($db);
         $res['presence'] = [];
         foreach ($db->query('SELECT id, availability, focus_text, last_seen FROM g7_users WHERE active = 1') as $u)
             $res['presence'][] = ['id' => (int)$u['id'], 'status' => isset(CH_STATUSES[$u['availability'] ?? '']) ? $u['availability'] : 'available', 'status_text' => (string)$u['focus_text'], 'online' => ch_online($u['last_seen']), 'last_seen' => $u['last_seen']];
@@ -235,6 +258,7 @@ case 'send': {
         $db->prepare('UPDATE g7_ch_files SET message_id = ? WHERE id IN (' . implode(',', $fileIds) . ') AND user_id = ? AND conv_id = ? AND message_id IS NULL')->execute([$id, $uid, $c['id']]);
     }
     $db->commit();
+    ch_event(0, '');   // los eventos que esperaban el commit
     $db->prepare('DELETE FROM g7_ch_typing WHERE conv_id = ? AND user_id = ?')->execute([$c['id'], $uid]);
     ch_after_send($id);
     out(['ok' => true, 'message' => ch_messages_by_ids([$id], $uid)[0]]);
@@ -511,11 +535,18 @@ case 'pref': {
     out(['ok' => true, 'conv' => ch_conv_summaries($uid, [(int)$c['id']])[0] ?? null]);
 }
 
+case 'look_save': {
+    require_once __DIR__ . '/look_lib.php';
+    out(['ok' => true, 'look' => ch_look_save($db, $uid, $in['look'] ?? null)]);
+}
+
 case 'status': {
     $s = (string)($in['status'] ?? 'available');
     if (!isset(CH_STATUSES[$s])) fail('Estado inválido');
     $t = $cleanName($in['text'] ?? '', 140);
-    $db->prepare('UPDATE g7_users SET availability = ?, focus_text = ?, last_seen = NOW() WHERE id = ?')->execute([$s, $t, $uid]);
+    $old = $db->query('SELECT availability FROM g7_users WHERE id = ' . $uid)->fetchColumn();
+    if ($old === $s) $db->prepare('UPDATE g7_users SET focus_text = ?, last_seen = NOW() WHERE id = ?')->execute([$t, $uid]);   // solo el mensaje: sigue con la hora que tenía
+    else pr_set($db, $uid, $s, $t);
     out(['ok' => true]);
 }
 

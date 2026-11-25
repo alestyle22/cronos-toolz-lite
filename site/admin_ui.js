@@ -72,7 +72,7 @@ const SECTION_LOADERS = {
   modules: () => accRenderModules(), matrix: () => accRenderMatrix(), config: () => accRenderSettings(),
   audit: () => accAuditLoad(), backup: () => {},
   logs: () => admLoadLogs(), topbar: () => admLoadTopbar(), notif: () => admLoadNotif(), plugins: () => admLoadPlugins(),
-  content: () => admLoadContentStats(), overview: () => { admLoadContentStats(); accRenderOverview(); },
+  content: () => { admLoadContentStats(); ucLoad(); }, overview: () => { admLoadContentStats(); accRenderOverview(); },
 };
 function admShow(sec, btn) {
   if (!$id('sec-' + sec)) sec = 'overview';
@@ -81,13 +81,13 @@ function admShow(sec, btn) {
   $id('sec-' + sec).classList.add('active');
   (btn || document.querySelector(`.adm-nav-item[data-sec="${sec}"]`))?.classList.add('active');
   if (location.hash.slice(1) !== sec) history.replaceState(null, '', '#' + sec);
-  if (S || !['users', 'teams', 'brands', 'modules', 'matrix', 'config', 'overview'].includes(sec)) SECTION_LOADERS[sec]?.();
+  if (S || !['users', 'teams', 'brands', 'modules', 'matrix', 'config', 'overview', 'content'].includes(sec)) SECTION_LOADERS[sec]?.();
 }
 function accCurrentSection() { return document.querySelector('.adm-section.active')?.id.replace('sec-', ''); }
 function accRenderAll() {
   accFillFilters();
   const sec = accCurrentSection();
-  if (sec && SECTION_LOADERS[sec] && !['logs', 'topbar', 'notif', 'plugins', 'audit', 'backup', 'content'].includes(sec)) SECTION_LOADERS[sec]();
+  if (sec && SECTION_LOADERS[sec] && !['logs', 'topbar', 'notif', 'plugins', 'audit', 'backup'].includes(sec)) SECTION_LOADERS[sec]();
   if (DR.kind) accDrawerRender();
 }
 
@@ -198,6 +198,7 @@ function accUserBody() {
       ${u ? `<div class="acc-sub-h">Actividad</div><div class="acc-help">Creado: ${esc(u.created_at || '—')} · Último login: ${esc(u.last_login || '—')} · Visto: ${esc(u.last_seen || '—')}</div>
       ${u.id !== S.me ? `<div class="acc-danger"><div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:4px">Eliminar usuario</div>
         <div class="acc-help" style="margin-bottom:10px">Borra la cuenta y sus permisos. Su contenido queda. Si solo quieres cortarle el acceso, desactivala.</div>
+        <button class="btn btn-ghost btn-sm" data-on-click="ucOpenUser" data-click-1="j:${u.id}"><i class="fa-solid fa-right-left"></i> Pasar su contenido a otro</button>
         <button class="btn btn-danger btn-sm" data-on-click="accUserDelete" data-click-1="j:${u.id}"><i class="fa-solid fa-trash"></i> Eliminar a ${esc(uName(u))}</button></div>` : ''}` : ''}`;
   }
   if (DR.tab === 'teams') {
@@ -333,9 +334,7 @@ async function accUserSave() {
   if (pw) accCredsShow(r.id, pw);   // usuario nuevo o contraseña cambiada: los datos para mandarle, listos para copiar
 }
 async function accUserDelete(id) {
-  const u = userById(id);
-  if (!confirm(`¿Eliminar a "${uName(u)}"? No se puede deshacer.`)) return;
-  await accApi('user_delete', { id }); admToast('Usuario eliminado'); accDrawerClose(); accRefresh();
+  ucDeleteUser(id);   // admin_contenido.js: muestra qué tiene a su nombre y quién lo hereda
 }
 async function accSetOverride(uid, mod, act, effect) {
   await accApi('user_override', { user_id: uid, module: mod, action_name: act, effect });

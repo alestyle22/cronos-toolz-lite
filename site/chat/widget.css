@@ -100,3 +100,12 @@
   #ccw.open{z-index:8502;bottom:auto;top:10px;right:10px;width:36px;height:36px;font-size:15px;opacity:0;pointer-events:none}
 }
 @media print{#ccw,#ccw-heads,#ccw-panel{display:none !important}}
+/* Imágenes a pantalla completa */
+.ccw-lb{position:fixed;inset:0;z-index:10080;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:64px 24px 56px;animation:ccwlb .15s}
+.ccw-lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.ccw-lb .bar{position:absolute;top:12px;right:14px;display:flex;gap:8px}
+.ccw-lb .bar a,.ccw-lb button{width:44px;height:44px;border-radius:12px;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;font-size:16px;text-decoration:none;cursor:pointer}
+.ccw-lb .bar a:hover,.ccw-lb button:hover{background:rgba(255,255,255,.28)}.ccw-lb a:focus-visible,.ccw-lb button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.ccw-lb .nav{position:absolute;top:50%;margin-top:-22px}.ccw-lb .prev{left:14px}.ccw-lb .next{right:14px}
+.ccw-lb .cap{position:absolute;left:16px;right:16px;bottom:18px;text-align:center;color:#fff;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes ccwlb{from{opacity:0}}@media (prefers-reduced-motion:reduce){.ccw-lb{animation:none}}

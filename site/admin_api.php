@@ -336,12 +336,45 @@ case 'user_delete':
     if ($why = g7_super_denies($__me, $id)) { g7_audit('super.denied', "user:$id", ['action' => 'user_delete'], $__me); $__err($why, 403); }
     $u = $db->prepare("SELECT username FROM g7_users WHERE id=?"); $u->execute([$id]); $name = $u->fetchColumn();
     if (!$name) $__err('Usuario no encontrado');
+    // Antes de borrarlo, su contenido puede pasar a otra persona (user_content_lib.php). Si eso falla, no se borra.
+    $moved = 0;
+    if ($to = $__int($in['transfer_to'] ?? 0)) {
+        require_once __DIR__ . '/user_content_lib.php';
+        $priv = !empty($in['transfer_private']) && g7_super_ok($__me);
+        try { $done = uc_move($db, "u:$id", $to, array_fill_keys(array_keys(uc_kinds($db, $priv)), true), $priv, $__me); } catch (RuntimeException $e) { $__err($e->getMessage()); }
+        $moved = array_sum($done);
+        if ($done) g7_audit('content.move', "user:$id", ['from' => $name, 'to' => $to, 'moved' => $done], $__me);
+    }
     $db->prepare("DELETE FROM g7_team_members WHERE user_id=?")->execute([$id]);
     $db->prepare("DELETE FROM g7_user_permissions WHERE user_id=?")->execute([$id]);
     $db->prepare("DELETE FROM g7_brand_access WHERE subject_type='user' AND subject_id=?")->execute([$id]);
     $db->prepare("DELETE FROM g7_users WHERE id=?")->execute([$id]);
     g7_audit('user.delete', "user:$id", ['username' => $name], $__me);
-    $__ok();
+    $__ok(['moved' => $moved]);
+
+// ── Contenido de usuarios eliminados o desactivados (user_content_lib.php) ──
+case 'uc_sources':
+case 'uc_items':
+case 'uc_of_user':
+case 'uc_move':
+case 'uc_undo':
+    require_once __DIR__ . '/user_content_lib.php';
+    $sup = g7_super_ok($__me);
+    $kindsOut = array_map(fn($d) => ['name' => $d[0], 'icon' => $d[1], 'private' => (bool)$d[5]], uc_kinds($db, $sup));
+    if ($act === 'uc_sources') $__ok(['sources' => uc_sources($db, $sup), 'kinds' => $kindsOut, 'moves' => uc_moves($db, $__me, $sup)]);
+    if ($act === 'uc_undo') {
+        try { [$back, $left] = uc_undo($db, $__int($in['id'] ?? 0), $__me, $sup); } catch (RuntimeException $e) { $__err($e->getMessage()); }
+        g7_audit('content.undo', 'move:' . $__int($in['id'] ?? 0), ['back' => $back, 'left' => $left], $__me);
+        $__ok(['back' => $back, 'left' => $left]);
+    }
+    if ($act === 'uc_of_user') $__ok(['counts' => (object)uc_of_user($db, $__int($in['id'] ?? 0), $sup), 'kinds' => $kindsOut]);
+    $src = (string)($in['source'] ?? '');
+    if (!preg_match('/^(u:\d+|a:.{0,100})$/u', $src)) $__err('Origen no válido');
+    if ($act === 'uc_items') $__ok(['items' => uc_items($db, (string)($in['kind'] ?? ''), $src, $sup)]);
+    if (preg_match('/^u:(\d+)$/', $src, $m) && ($why = g7_super_denies($__me, (int)$m[1]))) $__err($why, 403);
+    try { $done = uc_move($db, $src, $__int($in['to'] ?? 0), is_array($in['pick'] ?? null) ? $in['pick'] : [], $sup, $__me); } catch (RuntimeException $e) { $__err($e->getMessage()); }
+    if ($done) g7_audit('content.move', mb_substr($src, 0, 190), ['to' => $__int($in['to'] ?? 0), 'moved' => $done], $__me);
+    $__ok(['moved' => (object)$done, 'total' => array_sum($done)]);
 
 // ── Equipos ───────────────────────────────────────────────────
 case 'team_save':

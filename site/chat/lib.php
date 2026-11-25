@@ -13,7 +13,8 @@ const CH_FILES  = __DIR__ . '/../_private/chat';
 const CH_TMP    = CH_FILES . '/_subidas';
 const CH_EDIT_WINDOW = 0;          // 0 = se puede editar siempre
 const CH_PAGE = 50;                // mensajes por tanda
-const CH_STATUSES = ['available' => 'Disponible', 'busy' => 'Ocupado', 'away' => 'Ausente', 'dnd' => 'No molestar', 'focus' => 'Concentrado'];
+require_once __DIR__ . '/../presence_lib.php';
+define('CH_STATUSES', array_map(fn($s) => $s[0], G7_PRESENCE));   // los mismos estados que en Mi perfil
 
 function ch_db(): PDO { static $db; return $db ??= getDB(); }
 
@@ -177,8 +178,17 @@ function ch_can_post(array $c, array $me): bool {
 
 // ── Eventos ─────────────────────────────────────────────────────
 function ch_event(int $convId, string $kind, ?int $ref = null, ?int $uid = null, ?int $target = null): void {
-    ch_db()->prepare('INSERT INTO g7_ch_events (conv_id, kind, ref_id, user_id, target_user) VALUES (?,?,?,?,?)')
-           ->execute([$convId, $kind, $ref, $uid, $target]);
+    // Dentro de una transacción el evento espera al commit: si no, otro evento posterior se confirma antes, los navegadores
+    // avanzan más allá de este y el mensaje no les llega nunca (o recién al recargar)
+    static $queue = [], $hook = false;
+    if ($kind !== '') $queue[] = [$convId, $kind, $ref, $uid, $target];
+    if (ch_db()->inTransaction()) {
+        if (!$hook) { $hook = true; register_shutdown_function(function () { try { if (!ch_db()->inTransaction()) ch_event(0, ''); } catch (Throwable $e) {} }); }
+        return;
+    }
+    $todo = $queue; $queue = [];
+    $st = ch_db()->prepare('INSERT INTO g7_ch_events (conv_id, kind, ref_id, user_id, target_user) VALUES (?,?,?,?,?)');
+    foreach ($todo as $e) $st->execute($e);
 }
 function ch_last_event(): int { return (int)ch_db()->query('SELECT COALESCE(MAX(id),0) FROM g7_ch_events')->fetchColumn(); }
 

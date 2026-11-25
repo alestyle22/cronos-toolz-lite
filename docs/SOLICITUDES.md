@@ -185,6 +185,7 @@ Si el estado cambia desde Tickets, desde la tarea o desde el sitio base, la etap
 - Respuestas públicas y notas internas, con adjuntos, menciones (`@usuario`) y eventos.
 - **Pedido de información:** pasa a "Esperando información". Cuando quien pidió responde, vuelve a la etapa anterior.
 - Aprobar o rechazar (el rechazo pide motivo). Al aprobar se puede asignar en el mismo paso.
+- **Vencimiento de la resolución:** es el final del día de la fecha comprometida (`wk_tk_committed_due` y `wk_tk_due_sync`, en `link_lib.php`). Se recalcula al cambiarla, junto con la fecha de la tarea. No se mueve con la prioridad ni con la pausa. Sin fecha comprometida vale el plazo de la categoría. El plazo de primera respuesta no cambia. Los pedidos que ya estaban abiertos se ajustan una sola vez (`work_due_committed`).
 - Quien pide ve el recorrido de su pedido. No ve las notas internas, los campos ocultos internos, la carga por día ni las horas.
 
 **Horas reales.** Las carga quien atiende (`g7_wk_tk_time`). Lo que falta se vuelve a repartir.

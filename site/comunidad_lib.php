@@ -14,7 +14,9 @@ const CM_MAX_POST = 500;
 const CM_KUDOS = ['crack' => ['🏆', 'Un crack'], 'salvavidas' => ['🛟', 'Me salvó'], 'creativo' => ['🎨', 'Creatividad'], 'rayo' => ['⚡', 'Rapidez'],
     'equipo' => ['🤝', 'Trabajo en equipo'], 'detalle' => ['🔍', 'Atención al detalle'], 'buenaonda' => ['🌞', 'Buena onda'], 'lider' => ['🧭', 'Liderazgo'],
     // Bienestar (2026-11-16): sus categorías son kudos de acá, así un reconocimiento es uno solo en Comunidad y en Bienestar
-    'companerismo' => ['🫂', 'Compañerismo'], 'compromiso' => ['💪', 'Compromiso'], 'ayuda' => ['🙌', 'Ayuda'], 'positiva' => ['😊', 'Actitud positiva']];
+    'companerismo' => ['🫂', 'Compañerismo'], 'compromiso' => ['💪', 'Compromiso'], 'ayuda' => ['🙌', 'Ayuda'], 'positiva' => ['😊', 'Actitud positiva'],
+    // 2026-11-25
+    'gracias' => ['🙏', 'Agradecimiento'], 'granidea' => ['💡', 'Gran idea'], 'mentor' => ['🎓', 'Comparte lo que sabe'], 'meta' => ['🎯', 'Meta cumplida']];
 const CM_NOTIF_TYPES = ['comment', 'reply', 'mention', 'mention_post', 'post_reply', 'kudos', 'birthday', 'coffee', 'poll_vote'];
 function cm_install(PDO $db): void {
     static $done = false; if ($done) return; $done = true;

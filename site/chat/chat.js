@@ -33,7 +33,7 @@
   async function api(action, data = {}, retry = true) {
     let r;
     try {
-      r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CH': '1' }, body: JSON.stringify({ action, ...data }) });
+      r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CH': '1' }, body: JSON.stringify({ action, ...data }), signal: action === 'sync' && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined });
     } catch (e) { throw new Error('Sin conexión con el servidor'); }
     if (r.status === 401 && retry) { await new Promise(ok => setTimeout(ok, 900)); return api(action, data, false); }
     let d = null; try { d = await r.json(); } catch (e) {}
@@ -148,11 +148,12 @@
     try {
       const d = await api('boot');
       S.me = d.me.id; S.admin = d.me.admin; S.teams = d.teams; S.cats = d.categories; S.statuses = d.statuses; S.maxBytes = d.max_bytes; S.exts = d.exts;
-      S.prefs = d.prefs || {}; S.notifUnread = d.notif_unread || 0; S.canTasks = !!d.tasks;
+      S.prefs = d.prefs || {}; if (window.CCLook) CCLook.init(d.look, api); S.notifUnread = d.notif_unread || 0; S.canTasks = !!d.tasks;
       if (S.admin) document.querySelector('.cc-rb[data-href="admin"]')?.removeAttribute('hidden');
       d.users.forEach(u => { S.users[u.id] = u; });
       d.convs.forEach(c => { S.convs[c.id] = c; });
       S.last_event = d.last_event;
+      S.heard = Math.max(0, ...d.convs.map(c => c.last_msg_id || 0));   // lo anterior a abrir el chat no suena (aunque lo editen o reaccionen)
     } catch (e) {
       list.innerHTML = `<div class="cc-empty"><i class="fa-solid fa-plug-circle-xmark big"></i><b>No se pudo abrir el chat</b>${esc(e.message)}<br><br><button class="cc-btn" data-cc-reload>Reintentar</button></div>`;
       list.querySelector('[data-cc-reload]').addEventListener('click', () => location.reload());
@@ -170,6 +171,9 @@
 
   // ── Sincronización ──
   let syncTimer = null, syncing = false;
+  // Las otras pestañas se enteran al instante de que hay novedades (chat completo y burbujas)
+  let chan = null; try { chan = new BroadcastChannel('cronos-chat'); chan.onmessage = e => { if (e.data && e.data.me === S.me && e.data.last > (S.last_event || 0) && !document.hidden) sync(); }; } catch (e) {}
+  const news = last => { try { chan && chan.postMessage({ me: S.me, last }); } catch (e) {} };
   async function sync() {
     clearTimeout(syncTimer);
     if (syncing) return;
@@ -180,7 +184,7 @@
       const r = await api('sync', { after: S.last_event, open: S.open || 0, presence });
       if (S.failN >= 2) { toast('Conexión recuperada'); resendQueued(); }
       S.failN = 0; conn(true);
-      S.last_event = r.last_event; more = r.more;
+      S.last_event = r.last_event; more = r.more; if ((r.messages || []).length) news(r.last_event);
       if (r.categories) S.cats = r.categories;
       (r.convs || []).forEach(c => { S.convs[c.id] = c; });
       (r.gone || []).forEach(id => {
@@ -189,6 +193,7 @@
       });
       if (r.presence) r.presence.forEach(p => { if (S.users[p.id]) Object.assign(S.users[p.id], p); });
       let touchedOpen = false;
+      if (r.now) S.srvNow = r.now;
       (r.messages || []).forEach(m => { if (upsert(m) && m.conv_id === S.open) touchedOpen = true; maybeNotify(m); });
       if (r.notifs) onNotifs(r.notifs, r.notif_unread);
       if (r.reads && S.open) { S.reads[S.open] = r.reads; touchedOpen = true; }
@@ -375,9 +380,13 @@
     try {
       const d = await api('history', opt.around ? { conv: id, around: opt.around, limit: 60 } : { conv: id });
       if (S.open !== id) return;
+      const prevList = S.conv[id] ? S.conv[id].list : [];
       S.conv[id] = { list: d.messages, moreBefore: d.more_before, moreAfter: d.more_after, firstUnread: (d.messages.find(m => m.id > d.last_read_id && m.user_id !== S.me && m.kind !== 'system') || {}).id || 0,
         member: d.member, canPost: d.can_post, canManage: d.can_manage, canJoin: d.can_join };
       S.reads[id] = d.reads;
+      // Lo que llegó por la sincronización mientras se pedía el historial (o se está enviando) no se pierde
+      const held = prevList.filter(m => (m.pending || m.failed || (!d.more_after && m.id > (d.messages.at(-1)?.id || 0))) && !d.messages.some(x => x.id === m.id || (m.client_id && x.client_id === m.client_id)));
+      if (!opt.around && held.length) S.conv[id].list.push(...held);
       renderMain();
       const C = S.conv[id];
       requestAnimationFrame(() => {
@@ -429,6 +438,7 @@
       <div class="cc-mh-a">
         ${isMem ? `<button class="cc-ib${c.favorite ? ' on' : ''}" data-act="fav" title="${c.favorite ? 'Quitar de favoritos' : 'Marcar como favorito'}" aria-label="Favorito" aria-pressed="${c.favorite}"><i class="fa-${c.favorite ? 'solid' : 'regular'} fa-star"></i></button>
         <button class="cc-ib" data-act="mute" title="${c.muted ? 'Activar avisos' : 'Silenciar'}" aria-label="Silenciar" aria-pressed="${c.muted}"><i class="fa-solid ${c.muted ? 'fa-bell-slash' : 'fa-bell'}"></i></button>` : ''}
+        ${isMem && window.CCLook ? '<button class="cc-ib" data-act="look" title="Aspecto y sonido" aria-label="Aspecto y sonido de esta conversación"><i class="fa-solid fa-palette"></i></button>' : ''}
         <button class="cc-ib${S.aside === 'info' ? ' on' : ''}" data-act="info" title="Detalles" aria-label="Detalles"><i class="fa-solid fa-circle-info"></i></button>
       </div>`;
     emit('head');
@@ -473,11 +483,11 @@
         <button data-act="more" title="Más acciones" aria-label="Más acciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
       </div>` : '';
     const isNew = !inThread && C && C.firstUnread === m.id ? '<div class="cc-new" id="cc-newline">Nuevos</div>' : '';
-    const cls = `cc-m${m.pending ? ' pending' : ''}${m.mentions_me ? ' me-mention' : ''}${m.pinned ? ' pinned' : ''}`;
+    const cls = `cc-m${mine ? ' mine' : ''}${m.pending ? ' pending' : ''}${m.mentions_me ? ' me-mention' : ''}${m.pinned ? ' pinned' : ''}`;
     const idp = inThread ? 't' : 'm';
     const mark = m.saved ? '<i class="fa-solid fa-bookmark cc-savedmark" title="Guardado"></i>' : '';
-    if (cont) return `${isNew}<div class="${cls}" id="${idp}-${m.id}" data-id="${m.id}"><span class="cc-gut">${hhmm(m.created_at)}</span><div>${body}${state}</div>${acts}</div>`;
-    return `${isNew}<div class="${cls} first" id="${idp}-${m.id}" data-id="${m.id}">${avatar(m.user_id, 40, false)}<div><div class="cc-mhd"><b data-user="${m.user_id}">${esc(uname(m.user_id))}</b><time title="${esc(fullWhen(m.created_at))}">${hhmm(m.created_at)}</time>${mark}</div>${body}${state}</div>${acts}</div>`;
+    if (cont) return `${isNew}<div class="${cls}" id="${idp}-${m.id}" data-id="${m.id}" data-ck="${esc(m.client_id || '')}"><span class="cc-gut">${hhmm(m.created_at)}</span><div>${body}${state}</div>${acts}</div>`;
+    return `${isNew}<div class="${cls} first" id="${idp}-${m.id}" data-id="${m.id}" data-ck="${esc(m.client_id || '')}">${avatar(m.user_id, 40, false)}<div><div class="cc-mhd"><b data-user="${m.user_id}">${esc(uname(m.user_id))}</b><time title="${esc(fullWhen(m.created_at))}">${hhmm(m.created_at)}</time>${mark}</div>${body}${state}</div>${acts}</div>`;
   }
   function pollHtml(m) {
     const p = m.poll, tot = p.counts.reduce((a, b) => a + b, 0) || 0;
@@ -530,7 +540,9 @@
       html += msgHtml(m, prev, C); prev = m;
     }
     if (C.moreAfter) html += `<div class="cc-more"><button class="cc-btn sm" data-act="newer"><i class="fa-solid fa-arrow-down"></i> Ver mensajes más nuevos</button></div>`;
-    keepMedia(box, () => { box.innerHTML = html; });
+    // Sin cambios no se redibuja (la sincronización pasa por acá cada 2 s): así no parpadean imágenes ni tarjetas
+    if (window.CCLook) CCLook.apply(box, c.id);   // fondo y burbujas elegidos (look.js)
+    if (!(box.__html === html && box.childElementCount)) { keepMedia(box, () => { box.innerHTML = html; }); box.__html = html; }
     if (editingText !== null && $('cc-edit')) { const t = $('cc-edit'); t.value = editingText; t.focus(); }
     if (S.keepAnchor) { box.scrollTop = box.scrollHeight - S.keepAnchor; S.keepAnchor = null; }
     else if (wasBottom) box.scrollTop = box.scrollHeight;
@@ -598,6 +610,7 @@
   // ── Escribir ──
   function renderComposer() {
     const c = curConv(), box = $('cc-comp'); if (!box) return;
+    document.dispatchEvent(new CustomEvent('g7:peer', { detail: { comp: 'cc-comp', id: c.kind === 'dm' ? c.peer : 0, name: convName(c) } }));   // presence-hints.js
     const C = S.conv[c.id];
     if (!S.convs[c.id]) {
       box.innerHTML = C && C.canJoin === false && !C.member ? `<div class="cc-locked"><i class="fa-solid fa-lock"></i> No puedes escribir en este canal</div>`
@@ -704,7 +717,7 @@
     try {
       const d = await api('send', m.payload);
       beep('sent');
-      if (C) { const i = C.list.indexOf(m); const j = C.list.findIndex(x => x.id === d.message.id); if (j >= 0 && j !== i) C.list.splice(i, 1); else if (i >= 0) C.list[i] = d.message; }
+      if (C) { const i = C.list.indexOf(m); const j = C.list.findIndex(x => x.id === d.message.id); if (i >= 0 && j >= 0 && j !== i) C.list.splice(i, 1); else if (i >= 0) C.list[i] = d.message; }
       if (/https?:\/\//.test(d.message.body || '')) api('unfurl', { id: d.message.id }).then(x => { if (x.message) { upsert(x.message); if (S.open === x.message.conv_id) renderMsgs(); } }).catch(() => {});
       const cv = S.convs[m.conv_id]; if (cv) { cv.last_msg_id = d.message.id; cv.last_msg_at = d.message.created_at; cv.last = { user_id: S.me, body: d.message.body, kind: 'text' }; cv.last_read_id = d.message.id; }
     } catch (e) {
@@ -979,11 +992,11 @@
   }
   function statusMenu(x, y) {
     const u = S.users[S.me];
-    const presets = ['En reunión', 'Trabajando desde casa', 'De vacaciones', 'Fuera de horario'];
+    const presets = ['Vuelvo en 15 minutos', 'Respondo más tarde'];
     const items = [{ head: 'Tu estado' }];
-    Object.entries(S.statuses).forEach(([k, l]) => items.push({ html: `<i class="cc-st ${k}" style="display:inline-block;width:10px;height:10px;border-radius:50%;position:static"></i>${esc(l)}`, on: u.status === k, run: () => setStatus(k, u.status_text) }));
+    Object.entries(S.statuses).forEach(([k, l]) => items.push({ html: `<i class="cc-st ${k}" style="display:inline-block;width:10px;height:10px;border-radius:50%;position:static"></i>${esc(l)}`, on: u.status === k, run: () => setStatus(k, k === u.status ? u.status_text : '') }));
     items.push('-', { head: 'Mensaje de estado' });
-    presets.forEach(p => items.push({ label: p, icon: 'fa-regular fa-comment', on: u.status_text === p, run: () => setStatus(p === 'En reunión' ? 'busy' : p === 'De vacaciones' || p === 'Fuera de horario' ? 'away' : u.status, p) }));
+    presets.forEach(p => items.push({ label: p, icon: 'fa-regular fa-comment', on: u.status_text === p, run: () => setStatus(u.status, p) }));
     items.push({ label: 'Escribir otro…', icon: 'fa-solid fa-pen', run: customStatus });
     if (u.status_text) items.push({ label: 'Borrar mensaje de estado', icon: 'fa-solid fa-eraser', run: () => setStatus(u.status, '') });
     menu(items, x, y);
@@ -1048,8 +1061,9 @@
   }
   let audioCtx = null;
   // kind: 'dm' | 'chat' | 'mention' | 'chatnote' | 'sent' → sonidos de g7-juice.js (MOVIMIENTO.md); sin él, el bip de siempre
-  function beep(kind = 'chat') {
+  function beep(kind = 'chat', key = '', id = 0, conv = 0) {
     if (!S.prefs.sound || inQuiet()) return;
+    if (window.G7Juice && G7Juice.alertOnce && id) { G7Juice.alertOnce(kind, key + S.me, id, conv && window.CCLook ? CCLook.soundOf(conv) : ''); return; }
     if (window.G7Juice && G7Juice.alert) { G7Juice.alert(kind); return; }
     if (kind === 'sent') return;
     try {
@@ -1071,12 +1085,12 @@
   /** Mensaje nuevo de otra persona: ¿corresponde avisar? (las menciones y anuncios llegan por la actividad) */
   function maybeNotify(m) {
     if (m.user_id === S.me || m.kind === 'system' || m.parent_id || m.mentions_me || m.kind === 'announce' || m.deleted || m.edited) return;
-    if (S.notified.has(m.id) || Date.now() - D(m.created_at) > 120000) return;
+    if (S.notified.has(m.id) || m.id <= (S.heard || 0) || (S.srvNow ? D(S.srvNow) : Date.now()) - D(m.created_at) > 45000) return;   // tarde no suena
     S.notified.add(m.id);
-    const c = S.convs[m.conv_id]; if (!c || c.muted || c.notify !== 'all' || watching(c.id)) return;
+    const c = S.convs[m.conv_id]; if (!c || c.muted || c.notify !== 'all' || watching(c.id) || c.last_read_id >= m.id) return;   // ya lo leyó en otra pestaña o equipo
     const want = c.kind === 'dm' ? S.prefs.dm : c.kind === 'group' ? S.prefs.groups : S.prefs.channels;
     if (!want) return;
-    beep(c.kind === 'dm' ? 'dm' : 'chat');
+    beep(c.kind === 'dm' ? 'dm' : 'chat', 'chat', m.id, c.id);
     const where = c.kind === 'dm' ? uname(m.user_id) : (c.kind === 'channel' ? '#' : '') + c.name;
     popup(where, (c.kind === 'dm' ? '' : uname(m.user_id).split(' ')[0] + ': ') + (m.body || (m.poll ? '📊 ' + m.poll.question : '📎 Archivo')), () => openConv(c.id), 'c' + c.id);
   }
@@ -1101,7 +1115,7 @@
       const c = n.conv_id && S.convs[n.conv_id];
       if (c && c.notify === 'none') return;
       if (n.message_id && watching(n.conv_id) && n.kind !== 'reply') return;
-      beep(n.kind === 'mention' ? 'mention' : n.kind === 'reminder' ? 'remind' : 'chatnote');
+      beep(n.kind === 'mention' ? 'mention' : n.kind === 'reminder' ? 'remind' : 'chatnote', 'chatn', n.id, n.kind === 'mention' ? n.conv_id : 0);
       popup(notifTitle(n), n.kind === 'reaction' ? n.extra : n.extra, () => openNotif(n), 'n' + n.id);
     });
     updateBadges();
@@ -1853,6 +1867,7 @@
       case 'info': if (S.aside === 'thread') { S.aside = null; S.thread = null; } toggleAside('info'); break;
       case 'aside-close': S.aside = null; S.thread = null; cc.classList.remove('aside-on'); renderHead(); break;
       case 'fav': pref('favorite'); break;
+      case 'look': { const lc = curConv(); if (lc) CCLook.open(lc.id, (lc.kind === 'channel' ? '#' : '') + convName(lc)); break; }
       case 'mute': pref('muted'); break;
       case 'older': loadOlder(); break;
       case 'newer': loadNewer(); break;

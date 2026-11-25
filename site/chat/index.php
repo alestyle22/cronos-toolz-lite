@@ -22,6 +22,8 @@ define('CH_PAGE_IS_CHAT', 1);
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="chat.css?v=<?= $v('chat.css') ?>">
 <link rel="stylesheet" href="refs.css?v=<?= $v('refs.css') ?>">
+<link rel="stylesheet" href="widget.css?v=<?= $v('widget.css') ?>">
+<link rel="stylesheet" href="look.css?v=<?= $v('look.css') ?>">
 <link rel="stylesheet" href="chat2.css?v=<?= $v('chat2.css') ?>">
 <link rel="stylesheet" href="chat-plus.css?v=<?= $v('chat-plus.css') ?>">
 <link rel="stylesheet" href="/toolz/assets/cm-kudos.css?v=<?= (int)@filemtime(__DIR__ . '/../assets/cm-kudos.css') ?>">
@@ -70,6 +72,7 @@ define('CH_PAGE_IS_CHAT', 1);
 <script src="/toolz/assets/g7-imgprep.js?v=1"></script>
 <script src="emoji.js?v=<?= $v('emoji.js') ?>"></script>
 <script src="refs.js?v=<?= $v('refs.js') ?>"></script>
+<script src="look.js?v=<?= $v('look.js') ?>"></script>
 <script src="chat.js?v=<?= $v('chat.js') ?>"></script>
 <script src="/toolz/assets/cm-kudos.js?v=<?= (int)@filemtime(__DIR__ . '/../assets/cm-kudos.js') ?>"></script>
 <script src="comm.js?v=<?= $v('comm.js') ?>"></script>

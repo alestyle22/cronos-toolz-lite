@@ -496,7 +496,7 @@ function choose(anchor, { items, selected = [], multi = false, search = false, e
   if (search) { const inp = p.querySelector('.f'); inp.focus(); inp.addEventListener('input', () => { q = inp.value; draw(); }); }
   return p;
 }
-const userItems = () => TK.users.map(u => ({ id: u.id, name: u.name + ' ' + u.username, html: av(u, 22) + `<span>${esc(u.name)}</span>` }));
+const userItems = () => TK.users.map(u => ({ id: u.id, name: u.name + ' ' + u.username, html: av(u, 22) + `<span>${esc(u.name)}${window.G7AwayTag ? G7AwayTag(u.id) : ''}</span>` }));
 const clientItems = () => [{ id: 0, name: 'Sin marca', html: '<i class="fa-solid fa-ban" style="width:12px;color:var(--g7-text-4)"></i><span>Sin marca</span>' }, ...TK.clients.map(c => ({ id: c.id, name: c.name, color: c.color }))];
 function pickStatus(a, t, cb) { choose(a, { items: TK.cfg.statuses, selected: [t.status] }, cb); }
 function pickPrio(a, t, cb) { choose(a, { items: TK.cfg.priorities, selected: [t.priority] }, cb); }

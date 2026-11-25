@@ -341,7 +341,7 @@ $('icon-picker-modal').addEventListener('click', e=>{
 });
 
 // ── NOTIFICATIONS CONFIG ─────────────────────────────────
-let currentSoundType = 'beep';
+let currentSoundType = 'cronos';
 
 async function admLoadNotif(){
   try{
@@ -355,12 +355,15 @@ async function admLoadNotif(){
 }
 
 function admSetSoundType(type, btn){
+  type = { beep: 'cronos', soft: 'suave', pop: 'burbujas' }[type] || type;   // tipos viejos
   currentSoundType = type;
   document.querySelectorAll('.adm-sound-btn').forEach(b=>b.classList.remove('active'));
+  btn = btn || document.querySelector(`.adm-sound-btn[data-type="${type}"]`);
   if(btn) btn.classList.add('active');
 }
 
 function admPreviewSound(){
+  if (window.G7Juice && G7Juice.sounds) { G7Juice.sounds.demo(currentSoundType); return; }
   const type = currentSoundType;
   try {
     const ctx = new (window.AudioContext||window.webkitAudioContext)();

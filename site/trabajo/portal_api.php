@@ -424,6 +424,10 @@ case 'submit':
                     dedupe_key = ?, overload_note = ?, team_id = ? WHERE id = ?')
                ->execute([$needApproval ? 'revision' : 'nuevo', $work > 0 ? $work : null, json_encode($c['est'], JSON_UNESCAPED_UNICODE), $date, $date, $v['id'], $needApproval ? 'pending' : null, $approver,
                           $dedupe, $over > 0 ? ($reason !== '' ? $reason : 'Aceptó la sobrecarga') : '', $d['id'], $id]);
+            if ($date) {   // la resolución vence con la fecha comprometida, y la tarea la sigue
+                wk_tk_set($db, $id, ['committed_date' => $date]);
+                $db->prepare('UPDATE g7_tasks SET due_date = ? WHERE id = (SELECT task_id FROM g7_wk_tickets WHERE id = ?)')->execute([$date, $id]);
+            }
             pt_recalc($db, $id);
             return ['id' => $id, 'over' => $over];
         });
@@ -621,11 +625,12 @@ case 'ticket_dates':   // fecha comprometida y/o estimación (las cambia quien g
     if (!$f) pa_out(['ok' => true]);
     $reason = pt_s($in['reason'] ?? '', 500);
     wk_tk_set($db, (int)$t['id'], $f);   // recalcula la carga (pt_on_ticket_set)
-    if (isset($f['committed_date']) && $t['task_id']) { $db->prepare('UPDATE g7_tasks SET due_date = ? WHERE id = ?')->execute([$f['committed_date'], (int)$t['task_id']]); }
-    $t2 = wk_tk_row($db, (int)$t['id']);
+    $t2 = wk_tk_row($db, (int)$t['id']);   // con el vencimiento recalculado (wk_tk_due_sync)
+    if (array_key_exists('committed_date', $f) && $t['task_id'])
+        $db->prepare('UPDATE g7_tasks SET due_date = ? WHERE id = ?')->execute([$f['committed_date'] ?? ($t2['resolution_due'] ? substr($t2['resolution_due'], 0, 10) : null), (int)$t['task_id']]);
     $txt = implode(' · ', $ev) . ($reason !== '' ? ' ("' . $reason . '")' : '') . ($t2['overload'] ? ' · queda con sobrecarga' : '');
     wk_tk_event($db, (int)$t['id'], $uid, $txt, false);
-    if (isset($f['committed_date'])) { pt_notify($db, 'pt_date', $t2, $uid, $txt); pt_auto_fire($db, 'date', (int)$t['id'], $uid); }
+    if (array_key_exists('committed_date', $f)) { pt_notify($db, 'pt_date', $t2, $uid, $txt); pt_auto_fire($db, 'date', (int)$t['id'], $uid); }
     pt_audit($db, (int)$t['team_id'], (int)$t['id'], $uid, 'dates', ['changes' => $ev, 'reason' => $reason]);
     $q = $db->prepare('SELECT day, minutes, is_over AS over_min FROM g7_wk_load WHERE ticket_id = ? ORDER BY day'); $q->execute([(int)$t['id']]);
     pa_out(['ok' => true, 'overload' => (int)$t2['overload'], 'load' => $q->fetchAll(PDO::FETCH_ASSOC)]);

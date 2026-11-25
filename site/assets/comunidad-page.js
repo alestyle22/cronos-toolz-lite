@@ -226,10 +226,10 @@ async function pollTeamStatus(){
     const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_team_status'})});
     const data=await res.json();
     if(!data.users)return;
-    const availColors={available:'#22c55e',busy:'#f59e0b',focus:'#60a5fa',away:'#71717a'};
+    const PR=window.G7Frames&&G7Frames.presence||{}, pick=i=>Object.fromEntries(Object.entries(PR).map(([k,s])=>[k,s[i]])), availColors=pick(1);
     // Update working-on panel
-    const avColors={available:'#22c55e',busy:'#f59e0b',focus:'#60a5fa',away:'#71717a'};
-    const avLabels={available:'Disponible',busy:'En reunión',focus:'Concentrado',away:'Fuera'};
+    const avColors=availColors;
+    const avLabels=pick(0);
     data.users.forEach(u=>{
       const focusEl=document.querySelector('.wi-focus-'+u.id);
       const dotEl=document.querySelector('.wi-dot-'+u.id);

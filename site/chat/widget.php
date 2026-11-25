@@ -10,6 +10,7 @@ $ccwV = fn($f) => @filemtime(__DIR__ . '/' . $f);
 ?>
 <link rel="stylesheet" href="/toolz/chat/widget.css?v=<?= $ccwV('widget.css') ?>">
 <link rel="stylesheet" href="/toolz/chat/refs.css?v=<?= $ccwV('refs.css') ?>">
+<link rel="stylesheet" href="/toolz/chat/look.css?v=<?= $ccwV('look.css') ?>">
 <div id="ccw-heads" aria-label="Conversaciones fijadas"></div>
 <button type="button" id="ccw" aria-label="Abrir el chat" aria-expanded="false" title="Chat">
   <i class="fa-solid fa-comments"></i><span id="ccw-n" hidden></span>
@@ -20,6 +21,7 @@ $ccwV = fn($f) => @filemtime(__DIR__ . '/' . $f);
     <span class="ccw-hav" id="ccw-hav"></span>
     <div class="ccw-ht"><b id="ccw-title">Chat</b><small id="ccw-sub"></small></div>
     <button type="button" class="ccw-ib" id="ccw-pin" aria-label="Fijar como burbuja" title="Fijar como burbuja" hidden><i class="fa-solid fa-thumbtack"></i></button>
+    <button type="button" class="ccw-ib" id="ccw-look" aria-label="Aspecto y sonido" title="Aspecto y sonido" hidden><i class="fa-solid fa-palette"></i></button>
     <a class="ccw-ib" id="ccw-full" href="/toolz/chat/" aria-label="Abrir el chat completo" title="Abrir el chat completo"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></a>
     <button type="button" class="ccw-ib" id="ccw-close" aria-label="Cerrar" title="Cerrar"><i class="fa-solid fa-xmark"></i></button>
   </header>
@@ -45,4 +47,5 @@ $ccwV = fn($f) => @filemtime(__DIR__ . '/' . $f);
 </section>
 <script src="/toolz/chat/emoji.js?v=<?= $ccwV('emoji.js') ?>" defer></script>
 <script src="/toolz/chat/refs.js?v=<?= $ccwV('refs.js') ?>" defer></script>
+<script src="/toolz/chat/look.js?v=<?= $ccwV('look.js') ?>" defer></script>
 <script src="/toolz/chat/widget.js?v=<?= $ccwV('widget.js') ?>" defer></script>

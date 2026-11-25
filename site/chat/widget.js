@@ -25,7 +25,7 @@
   }, true);
 
   async function api(action, data = {}) {
-    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CH': '1' }, body: JSON.stringify({ action, ...data }) });
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CH': '1' }, body: JSON.stringify({ action, ...data }), signal: action === 'sync' && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined });
     const j = await r.json().catch(() => ({ ok: false, error: 'El servidor respondió algo inesperado' }));
     if (!r.ok || j.ok === false) throw new Error(j.error || 'No se pudo completar');
     return j;
@@ -131,7 +131,7 @@
       if (m.body) body += fmt(m.body);
       for (const f of m.files || []) {
         const url = '/toolz/chat/' + f.url;
-        body += /^image\//.test(f.mime) ? `<a href="${url}" target="_blank" rel="noopener"><img class="pic" src="${url}" alt="${esc(f.name)}" loading="lazy"></a>`
+        body += /^image\//.test(f.mime) ? `<a class="pl" href="${url}" data-name="${esc(f.name)}" target="_blank" rel="noopener"><img class="pic" src="${url}" alt="${esc(f.name)}" loading="lazy"></a>`
           : /^audio\//.test(f.mime) ? `<audio class="aud" data-fk="${+f.id}" src="${url}" controls preload="metadata"></audio>`
           : /^video\//.test(f.mime) ? `<video class="pic" data-fk="${+f.id}" src="${url}" controls preload="metadata"></video>`
           : `<a class="file" href="${url}" target="_blank" rel="noopener"><i class="fa-solid fa-file"></i><span>${esc(f.name)} · ${kb(f.size)}</span></a>`;
@@ -140,26 +140,76 @@
       if (m.thread_count) body += `<a class="th" href="/toolz/chat/?m=${m.id}"><i class="fa-regular fa-comments"></i> ${m.thread_count} respuesta${m.thread_count > 1 ? 's' : ''} en el hilo</a>`;
     }
     const day = !prev || dayOf(prev.created_at) !== dayOf(m.created_at) ? `<div class="ccw-day">${esc(dayOf(m.created_at))}</div>` : '';
-    return `${day}<div class="ccw-m${mine ? ' me' : ''}${cont && !day ? ' cont' : ''}${m.pending ? ' pend' : ''}${m.failed ? ' err' : ''}" data-mid="${m.id || ''}">${mine ? '' : av(u)}
+    return `${day}<div class="ccw-m${mine ? ' me' : ''}${cont && !day ? ' cont' : ''}${m.pending ? ' pend' : ''}${m.failed ? ' err' : ''}" data-mid="${m.id || ''}" data-ck="${esc(m.client_id || '')}">${mine ? '' : av(u)}
       <div class="ccw-b">${!mine && c && c.kind !== 'dm' && !(cont && !day) ? `<span class="who">${esc(u?.name || '')}</span>` : ''}${body}<span class="tm">${m.failed ? 'No se envió · toca para reintentar' : m.pending ? 'Enviando…' : (TZ ? TZ.time(m.created_at) : P(m.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })) + (m.edited ? ' · editado' : '')}${mine && !m.pending && seenBy(m) ? ' · Visto' : ''}</span></div></div>`;
   }
+  /** Imágenes de la conversación a pantalla completa: flechas para pasar, Escape o clic afuera para cerrar. */
+  function lightbox(link) {
+    let list = [...$('ccw-msgs').querySelectorAll('a.pl')], i = Math.max(0, list.indexOf(link));
+    list = list.map(a => ({ url: a.getAttribute('href'), name: a.dataset.name || '' }));
+    const back = document.activeElement, lb = document.createElement('div');
+    lb.className = 'ccw-lb'; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.setAttribute('aria-label', 'Imagen');
+    lb.innerHTML = `<img alt=""><div class="cap"></div><div class="bar"><a class="dl" title="Descargar" aria-label="Descargar"><i class="fa-solid fa-download"></i></a><button type="button" data-x title="Cerrar" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button></div>`
+      + (list.length > 1 ? '<button type="button" class="nav prev" data-go="-1" aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button><button type="button" class="nav next" data-go="1" aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>' : '');
+    const img = lb.querySelector('img');
+    const show = n => {
+      i = (n + list.length) % list.length; const f = list[i];
+      img.src = f.url; img.alt = f.name; lb.querySelector('.dl').href = f.url + (f.url.includes('?') ? '&' : '?') + 'dl=1';
+      lb.querySelector('.cap').textContent = f.name + (list.length > 1 ? ` · ${i + 1} de ${list.length}` : '');
+    };
+    const close = () => { lb.remove(); document.removeEventListener('keydown', key, true); if (back && back.isConnected) back.focus({ preventScroll: true }); };
+    const key = e => {   // en captura: Escape cierra la imagen y no el panel
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); }
+      else if (list.length > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); e.stopImmediatePropagation(); show(i + (e.key === 'ArrowLeft' ? -1 : 1)); }
+      else if (e.key === 'Tab') {
+        const fs = [...lb.querySelectorAll('a,button')], n = fs.indexOf(document.activeElement);
+        e.preventDefault(); fs[(n + (e.shiftKey ? -1 : 1) + fs.length) % fs.length].focus();
+      }
+    };
+    lb.addEventListener('click', e => {
+      const g = e.target.closest('[data-go]'); if (g) { show(i + +g.dataset.go); return; }
+      if (!e.target.closest('a') && e.target !== img) close();
+    });
+    let x0 = null;   // en el celular se pasa deslizando
+    lb.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+    lb.addEventListener('touchend', e => { const dx = x0 === null ? 0 : e.changedTouches[0].clientX - x0; if (list.length > 1 && Math.abs(dx) > 50) show(i + (dx > 0 ? -1 : 1)); x0 = null; });
+    document.addEventListener('keydown', key, true);
+    document.body.appendChild(lb); show(i); lb.querySelector('[data-x]').focus();
+  }
   function seenBy(m) { const c = S.convs[S.open]; return c && c.kind === 'dm' && S.reads.some(r => r.user_id !== S.me && r.last_read_id >= m.id); }
+  let drawn = [];
+  const keyOf = m => m.client_id ? 'c' + m.user_id + ':' + m.client_id : 'i' + m.id;
+  /** En orden; lo que se está enviando, al final. */
+  const sortMsgs = () => S.msgs.sort((a, b) => (a.id || 1e15) - (b.id || 1e15));
   function drawMsgs(keepBottom = true) {
     const box = $('ccw-msgs');
     const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
     const prevH = box.scrollHeight;
-    // Los audios y videos se conservan: si no, cada mensaje o "visto" que llega reinicia la reproducción
-    const media = new Map(); box.querySelectorAll('[data-fk]').forEach(el => media.set(el.dataset.fk, el));
-    box.innerHTML = (S.more ? '<button type="button" class="ccw-more" id="ccw-older">Ver mensajes anteriores</button>' : '')
-      + (S.msgs.length ? S.msgs.map((m, i) => msgHtml(m, S.msgs[i - 1])).join('') : '<div class="ccw-empty">Todavía no hay mensajes. ¡Saluda!</div>');
-    if (media.size) box.querySelectorAll('[data-fk]').forEach(el => { const o = media.get(el.dataset.fk); if (o && o.getAttribute('src') === el.getAttribute('src')) el.replaceWith(o); });
+    // Solo se toca lo que cambió: redibujar todo en cada consulta hacía parpadear imágenes y tarjetas
+    const items = [];
+    if (S.more) items.push(['more', '<button type="button" class="ccw-more" id="ccw-older">Ver mensajes anteriores</button>']);
+    S.msgs.forEach((m, i) => items.push([keyOf(m), msgHtml(m, S.msgs[i - 1])]));
+    if (!S.msgs.length) items.push(['empty', '<div class="ccw-empty">Todavía no hay mensajes. ¡Saluda!</div>']);
+    const old = new Map(drawn.filter(d => d.conv === S.open && d.nodes[0] && d.nodes[0].parentNode === box).map(d => [d.key, d]));
+    if (!old.size) box.textContent = '';
+    drawn = items.map(([key, html]) => {
+      const o = old.get(key);
+      if (o && o.html === html) { old.delete(key); return o; }
+      const t = document.createElement('template'); t.innerHTML = html;
+      // Los audios y videos se conservan: si no, se reinicia la reproducción
+      if (o) t.content.querySelectorAll('[data-fk]').forEach(el => { for (const n of o.nodes) { const p = n.querySelector && n.querySelector(`[data-fk="${el.dataset.fk}"]`); if (p && p.getAttribute('src') === el.getAttribute('src')) el.replaceWith(p); } });
+      return { key, html, conv: S.open, nodes: [...t.content.childNodes].filter(n => n.nodeType === 1) };
+    });
+    old.forEach(o => o.nodes.forEach(n => n.remove()));
+    let at = box.firstChild;
+    for (const d of drawn) for (const n of d.nodes) { if (n === at) at = at.nextSibling; else box.insertBefore(n, at); }
     if (keepBottom === 'top') box.scrollTop = box.scrollHeight - prevH;
     else if (keepBottom || atBottom) box.scrollTop = box.scrollHeight;
     if (window.CCRefs) CCRefs.hydrate(box, api);
   }
   async function openConv(id) {
     const c = S.convs[id]; if (!c) return;
-    S.open = id; S.msgs = []; S.more = false; S.att = []; drawAtt();
+    S.open = id; S.msgs = []; S.more = false; S.loading = true; S.reads = []; S.att = []; drawAtt();
     showPanel(true);
     $('ccw-list').hidden = true; $('ccw-conv').hidden = false; $('ccw-back').hidden = false;
     $('ccw-title').textContent = convName(c);
@@ -174,18 +224,22 @@
     $('ccw-pin').hidden = false; $('ccw-pin').classList.toggle('on', pins.includes(id));
     $('ccw-pin').title = pins.includes(id) ? 'Quitar burbuja' : 'Fijar como burbuja';
     $('ccw-full').href = '/toolz/chat/?c=' + id;
+    if (window.CCLook) { CCLook.apply($('ccw-msgs'), id); $('ccw-look').hidden = false; }
     $('ccw-msgs').innerHTML = '<div class="ccw-empty">Cargando…</div>';
     drawHeads();
     try {
       const r = await api('history', { conv: id, limit: 40 });
       if (S.open !== id) return;
-      S.msgs = r.messages; S.more = r.more_before; S.reads = r.reads || []; S.canPost = r.can_post;
+      // Lo que llegó por la sincronización mientras se pedía el historial no se pierde
+      const held = S.msgs.filter(m => !r.messages.some(x => x.id === m.id || (m.client_id && x.client_id === m.client_id)) && (!m.id || m.id > (r.messages.at(-1)?.id || 0)));
+      S.loading = false; S.msgs = [...r.messages, ...held]; S.more = r.more_before; S.reads = r.reads || []; S.canPost = r.can_post;
       $('ccw-comp').hidden = !r.can_post;
+      document.dispatchEvent(new CustomEvent('g7:peer', { detail: { comp: 'ccw-comp', id: c.kind === 'dm' ? c.peer : 0, name: convName(c) } }));   // presence-hints.js
       $('ccw-ro').hidden = r.can_post;
       $('ccw-ro').innerHTML = r.can_join ? 'No eres miembro de este canal.<button type="button" id="ccw-join">Unirme</button>' : 'En esta conversación no puedes escribir.';
       drawMsgs(true); markRead();
       if (r.can_post) setTimeout(() => $('ccw-ta').focus(), 30);
-    } catch (e) { $('ccw-msgs').innerHTML = `<div class="ccw-empty">${esc(e.message)}</div>`; }
+    } catch (e) { if (S.open === id) { S.loading = false; $('ccw-msgs').innerHTML = `<div class="ccw-empty">${esc(e.message)}</div>`; } }
   }
   function markRead() {
     const c = S.convs[S.open]; if (!c || document.hidden || $('ccw-panel').hidden) return;
@@ -193,14 +247,14 @@
     if (c.unread || c.last_read_id < last.id) { c.unread = 0; c.last_read_id = last.id; drawBadge(); drawHeads(); api('read', { conv: c.id, last_id: last.id }).catch(() => {}); }
   }
   function backToList() {
-    S.open = null; $('ccw-conv').hidden = true; $('ccw-list').hidden = false; $('ccw-back').hidden = true; $('ccw-pin').hidden = true;
+    S.open = null; $('ccw-conv').hidden = true; $('ccw-list').hidden = false; $('ccw-back').hidden = true; $('ccw-pin').hidden = true; $('ccw-look').hidden = true;
     $('ccw-title').textContent = 'Chat'; $('ccw-sub').textContent = ''; $('ccw-hav').innerHTML = ''; $('ccw-full').href = '/toolz/chat/';
     drawList(); drawHeads();
   }
   function showPanel(on) {
     $('ccw-panel').hidden = !on; $('ccw').classList.toggle('open', on); $('ccw').setAttribute('aria-expanded', on ? 'true' : 'false');
     if (on && !S.open) { drawList(); setTimeout(() => $('ccw-q').focus(), 30); }
-    drawHeads(); schedule();
+    drawHeads(); if (on && S.booted) sync(); else schedule();   // al abrirlo, lo que haya ya
   }
 
   // ── Enviar ─────────────────────────────────────────────────
@@ -216,10 +270,11 @@
     drawMsgs(true);
     try {
       const r = await api('send', { conv, body: m.body, client_id: m.client_id, files: (m.files || []).map(f => f.id) });
-      beep('sent');
+      beep('sent'); news();
       if (S.open !== conv) return;
-      const i = S.msgs.indexOf(m);
-      if (S.msgs.some(x => x.id === r.message.id)) S.msgs.splice(i, 1); else S.msgs[i] = r.message;
+      // La sincronización pudo haberlo confirmado antes: se busca por id y por client_id, nunca por posición
+      S.msgs = S.msgs.filter(x => x !== m && x.id !== r.message.id && x.client_id !== m.client_id);
+      S.msgs.push(r.message); sortMsgs();
       drawMsgs(true);
     } catch (e) { m.pending = false; m.failed = true; drawMsgs(); flash(e.message); }
   }
@@ -247,33 +302,48 @@
   }
 
   // ── Sincronización ─────────────────────────────────────────
-  let timer = null, busy = false, failN = 0, presAt = 0;
+  let timer = null, busy = false, failN = 0, presAt = 0, again = false;
   // Con el servidor ocupado (503) o sin conexión, espera cada vez más (hasta 1 minuto) en vez de insistir; al responder, vuelve al ritmo normal
   function schedule() {
     clearTimeout(timer);
-    const base = document.hidden ? 60000 : $('ccw-panel').hidden ? 15000 : 4000;
-    timer = setTimeout(sync, failN ? Math.min(60000, base * 2 ** failN) + Math.random() * 2000 : base);
+    const base = document.hidden ? 25000 : $('ccw-panel').hidden ? 8000 : 2500;
+    timer = setTimeout(tick, failN ? Math.min(60000, base * 2 ** failN) + Math.random() * 2000 : base);
   }
+  // De fondo no hace falta consultar si otra pestaña lo acaba de hacer
+  function tick() {
+    if (document.hidden) { let t = 0; try { t = +localStorage.getItem('ccw_poll') || 0; } catch (e) {} if (Date.now() - t < 20000) return schedule(); }
+    sync();
+  }
+  // Las otras pestañas se enteran al instante de que hay novedades
+  let chan = null; try { chan = new BroadcastChannel('cronos-chat'); chan.onmessage = e => { if (e.data && e.data.me === S.me && (!e.data.last || e.data.last > S.last) && !document.hidden) sync(); }; } catch (e) {}
+  const news = last => { try { chan && chan.postMessage({ me: S.me, last: last || 0 }); } catch (e) {} };
   let audio = null;
-  function beep(kind = 'chat') {
+  function beep(kind = 'chat', id = 0, conv = 0) {
     if (S.prefs.sound === false) return;
+    if (id && window.G7Juice && G7Juice.alertOnce) { G7Juice.alertOnce(kind, 'chat' + S.me, id, conv && window.CCLook ? CCLook.soundOf(conv) : ''); return; }   // una sola vez aunque haya varias pestañas
     if (window.G7Juice && G7Juice.alert) { G7Juice.alert(kind); return; }   // sonidos de g7-juice.js
     if (kind === 'sent') return;
     try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.06, audio.currentTime); g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .25); o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + .26); } catch (e) {}
   }
   async function sync() {
-    if (busy || !S.booted) return schedule();
-    busy = true;
+    if (!S.booted) return;
+    if (busy) { again = true; return; }
+    clearTimeout(timer); busy = true; again = false;
     try {
       // Quién está en línea: con el panel abierto, cada 20 s (el servidor lo actualiza cada 30 s); los mensajes llegan en cada consulta
       const presence = !$('ccw-panel').hidden && Date.now() - presAt > 20000;
+      const asked = S.open;
       const r = await api('sync', { after: S.last, open: S.open || 0, presence });
+      try { localStorage.setItem('ccw_poll', Date.now()); } catch (e) {}
+      if ((r.messages || []).length) news(r.last_event);
+      const now = r.now ? P(r.now) : new Date();
       failN = 0; if (presence) presAt = Date.now();
       S.last = r.last_event;
+      let top = S.heard;
       for (const c of r.convs || []) S.convs[c.id] = c;
       for (const g of r.gone || []) { delete S.convs[g]; if (S.open === g) backToList(); }
       for (const p of r.presence || []) if (S.users[p.id]) Object.assign(S.users[p.id], p);
-      let ding = false;
+      let ding = false, dingId = 0, dingConv = 0;
       for (const m of r.messages || []) {
         if (m.parent_id) continue;
         if (m.conv_id === S.open) {
@@ -281,26 +351,31 @@
           if (i >= 0) S.msgs[i] = m; else S.msgs.push(m);
         }
         const c = S.convs[m.conv_id];
-        if (m.user_id !== S.me && !m.deleted && c && !c.muted && (m.conv_id !== S.open || $('ccw-panel').hidden || document.hidden) && new Date() - P(m.created_at) < 120000) ding = c.kind === 'dm' ? 'dm' : (ding || 'chat');
+        // Suena solo lo nuevo (no una edición o reacción), sin leer y reciente: tarde es peor que nada
+        const fresh = m.id > S.heard; top = Math.max(top, m.id);
+        if (fresh && m.user_id !== S.me && m.kind !== 'system' && !m.deleted && c && !c.muted && c.notify !== 'none' && !(c.last_read_id >= m.id) && (m.conv_id !== S.open || $('ccw-panel').hidden || document.hidden) && now - P(m.created_at) < 45000) dingId = Math.max(dingId, m.id), dingConv = (!dingConv || !(window.CCLook && CCLook.soundOf(m.conv_id) === 'none')) ? m.conv_id : dingConv, ding = c.kind === 'dm' ? 'dm' : (ding || 'chat');
       }
-      if (r.reads) S.reads = r.reads;
-      if (S.open && !$('ccw-panel').hidden) {
-        if ((r.messages || []).some(m => m.conv_id === S.open) || r.reads) drawMsgs(false);
-        const t = (r.typing || []).map(id => userOf(id)?.name?.split(' ')[0]).filter(Boolean);
+      S.heard = top; sortMsgs();
+      const same = asked === S.open;   // si cambió de conversación mientras tanto, los "visto" y "escribiendo" son de la otra
+      if (r.reads && same) S.reads = r.reads;
+      if (S.open && !S.loading && !$('ccw-panel').hidden) {
+        if ((r.messages || []).some(m => m.conv_id === S.open) || (r.reads && same)) drawMsgs(false);
+        const t = ((same && r.typing) || []).map(id => userOf(id)?.name?.split(' ')[0]).filter(Boolean);
         if (!$('ccw-typing').style.color) $('ccw-typing').textContent = t.length ? t.join(', ') + (t.length > 1 ? ' están escribiendo…' : ' está escribiendo…') : '';
         markRead();
       }
-      if (ding) beep(ding);
+      if (ding) beep(ding, dingId, dingConv);
       drawBadge(); drawHeads();
       if (!$('ccw-panel').hidden && !S.open) drawList();
-      if (r.more) { busy = false; return sync(); }
+      if (r.more) again = true;
     } catch (e) { if (/sesión|401/i.test(e.message)) { busy = false; return; } failN = Math.min(failN + 1, 4); }
-    busy = false; schedule();
+    busy = false; if (again) sync(); else schedule();
   }
   async function boot() {
     try {
       const r = await api('boot');
-      S.me = r.me.id; S.prefs = r.prefs || {}; S.last = r.last_event;
+      S.me = r.me.id; S.prefs = r.prefs || {}; if (window.CCLook) CCLook.init(r.look, api); S.last = r.last_event;
+      S.heard = Math.max(0, ...r.convs.map(c => c.last_msg_id || 0));   // lo anterior a abrir la página no suena
       for (const u of r.users) S.users[u.id] = u;
       for (const c of r.convs) S.convs[c.id] = c;
       pins = pins.filter(id => S.convs[id]); savePins();
@@ -311,9 +386,10 @@
   }
 
   // ── Eventos ────────────────────────────────────────────────
-  $('ccw').addEventListener('click', () => { if (!S.booted) return; showPanel($('ccw-panel').hidden); if (!$('ccw-panel').hidden && S.open) { drawMsgs(true); markRead(); } });
+  $('ccw').addEventListener('click', () => { if (!S.booted) return; showPanel($('ccw-panel').hidden); if (!$('ccw-panel').hidden && S.open && !S.loading) { drawMsgs(true); markRead(); } });
   $('ccw-close').addEventListener('click', () => showPanel(false));
   $('ccw-back').addEventListener('click', backToList);
+  $('ccw-look').addEventListener('click', () => { const c = S.convs[S.open]; if (c) CCLook.open(c.id, (c.kind === 'channel' ? '#' : '') + convName(c).replace(/^#/, '')); });
   $('ccw-pin').addEventListener('click', () => {
     const id = S.open; if (!id) return;
     pins = pins.includes(id) ? pins.filter(x => x !== id) : [...pins.filter(x => x !== id), id].slice(-5);
@@ -336,6 +412,8 @@
   });
   $('ccw-heads').addEventListener('keydown', e => { const h = e.target.closest('[data-head]'); if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openConv(+h.dataset.head); } });
   $('ccw-msgs').addEventListener('click', async e => {
+    const pl = e.target.closest('a.pl');
+    if (pl && !e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); lightbox(pl); return; }
     if (e.target.closest('#ccw-older')) {
       const first = S.msgs.find(m => m.id); if (!first) return;
       try { const r = await api('history', { conv: S.open, before: first.id, limit: 40 }); S.msgs = [...r.messages, ...S.msgs]; S.more = r.more_before; drawMsgs('top'); } catch (err) { flash(err.message); }

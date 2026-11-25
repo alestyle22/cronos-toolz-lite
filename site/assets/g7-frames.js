@@ -9,8 +9,9 @@
 (function () {
   'use strict';
   if (window.G7Frames) return;
-  let data = { me: 0, f: {} };
+  let data = { me: 0, f: {}, b: {}, p: {} };
   try { const n = document.getElementById('g7-frames-data'); if (n) data = Object.assign(data, JSON.parse(n.textContent || '{}')); } catch (e) {}
+  if (Array.isArray(data.b)) data.b = {};
   if (Array.isArray(data.f)) data.f = {};   // PHP manda [] cuando nadie eligió uno
 
   const TYPES = [['ring', 'Aro'], ['double', 'Doble aro'], ['dashed', 'Punteado'], ['gradient', 'Degradado'], ['neon', 'Neón'], ['glow', 'Luminoso'], ['gamer', 'Gamer'], ['minimal', 'Minimalista']];
@@ -34,10 +35,30 @@
     el.style.setProperty('--fr-w', Math.max(1.5, Math.min(6, w * .055)).toFixed(2) + 'px');
     el.classList.add('g7-fr', 'g7-fr-' + f.type);
   }
+  // ── Insignias (estado o la elegida, presence_lib.php): un circulito arriba a la derecha de la foto ──
+  const bOf = new WeakMap(), bro = window.ResizeObserver ? new ResizeObserver(es => es.forEach(e => { if (e.target.isConnected) badge(e.target); })) : null;
+  const drop = el => { const x = bOf.get(el); if (x) { x.remove(); bOf.delete(el); } };
+  function badge(el) {
+    const u = uidOf(el), b = u && data.b[u];
+    if (!b || el.closest('[data-g7-nobadge]')) { drop(el); return; }
+    if (bro && !el.__g7bro) { el.__g7bro = 1; bro.observe(el); }
+    const w = el.offsetWidth; if (w < 26 || !el.parentNode) { drop(el); return; }
+    // Las iniciales la llevan adentro; una <img> no puede, va a su lado
+    const inside = el.tagName !== 'IMG' && getComputedStyle(el).position !== 'static', host = inside ? el : el.parentElement;
+    const cs = getComputedStyle(host); if (cs.overflowX !== 'visible' && cs.overflowX !== 'clip' && !inside && host.offsetWidth <= w + 4) { drop(el); return; }   // la recortaría
+    if (cs.position === 'static') host.classList.add('g7-bdg-host');
+    let x = bOf.get(el); if (!x || x.parentNode !== host) { if (x) x.remove(); x = document.createElement('span'); x.className = 'g7-bdg'; x.__el = el; x.setAttribute('role', 'img'); bOf.set(el, x); host.appendChild(x); }
+    const s = Math.round(Math.max(13, Math.min(34, w * .36)));
+    if (x.textContent !== b[0]) x.textContent = b[0];
+    if (x.title !== b[1]) { x.title = b[1]; x.setAttribute('aria-label', b[1]); }
+    x.style.cssText = `width:${s}px;height:${s}px;font-size:${Math.round(s * .62)}px;left:${Math.round((inside ? 0 : el.offsetLeft) + w - s * .72)}px;top:${Math.round((inside ? 0 : el.offsetTop) - s * .28)}px;${b[2] ? '--bc:' + b[2] : ''}`;
+  }
+  /** Insignias nuevas para toda la página: {user_id: [emoji, título, color]} */
+  function badges(map) { data.b = map && !Array.isArray(map) ? map : {}; document.querySelectorAll('.g7-bdg').forEach(x => { if (!x.__el || !x.__el.isConnected) x.remove(); }); document.querySelectorAll(SEL).forEach(el => { if (!el.closest('[data-g7-noframe]')) badge(el); }); document.dispatchEvent(new Event('g7:badges')); }
   const waiting = new WeakSet();
   const ro = window.ResizeObserver ? new ResizeObserver(es => es.forEach(e => { const el = e.target; if (!el.offsetWidth) return; ro.unobserve(el); waiting.delete(el); const u = uidOf(el); if (u || el.classList.contains('g7-fr')) paint(el, u ? data.f[u] : el.__g7f); })) : null;
   function later(el, f) { el.__g7f = f; if (ro && !waiting.has(el)) { waiting.add(el); ro.observe(el); } }
-  function apply(el) { const u = uidOf(el); if (!u && el.classList.contains('g7-fr')) { paint(el, null); return; } if (u) { if (el.offsetWidth === 0 && el.tagName === 'IMG' && !el.complete) el.addEventListener('load', () => paint(el, data.f[u]), { once: true }); paint(el, data.f[u]); } }
+  function apply(el) { badge(el); const u = uidOf(el); if (!u && el.classList.contains('g7-fr')) { paint(el, null); return; } if (u) { if (el.offsetWidth === 0 && el.tagName === 'IMG' && !el.complete) el.addEventListener('load', () => paint(el, data.f[u]), { once: true }); paint(el, data.f[u]); } }
   const SEL = 'img[src*="/avatars/avatar_"], [data-g7-uid]';
   function scan(root) {
     if (root.nodeType !== 1) return;
@@ -73,10 +94,10 @@
     return { get: () => (f ? Object.assign({}, f) : null), set: v => { f = v && v.type ? Object.assign({ color: '#ff6600', color2: '#7c3aed' }, v) : null; draw(); } };
   }
 
-  window.G7Frames = { me: data.me, frames: data.f, types: TYPES, paint, set, picker, scan: () => scan(document.body) };
+  window.G7Frames = { badges, badgeOf: id => data.b[id] || null, presence: data.p, me: data.me, frames: data.f, types: TYPES, paint, set, picker, scan: () => scan(document.body) };
   const start = () => {
     scan(document.body);
-    new MutationObserver(ms => { for (const m of ms) { if (m.type === 'attributes') apply(m.target); else m.addedNodes.forEach(scan); } })
+    new MutationObserver(ms => { for (const m of ms) { if (m.type === 'attributes') apply(m.target); else { m.addedNodes.forEach(scan); if (m.removedNodes.length && m.target.children) for (const x of [...m.target.children]) if (x.classList.contains('g7-bdg') && !(x.__el && x.__el.isConnected)) x.remove(); } } })
       .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'data-g7-uid'] });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

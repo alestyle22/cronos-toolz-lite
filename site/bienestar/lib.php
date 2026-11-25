@@ -18,7 +18,7 @@ const BN_SCHEMA = '1';
 const BN_MIN_FLOOR = 3;   // nunca menos de 3 personas detrás de un número agregado (con 2, cada uno deduce lo del otro)
 
 /** Categorías de reconocimiento de Bienestar: claves de CM_KUDOS (Comunidad), así un reconocimiento es uno solo en los dos lados. */
-const BN_KUDOS_DEFAULT = ['companerismo', 'equipo', 'creativo', 'compromiso', 'ayuda', 'positiva'];
+const BN_KUDOS_DEFAULT = ['companerismo', 'equipo', 'creativo', 'compromiso', 'ayuda', 'positiva', 'gracias', 'granidea', 'mentor', 'meta'];
 
 const BN_LOAD_LEVELS = [
     1 => ['label' => 'Muy liviana', 'color' => '#22c55e'],

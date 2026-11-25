@@ -10,7 +10,8 @@ $currentUser = requireLogin();
 require_once __DIR__ . '/csp_lib.php'; g7_csp_enforce();
 require_once __DIR__ . '/comunidad_lib.php';
 require_once __DIR__ . '/profile_fields_lib.php';
-$db = getDB(); cm_install($db);
+require_once __DIR__ . '/presence_lib.php';
+$db = getDB(); cm_install($db); pr_sweep($db);
 $me = (int)$currentUser['id'];
 $uid = (int)($_GET['u'] ?? 0);
 if (!$uid && !empty($_GET['user'])) { $q = $db->prepare('SELECT id FROM g7_users WHERE username = ?'); $q->execute([(string)$_GET['user']]); $uid = (int)$q->fetchColumn(); }
@@ -25,9 +26,9 @@ $first = explode(' ', trim($name))[0];
 $x = cm_profile_extra($db, $uid);
 $work = cm_profile_work($db, $me, $uid);
 $ago = function ($d) { if (!$d) return ''; $s = time() - strtotime((string)$d); if ($s < 60) return 'ahora'; if ($s < 3600) return floor($s / 60) . ' min'; if ($s < 86400) return floor($s / 3600) . ' h'; if ($s < 86400 * 30) return floor($s / 86400) . ' d'; return date('d/m/Y', strtotime((string)$d)); };
-$AV = ['available' => ['Disponible', '#22c55e'], 'busy' => ['En reunión', '#f59e0b'], 'focus' => ['Concentrado', '#60a5fa'], 'away' => ['Fuera', '#71717a']];
+$AV = array_map(fn($s) => [$s[0], $s[1]], G7_PRESENCE);   // presence_lib.php
 [$avLabel, $avColor] = $AV[$x['availability']] ?? $AV['available'];
-if (!$x['online']) { $avLabel = $x['last_seen'] ? 'Visto hace ' . $ago($x['last_seen']) : 'Desconectado'; $avColor = '#71717a'; }
+if (!$x['online'] && !$self && !in_array($x['availability'], ['leave', 'sick'], true)) { $avLabel = $x['last_seen'] ? 'Visto hace ' . $ago($x['last_seen']) : 'Desconectado'; $avColor = '#71717a'; }
 $cols = ['#ff6600', '#a78bfa', '#4ade80', '#60a5fa', '#f59e0b', '#ec4899']; $col = $cols[ord(mb_strtoupper(mb_substr($name, 0, 1)) ?: 'A') % 6];
 $avatar = function (?string $src, string $nm, int $size, string $cls = '', int $uidF = 0) use ($h, $cols) {   // $uidF: con iniciales, el marco de la foto (avatar_frame_lib.php) lo reconoce por el id
     if ($src && preg_match('#^(/(?!/)|https?://)#', $src)) return '<img class="pf-av ' . $cls . '" src="' . $h($src) . '" alt="" style="width:' . $size . 'px;height:' . $size . 'px">';
@@ -110,7 +111,8 @@ $cfg = ['me' => $me, 'uid' => $uid, 'self' => $self, 'name' => $name, 'username'
           <h1><?= $h($name) ?><?= $x['mood'] ? ' <span class="pf-mood">' . $h($x['mood']) . '</span>' : '' ?><?= $self ? ' <span class="pf-you">Tú</span>' : '' ?></h1>
           <p class="pf-sub"><?= $p['position'] ? '<b>' . $h($p['position']) . '</b> · ' : '' ?>@<?= $h($p['username']) ?><?= $p['role'] === 'admin' ? ' · <span class="pf-role">Admin</span>' : '' ?></p>
           <div class="pf-meta">
-            <span class="pf-status" style="--c:<?= $h($avColor) ?>"><i></i><?= $h($avLabel) ?></span>
+            <?php if ($self): ?><button type="button" class="pf-status" id="pf-status" style="--c:<?= $h($avColor) ?>" title="Cambiar mi estado"><i></i><span><?= $h($avLabel) ?></span> <b class="fa-solid fa-chevron-down"></b></button>
+            <?php else: ?><span class="pf-status" style="--c:<?= $h($avColor) ?>"><i></i><?= $h($avLabel) ?></span><?php endif; ?>
             <?php if ($loc && !empty($loc['tz'])): ?><span class="pf-loc" data-tz="<?= $h($loc['tz']) ?>"><i class="fa-solid fa-earth-americas"></i> <?= $h(($loc['city'] ?? '') !== '' ? $loc['city'] : ($loc['zone'] ?? $loc['tz'])) ?> · <b class="pf-clock"></b></span>
             <?php elseif (!empty($p['location'])): ?><span class="pf-loc"><i class="fa-solid fa-location-dot"></i> <?= $h($p['location']) ?></span><?php endif; ?>
             <?php $MES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -329,6 +331,11 @@ $cfg = ['me' => $me, 'uid' => $uid, 'self' => $self, 'name' => $name, 'username'
 <script type="application/json" id="pf-data"><?= json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 <script src="/toolz/assets/cm-kudos.js?v=<?= (int)@filemtime(__DIR__ . '/assets/cm-kudos.js') ?>"></script>
 <script src="/toolz/assets/perfil.js?v=<?= (int)@filemtime(__DIR__ . '/assets/perfil.js') ?>"></script>
+<?php if ($self): ?>
+<script type="application/json" id="pr-data"><?= json_encode(['key' => pr_key($p['availability'] ?? ''), 'text' => (string)($p['focus_text'] ?? ''), 'badge' => pr_badge_get($db, $me), 'list' => G7_PRESENCE, 'badges' => G7_BADGES,
+    'until_min' => !empty($p['availability_until']) ? max(1, (int)round((strtotime($p['availability_until']) - time()) / 60)) : null], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+<script src="/toolz/assets/presence.js?v=<?= (int)@filemtime(__DIR__ . '/assets/presence.js') ?>"></script>
+<?php endif; ?>
 <?php if ($pe): ?>
 <script type="application/json" id="pe-data"><?= json_encode($pe + ['save_url' => '/toolz/comunidad.php'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 <link rel="stylesheet" href="/toolz/assets/profile-edit.css?v=<?= (int)@filemtime(__DIR__ . '/assets/profile-edit.css') ?>">

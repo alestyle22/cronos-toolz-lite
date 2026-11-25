@@ -41,13 +41,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Sonidos de los avisos (assets/sound-picker.js): estilo, volumen y sonido por tipo; las claves las valida también g7-juice.js
+    if ($key === 'notif_sounds') {
+        $k = fn($x) => is_string($x) && preg_match('/^[a-z0-9_]{1,20}$/', $x) ? $x : '';
+        $ev = [];
+        foreach (is_array($val['ev'] ?? null) ? array_slice($val['ev'], 0, 20, true) : [] as $e => $x) if ($k((string)$e) !== '' && $k($x) !== '') $ev[(string)$e] = $x;
+        $val = ['pack' => $k($val['pack'] ?? ''), 'vol' => max(0, min(150, (int)($val['vol'] ?? 100))), 'ev' => (object)$ev];
+    }
+
     // Allowed keys
     $allowed = [
         'theme','accent_color','font_size','sidebar_compact',
         'notif_sound','notif_zumbido','notif_badges','notif_desktop',
         'chat_bubble_size','chat_show_avatars','chat_enter_send','chat_compact',
         'privacy_online','privacy_last_seen','privacy_read_receipts',
-        'dashboard_density','dashboard_animations','home_layout','ui_sounds','motion_force',
+        'dashboard_density','dashboard_animations','home_layout','ui_sounds','motion_force','notif_sounds',
     ];
     if (!in_array($key, $allowed)) { echo json_encode(['error'=>'key not allowed']); exit; }
 
@@ -104,6 +112,9 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 /* CONTENT */
 .cfg-content{padding:28px 32px;max-width:720px}
 .cfg-section{display:none}
+.snd-box{padding:16px 18px}.snd-packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px}.snd-packs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;border:1px solid var(--g7-border-3);border-radius:11px;background:var(--g7-bg-4);color:var(--g7-text);font:inherit;cursor:pointer;text-align:center}.snd-packs i{font-size:17px;color:var(--g7-text-3);margin-bottom:3px}.snd-packs b{font-size:13px}.snd-packs small{font-size:11px;color:var(--g7-text-3)}.snd-packs .on{border-color:var(--g7-accent);background:var(--g7-accent-muted)}.snd-packs .on i{color:var(--g7-accent)}
+.snd-vol{display:flex;align-items:center;gap:12px;margin:16px 0 6px;font-size:13px;font-weight:600}.snd-vol input{flex:1;accent-color:var(--g7-accent)}.snd-vol output{min-width:44px;text-align:right}
+.snd-ev{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--g7-border-2);font-size:13px}.snd-ev span{flex:1;min-width:0}.snd-ev select{width:min(250px,46%);padding:9px 10px;border:1px solid var(--g7-border-3);border-radius:9px;background:var(--g7-bg-4);color:var(--g7-text);font:inherit;font-size:13px}.snd-ev button{flex:none;width:40px;height:40px;border:1px solid var(--g7-border-3);border-radius:10px;background:var(--g7-bg-4);color:var(--g7-accent);cursor:pointer}.snd-box button:focus-visible,.snd-box select:focus-visible{outline:2px solid var(--g7-accent);outline-offset:2px}
 .cfg-section.active{display:block}
 .cfg-section-title{font-size:20px;font-weight:800;margin-bottom:4px}
 .cfg-section-sub{font-size:12px;color:var(--g7-text-4);margin-bottom:24px}
@@ -626,7 +637,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
         <div class="cfg-row">
           <div class="cfg-row-info">
             <div class="cfg-row-label">Sonido de mensajes</div>
-            <div class="cfg-row-desc">Bip al recibir un mensaje nuevo en el chat</div>
+            <div class="cfg-row-desc">Suena al recibir un mensaje nuevo en el chat</div>
           </div>
           <label class="cfg-toggle">
             <input type="checkbox" <?= pref('notif_sound',true,$prefs)?'checked':'' ?>
@@ -647,6 +658,11 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
             <div class="cfg-toggle-thumb"></div>
           </label>
         </div>
+      </div>
+
+      <div class="cfg-card">
+        <div class="cfg-card-head"><i class="fa-solid fa-music"></i><span>Sonidos de los avisos</span></div>
+        <div class="snd-box" id="snd-box" data-cfg="<?= htmlspecialchars(json_encode(pref('notif_sounds', new stdClass, $prefs)), ENT_QUOTES) ?>"></div>
       </div>
 
       <div class="cfg-card">
@@ -800,6 +816,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:'Inter',sans-serif
 <script src="/toolz/assets/user-config.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-config.js') ?>"></script>
 <script src="/toolz/assets/user-tz.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-tz.js') ?>"></script>
 <script src="/toolz/assets/user-frame.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-frame.js') ?>"></script>
+<script src="/toolz/assets/sound-picker.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/sound-picker.js') ?>"></script>
 <script src="/toolz/assets/user-look.js?v=<?= (int)@filemtime(G7_SITE_ROOT . '/assets/user-look.js') ?>"></script>
 </body>
 </html>

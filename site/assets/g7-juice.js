@@ -30,7 +30,11 @@
     if (!ac){ const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
       ac = new A(); out = ac.createGain(); out.gain.value = .16; const comp = ac.createDynamicsCompressor(); out.connect(comp); comp.connect(ac.destination);
       nbuf = ac.createBuffer(1, ac.sampleRate * .4, ac.sampleRate); const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state !== 'running'){
+      ac.resume().catch(() => {});
+      // Sin un gesto de la persona el audio queda en pausa: lo que se programe ahora sonaría todo junto y tarde, cuando toque la página
+      if (navigator.userActivation && !navigator.userActivation.isActive) return null;
+    }
     return ac;
   }
   function env(g, t, a, peak, dur){ g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + dur); }
@@ -810,12 +814,115 @@
     chatnote:() => { mallet(1568, { vol: .26 }); },
     sent:    () => { hiss(.12, { f: 1200, to: 5200, q: 1.4, vol: .16 }); drop(1760, { vol: .14, at: .07 }); },
   };
+  /* Biblioteca de sonidos de avisos: clave → [nombre, familia, función]. Todo sintetizado, sin archivos. */
+  const seq = (fs, gap, fn) => fs.forEach((f, i) => fn(f, i * gap));
+  const pluckS = (f, at = 0, vol = .3, len = .5) => { tone(f, len, { type: 'triangle', vol, at, a: .003 }); tone(f * 2, len * .5, { vol: vol * .3, at, a: .003 }); tone(f * 3, len * .25, { vol: vol * .12, at, a: .003 }); };
+  const knock = (f, at = 0, vol = .5) => { tone(f, .07, { type: 'triangle', vol, at, to: f * .6, a: .002 }); hiss(.025, { f: f * 4, q: 2, vol: vol * .4, at }); };
+  const sq = (f, at, len, vol = .09, to) => tone(f, len, { type: 'square', vol, at, to });
+  const SOUNDS = {
+    cr_notify: ['Cronos: aviso', 'Cronos', ALERT.notify], cr_mention: ['Cronos: mención', 'Cronos', ALERT.mention], cr_task: ['Cronos: tarea', 'Cronos', ALERT.task], cr_ticket: ['Cronos: ticket', 'Cronos', ALERT.ticket],
+    cr_remind: ['Cronos: recordatorio', 'Cronos', ALERT.remind], cr_alert: ['Cronos: alerta', 'Cronos', ALERT.alert], cr_cash: ['Cronos: cobro', 'Cronos', ALERT.cash], cr_dm: ['Cronos: mensaje', 'Cronos', ALERT.dm],
+    cr_chat: ['Cronos: canal', 'Cronos', ALERT.chat], cr_note: ['Cronos: actividad', 'Cronos', ALERT.chatnote], cr_sent: ['Cronos: enviado', 'Cronos', ALERT.sent],
+    bell: ['Campana', 'Campanas', () => bell(880, 1.3, { vol: .3 })],
+    bell2: ['Campanilla doble', 'Campanas', () => { bell(1568, .7, { vol: .22 }); bell(1568, .9, { vol: .2, at: .16 }); }],
+    crystal: ['Cristal', 'Campanas', () => seq([2093, 2637, 3136], .06, (f, t) => bell(f, .8, { vol: .13, at: t }))],
+    reception: ['Mostrador', 'Campanas', () => { bell(2349, 1.1, { vol: .24 }); hiss(.02, { f: 7000, q: 2, vol: .1 }); }],
+    doorbell: ['Timbre ding dong', 'Campanas', () => { bell(987.8, .9, { vol: .26 }); bell(784, 1.4, { vol: .26, at: .32 }); }],
+    carillon: ['Carrillón', 'Campanas', () => seq([1318.5, 1046.5, 1174.7, 784], .17, (f, t) => bell(f, .9, { vol: .18, at: t }))],
+    gong: ['Gong', 'Campanas', () => { tone(130, 1.5, { vol: .4, to: 122 }); bell(196, 1.8, { vol: .22 }); hiss(.3, { f: 500, q: .8, vol: .08 }); }],
+    marimba: ['Marimba', 'Madera', () => seq([523.3, 784], .1, (f, t) => mallet(f, { vol: .42, at: t }))],
+    kalimba: ['Kalimba', 'Madera', () => seq([659.3, 987.8, 1318.5], .09, (f, t) => pluckS(f, t, .26, .6))],
+    xylo: ['Xilofón', 'Madera', () => seq([1046.5, 1318.5, 1568, 2093], .06, (f, t) => mallet(f, { vol: .3, at: t }))],
+    knock: ['Toc toc', 'Madera', () => { knock(320); knock(300, .13); }],
+    wood: ['Bloque de madera', 'Madera', () => knock(900, 0, .4)],
+    drop: ['Gota', 'Agua', () => drop(1046.5, { vol: .32 })],
+    bubbles: ['Burbujas', 'Agua', () => seq([700, 1000, 1400], .08, (f, t) => drop(f, { vol: .28, at: t }))],
+    pop: ['Pop', 'Agua', () => SFX.pop()],
+    rain: ['Llovizna', 'Agua', () => seq([1800, 1300, 2100, 1500, 1900], .07, (f, t) => drop(f, { vol: .13, at: t }))],
+    arp: ['Arpa', 'Música', () => seq([523.3, 659.3, 784, 987.8, 1318.5], .06, (f, t) => pluckS(f, t, .2, .8))],
+    piano: ['Acorde de piano', 'Música', () => seq([523.3, 659.3, 784], .012, (f, t) => pluckS(f, t, .2, 1))],
+    guitar: ['Guitarra', 'Música', () => seq([329.6, 493.9, 659.3], .045, (f, t) => pluckS(f, t, .28, .9))],
+    flute: ['Flauta', 'Música', () => { tone(1046.5, .22, { vol: .24, a: .04 }); tone(1318.5, .4, { vol: .24, a: .04, at: .18 }); hiss(.4, { f: 3000, q: 3, vol: .03 }); }],
+    vibes: ['Vibráfono', 'Música', () => seq([880, 1108.7], .14, (f, t) => { bell(f, 1.1, { vol: .16, at: t }); tone(f, .9, { vol: .18, at: t }); })],
+    brass: ['Anuncio', 'Música', () => seq([523.3, 523.3, 784], .12, (f, t) => tone(f, t > .2 ? .4 : .1, { type: 'sawtooth', vol: .1, at: t, a: .02 }))],
+    coin: ['Moneda', 'Retro', () => { sq(987.8, 0, .08); sq(1318.5, .08, .35); }],
+    levelup: ['Subir de nivel', 'Retro', () => seq([392, 523.3, 659.3, 784, 1046.5], .07, (f, t) => sq(f, t, .1, .08))],
+    laser: ['Láser', 'Retro', () => sq(1800, 0, .22, .08, 220)],
+    jump: ['Salto', 'Retro', () => sq(300, 0, .18, .09, 900)],
+    powerup: ['Energía', 'Retro', () => seq([440, 660, 550, 880], .05, (f, t) => sq(f, t, .07, .08, f * 1.3))],
+    beep: ['Bip', 'Digital', () => tone(880, .18, { vol: .3 })],
+    beep2: ['Doble bip', 'Digital', () => { tone(1046.5, .09, { vol: .28 }); tone(1046.5, .12, { vol: .28, at: .14 }); }],
+    soft: ['Suave', 'Digital', () => tone(523, .5, { vol: .28, to: 659, a: .03 })],
+    sonar: ['Sonar', 'Digital', () => { tone(1200, .8, { vol: .22, to: 1150 }); tone(1200, .5, { vol: .08, at: .38, to: 1150 }); }],
+    radar: ['Radar', 'Digital', () => seq([1500, 1500, 1500], .09, (f, t) => tone(f, .05, { vol: .2, at: t }))],
+    robot: ['Robot', 'Digital', () => seq([600, 900, 450, 1200], .07, (f, t) => sq(f, t, .06, .07))],
+    blip: ['Blip', 'Digital', () => tone(1568, .06, { type: 'triangle', vol: .28, to: 2093 })],
+    bird: ['Pajarito', 'Naturaleza', () => seq([0, .13, .26], 1, f => { tone(2800, .09, { vol: .13, at: f, to: 4000 }); })],
+    cricket: ['Grillo', 'Naturaleza', () => seq([0, 1, 2, 3, 4, 5], 1, i => tone(4200, .025, { vol: .1, at: i * .045 + (i > 2 ? .12 : 0) }))],
+    wind: ['Brisa', 'Naturaleza', () => hiss(.38, { f: 600, to: 2200, q: 1.4, vol: .24, a: .1 })],
+    whistle: ['Silbido', 'Naturaleza', () => { tone(1400, .2, { vol: .18, to: 2200, a: .03 }); tone(2200, .22, { vol: .16, to: 1500, at: .24, a: .03 }); }],
+    purr: ['Vibración', 'Discretos', () => seq([0, .14], 1, at => tone(95, .1, { type: 'sawtooth', vol: .16, at }))],
+    tick: ['Tic', 'Discretos', () => hiss(.02, { f: 4200, q: 3, vol: .35 })],
+    whoosh: ['Susurro', 'Discretos', () => SFX.swoosh()],
+    hum: ['Murmullo', 'Discretos', () => tone(330, .45, { vol: .2, a: .12 })],
+  };
+  const EVENTS = { dm: 'Mensaje directo', chat: 'Mensaje en canal o grupo', mention: 'Mención', chatnote: 'Reacciones y actividad del chat', task: 'Tarea', ticket: 'Ticket o solicitud', remind: 'Recordatorio', alert: 'Alerta de seguridad', cash: 'Cobro', notify: 'Otros avisos', sent: 'Mensaje enviado' };
+  const pk = (name, icon, desc, ...v) => ({ name, icon, desc, map: Object.fromEntries(Object.keys(EVENTS).map((e, i) => [e, v[i]])) });
+  //                                         dm        chat     mention   chatnote task     ticket    remind     alert    cash    notify    sent
+  const PACKS = {
+    cronos: pk('Cronos', 'fa-bell', 'El de siempre', 'cr_dm', 'cr_chat', 'cr_mention', 'cr_note', 'cr_task', 'cr_ticket', 'cr_remind', 'cr_alert', 'cr_cash', 'cr_notify', 'cr_sent'),
+    suave: pk('Suave', 'fa-feather', 'Tonos tranquilos', 'soft', 'hum', 'flute', 'hum', 'vibes', 'soft', 'vibes', 'beep2', 'piano', 'flute', 'tick'),
+    burbujas: pk('Burbujas', 'fa-droplet', 'Gotas y pops', 'bubbles', 'drop', 'rain', 'pop', 'bubbles', 'rain', 'bubbles', 'beep2', 'cr_cash', 'drop', 'pop'),
+    madera: pk('Madera', 'fa-tree', 'Marimba y kalimba', 'kalimba', 'wood', 'xylo', 'wood', 'marimba', 'knock', 'xylo', 'knock', 'kalimba', 'marimba', 'wood'),
+    cristal: pk('Cristal', 'fa-gem', 'Campanas', 'bell2', 'bell', 'crystal', 'reception', 'carillon', 'doorbell', 'carillon', 'gong', 'crystal', 'bell', 'blip'),
+    musical: pk('Musical', 'fa-music', 'Piano, arpa y guitarra', 'guitar', 'piano', 'arp', 'vibes', 'arp', 'guitar', 'flute', 'brass', 'arp', 'piano', 'blip'),
+    retro: pk('Retro', 'fa-gamepad', 'Videojuego', 'coin', 'jump', 'powerup', 'blip', 'levelup', 'coin', 'powerup', 'laser', 'coin', 'jump', 'blip'),
+    digital: pk('Digital', 'fa-microchip', 'Bips y sonar', 'beep2', 'beep', 'radar', 'blip', 'robot', 'sonar', 'sonar', 'radar', 'cr_cash', 'beep', 'blip'),
+    natural: pk('Naturaleza', 'fa-leaf', 'Pájaros y brisa', 'bird', 'cricket', 'whistle', 'cricket', 'bird', 'whistle', 'bird', 'beep2', 'crystal', 'wind', 'wind'),
+    discreto: pk('Discreto', 'fa-volume-low', 'Casi no se nota', 'purr', 'tick', 'purr', 'tick', 'hum', 'hum', 'purr', 'beep', 'tick', 'tick', 'none'),
+  };
+  const LEGACY = { beep: 'cronos', soft: 'suave', pop: 'burbujas' };   // tipos viejos de Admin › Notificaciones
+  const packKey = k => PACKS[k] ? k : PACKS[LEGACY[k]] ? LEGACY[k] : 'cronos';
+  const sitePack = packKey(ds.sndSite);
+  let sndCfg = {}; try { sndCfg = JSON.parse(ds.snd || '{}') || {}; } catch (e) {}
+  const sndOf = (e, pack) => (!pack && sndCfg.ev && typeof sndCfg.ev[e] === 'string' && (SOUNDS[sndCfg.ev[e]] || sndCfg.ev[e] === 'none')) ? sndCfg.ev[e] : PACKS[pack || (sndCfg.pack ? packKey(sndCfg.pack) : sitePack)].map[e];
+  // Los avisos tienen su propio volumen, sin tocar el de los sonidos de la interfaz
+  let aout = null;
+  function playSound(k){
+    if (!SOUNDS[k] || !ctx()) return false;
+    if (!aout){ aout = ac.createGain(); const comp = ac.createDynamicsCompressor(); aout.connect(comp); comp.connect(ac.destination); }
+    const v = Number.isFinite(+sndCfg.vol) && sndCfg.vol !== null && sndCfg.vol !== undefined ? Math.max(0, Math.min(150, +sndCfg.vol)) : 100;
+    aout.gain.value = .16 * v / 100;
+    const was = out; out = aout; try { SOUNDS[k][2](); } catch (e) {} finally { out = was; }
+    return true;
+  }
+  const muted = ds.msgs === '0' ? ['dm', 'chat', 'chatnote'] : [];   // Mi configuración › Sonido de mensajes
   let alertLast = 0;
-  function alertSound(name){
-    if (!ALERT[name]) name = 'notify';
+  function alertSound(name, own = ''){   // own: sonido propio de la conversación (chat/look.js)
+    if (!EVENTS[name]) name = 'notify';
+    const snd = SOUNDS[own] || own === 'none' ? own : sndOf(name); if (muted.includes(name) || snd === 'none' || !audible()) return;
     const now = performance.now(); if (now - alertLast < 250) return; alertLast = now;
-    try { ALERT[name](); } catch (e) {}
-    if (window.G7Juice) G7Juice.last = name;
+    const play = () => { playSound(snd); if (window.G7Juice) G7Juice.last = name; };
+    ctx();
+    if (!ac || ac.state === 'running') { play(); return; }
+    // En pausa (pestaña de fondo, equipo suspendido): suena si arranca enseguida; si no, se descarta en vez de sonar tarde
+    ac.resume().then(() => { if (performance.now() - now < 400) play(); }).catch(() => {});
+  }
+  // Nadie tocó la página todavía: el navegador no deja sonar
+  const audible = () => !navigator.userActivation || navigator.userActivation.hasBeenActive;
+  /* Un aviso por novedad aunque haya varias pestañas: la primera que puede sonar lo toma. ids: números que crecen (mensajes, avisos). */
+  async function alertOnce(name, key, id, own = ''){
+    if (!audible() || muted.includes(name) || (SOUNDS[own] || own === 'none' ? own : sndOf(name)) === 'none') return false;
+    const take = () => {
+      const k = 'g7-snd-' + key; let p = null;
+      try { p = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) {}
+      if (p && p.id >= id && Date.now() - p.t < 180000) return false;
+      try { localStorage.setItem(k, JSON.stringify({ id, t: Date.now() })); } catch (e) {}
+      return true;
+    };
+    let ok; try { ok = navigator.locks ? await navigator.locks.request('g7-snd-' + key, take) : take(); } catch (e) { ok = take(); }
+    if (ok) alertSound(name, own);
+    return ok;
   }
   // El audio solo arranca después de que la persona tocó la página: se prepara con el primer gesto
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { try { ctx(); } catch (e) {} }, { once: true, capture: true }));
@@ -880,7 +987,7 @@
   // topbar.js llama esto con las notificaciones nuevas
   function notify(list, opts = {}){
     if (!list || !list.length) return;
-    if (opts.sound !== false){ const best = list.map(n => soundFor(n.type)).sort((a, b) => PRIO.indexOf(a) - PRIO.indexOf(b))[0]; alertSound(best); }
+    if (opts.sound !== false){ const best = list.map(n => soundFor(n.type)).sort((a, b) => PRIO.indexOf(a) - PRIO.indexOf(b))[0]; if (opts.once) alertOnce(best, 'notif', +opts.once); else alertSound(best); }
     bellJuice(); notifyCards(list);
   }
 
@@ -888,8 +995,8 @@
      Funciona sobre el chat completo (#cc-msgs, #cc-typing) y la burbuja (#ccw-msgs, #ccw-typing, #ccw-heads)
      sin tocar su código: los dos redibujan la lista entera, así que se recuerda qué mensajes ya se vieron. */
   const CHATS = [
-    { box: 'ccw-msgs', typing: 'ccw-typing', item: '.ccw-m', key: el => el.dataset.mid, mine: el => el.classList.contains('me'), bubble: '.ccw-b' },
-    { box: 'cc-msgs', typing: 'cc-typing', item: '.cc-m', key: el => el.dataset.id, mine: () => false, bubble: null },
+    { box: 'ccw-msgs', typing: 'ccw-typing', item: '.ccw-m', key: el => el.dataset.ck || el.dataset.mid, mine: el => el.classList.contains('me'), bubble: '.ccw-b' },
+    { box: 'cc-msgs', typing: 'cc-typing', item: '.cc-m', key: el => el.dataset.ck || el.dataset.id, mine: () => false, bubble: null },
   ];
   const recentTexts = new Map();   // texto → momento (el mensaje "enviando" y el confirmado son dos elementos distintos)
   /* Anclado al final: el chat baja al último mensaje al dibujar, pero después crecen cosas (imágenes que terminan de
@@ -1074,7 +1181,8 @@
   })();
 
   window.G7Juice = {
-    celebrate, notify, alert: alertSound, ring, fieldError, _inspect: inspect, _chat: chatInspect, _counted: counted,
+    celebrate, notify, alert: alertSound, alertOnce,
+    sounds: { list: SOUNDS, packs: PACKS, events: EVENTS, site: sitePack, set(c){ sndCfg = c || {}; }, test: e => playSound(sndOf(e)), play: k => playSound(k), demo(p){ ['dm', 'mention', 'task'].forEach((e, i) => setTimeout(() => playSound(sndOf(e, packKey(p))), i * 650)); } }, ring, fieldError, _inspect: inspect, _chat: chatInspect, _counted: counted,
     force(){ try { localStorage.setItem('g7-motion', 'on'); } catch (e) {} location.reload(); },
     off(){ try { localStorage.setItem('g7-motion', 'off'); } catch (e) {} location.reload(); },
     on(){ try { localStorage.removeItem('g7-motion'); } catch (e) {} location.reload(); },

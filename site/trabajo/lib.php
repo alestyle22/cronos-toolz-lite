@@ -568,6 +568,7 @@ function wk_sla_sweep(PDO $db, bool $force = false): void {
         if (!$force && time() - $last < 300) return;
         $db->prepare("INSERT INTO g7_config (cfg_key, cfg_value) VALUES ('work_sla_at', ?) ON DUPLICATE KEY UPDATE cfg_value = VALUES(cfg_value)")->execute([(string)time()]);
         if (!$db->query("SELECT GET_LOCK('wk_sla', 0)")->fetchColumn()) return;
+        wk_tk_due_backfill($db);   // pedidos del portal de antes: vencen con su fecha comprometida (una sola vez)
         $now = tk_now();
         // "Esperando respuesta" frena el reloj; los tickets que nacieron como tarea no se escalan (la tarea ya avisa de su fecha)
         $rows = $db->query("SELECT * FROM g7_wk_tickets WHERE status IN ('abierto', 'en_curso') AND origin <> 'tarea' AND paused_at IS NULL AND (

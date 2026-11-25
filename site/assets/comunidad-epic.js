@@ -10,7 +10,7 @@
   const feedCol = document.querySelector('.feed-col'), right = document.querySelector('.right-col'), left = document.querySelector('.left-col');
   document.body.classList.add('cme');
   const online = u => u.last_seen && (Date.now() - new Date(String(u.last_seen).replace(' ', 'T'))) < 5 * 60 * 1000;
-  const AV = { available: '#22c55e', busy: '#f59e0b', focus: '#60a5fa', away: '#71717a' };
+  const AV = new Proxy({}, { get: (_, k) => ((window.G7Frames && G7Frames.presence || {})[k] || [])[1] });   // presence_lib.php
   const first = s => String(s || '').split(' ')[0];
 
   // ── Portada: título y pulso ──

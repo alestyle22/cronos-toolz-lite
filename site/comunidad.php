@@ -1,5 +1,6 @@
 <?php
 error_reporting(0); ini_set('display_errors',0);
+require_once __DIR__ . '/presence_lib.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/activity_helper.php';
 $currentUser = requireLogin();
@@ -246,9 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $focus=mb_substr(trim($input['focus_text']??''),0,140);
         $mood=trim($input['mood']??'');
         try{
-            $db->prepare('UPDATE g7_users SET availability=?,focus_text=?,mood=?,last_seen=NOW() WHERE id=?')->execute([$avail,$focus,$mood,$currentUser['id']]);
+            $avail=pr_key($avail); $curAv=$db->query('SELECT availability FROM g7_users WHERE id='.(int)$currentUser['id'])->fetchColumn(); if($avail!==pr_key((string)$curAv)) pr_set($db,(int)$currentUser['id'],$avail,$focus);
+            $db->prepare('UPDATE g7_users SET focus_text=?,mood=?,last_seen=NOW() WHERE id=?')->execute([$focus,$mood,$currentUser['id']]);
             if($focus) try{$db->prepare('INSERT INTO g7_activity (user_id,type,target_name,meta) VALUES (?,?,?,?)')->execute([$currentUser['id'],'focus_update',mb_substr($focus,0,80),'focus']);}catch(Exception $e2){}
-            elseif($avail!=='available') try{$db->prepare('INSERT INTO g7_activity (user_id,type,target_name,meta) VALUES (?,?,?,?)')->execute([$currentUser['id'],'status_update',$avail,'status']);}catch(Exception $e2){}
+            elseif($avail!=='available') try{$db->prepare('INSERT INTO g7_activity (user_id,type,target_name,meta) VALUES (?,?,?,?)')->execute([$currentUser['id'],'status_update',G7_PRESENCE[$avail][0],'status']);}catch(Exception $e2){}
             echo json_encode(['status'=>'success']);
         }catch(Exception $e){echo json_encode(['status'=>'ok']);}
         exit;
@@ -260,6 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // GET STATUS (for team widget)
     if ($action==='get_team_status') {
+        pr_sweep($db);
         $rows=$db->query("SELECT id,username,display_name,avatar,availability,focus_text,mood,last_seen FROM g7_users WHERE active=1")->fetchAll();
         foreach($rows as &$r){ $ls=$r['last_seen']?strtotime($r['last_seen']):0; $r['online']=(time()-$ls)<300; } // 5min = online
         echo json_encode(['users'=>$rows]); exit;
@@ -615,7 +618,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <?php
         $moods=[''=>'','🔥'=>'🔥 En modo creativo','😴'=>'😴 Cargando...','🎯'=>'🎯 Enfocado','🤔'=>'🤔 Pensando','✅'=>'✅ Todo resuelto','🚀'=>'🚀 Full gas'];
-        $avails=['available'=>['color'=>'#22c55e','label'=>'Disponible'],'busy'=>['color'=>'#f59e0b','label'=>'En reunión'],'focus'=>['color'=>'#60a5fa','label'=>'Concentrado'],'away'=>['color'=>'#71717a','label'=>'Fuera']];
+        $avails=array_map(fn($s)=>['color'=>$s[1],'label'=>trim($s[2].' '.$s[0])],G7_PRESENCE);
         $myAvail=$avails[$me['availability']??'available']??$avails['available'];
         ?>
         <div style="width:8px;height:8px;border-radius:50%;background:<?= $myAvail['color'] ?>;flex-shrink:0"></div>
@@ -757,8 +760,8 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
         </div>
         <div id="working-list">
           <?php
-          $aC=['available'=>'#22c55e','busy'=>'#f59e0b','focus'=>'#60a5fa','away'=>'#71717a'];
-          $aL=['available'=>'Disponible','busy'=>'En reuni\u00f3n','focus'=>'Concentrado','away'=>'Fuera'];
+          $aC=array_map(fn($s)=>$s[1],G7_PRESENCE);
+          $aL=array_map(fn($s)=>$s[0],G7_PRESENCE);
           foreach($users as $wu):
             $wo=(time()-strtotime($wu['last_seen']??'2000-01-01'))<300;
             $wc=$aC[$wu['availability']??'available']??'#52525b';
@@ -818,7 +821,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
     <div id="team-compact">
       <?php foreach($users as $u): if($u['id']==$currentUser['id'])continue; $st=$userStats[$u['id']]??['clicks'=>0,'content'=>0]; ?>
       <?php
-      $uAvailColors=['available'=>'#22c55e','busy'=>'#f59e0b','focus'=>'#60a5fa','away'=>'#71717a'];
+      $uAvailColors=array_map(fn($s)=>$s[1],G7_PRESENCE);
       $uAvailColor=$uAvailColors[$u['availability']??'available']??'#52525b';
       $isOnline=(time()-strtotime($u['last_seen']??'2000-01-01'))<300;
       $dotColor=$isOnline?$uAvailColor:'#3f3f46';

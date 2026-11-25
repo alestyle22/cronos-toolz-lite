@@ -127,6 +127,7 @@ async function fetchNotifs(silent=false) {
     const res  = await fetch('/toolz/notif.php?action=get');
     if (res.status === 401 || res.status === 403) { g7SessionGone(); return; }   // ¿la cerraron desde otro dispositivo?
     const data = await res.json();
+    if (data.badges && window.G7Frames && G7Frames.badges) G7Frames.badges(data.badges);
     const badge = document.getElementById('notif-badge');
     const list  = document.getElementById('nd-list');
     // New notifications sound
@@ -134,7 +135,7 @@ async function fetchNotifs(silent=false) {
       const newOnes = data.notifs.filter(n => n.id > lastNotifId && !n.read_at);
       if (newOnes.length) {
         // g7-juice.js: sonido según el tipo, campana que se mueve y tarjetas en pantalla (MOVIMIENTO.md)
-        if (window.G7Juice && G7Juice.notify) G7Juice.notify(newOnes, { sound: !!G7_NOTIF_SOUND_ENABLED });
+        if (window.G7Juice && G7Juice.notify) G7Juice.notify(newOnes, { sound: !!G7_NOTIF_SOUND_ENABLED, once: newOnes[0].id });
         else playNotifSound();
       }
       if (newOnes.length && G7_BROWSER_NOTIF && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {

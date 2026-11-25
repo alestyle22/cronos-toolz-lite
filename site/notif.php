@@ -26,7 +26,8 @@ if ($act === 'get') {
     $stmt->execute([$user['id']]);
     $notifs = $stmt->fetchAll();
     $unread = count(array_filter($notifs, fn($n) => !$n['read_at']));
-    echo json_encode(['notifs' => $notifs, 'unread' => $unread]);
+    require_once __DIR__ . '/presence_lib.php';
+    echo json_encode(['notifs' => $notifs, 'unread' => $unread, 'badges' => (object)pr_badges($db)]);   // estados e insignias al día
     exit;
 }
 
