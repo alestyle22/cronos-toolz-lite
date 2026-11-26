@@ -6,6 +6,7 @@
   'use strict';
   const MAX = CM_CFG.maxPost || 500;
   const KUDOS = CM_CFG.kudos || {};
+  const ON = k => !CM_CFG.parts || CM_CFG.parts[k] !== false;   // partes apagadas en Admin › Comunidad
   const feed = document.getElementById('feed-posts');
   const bar = document.getElementById('cm-bar');
   const moreBtn = document.getElementById('cm-more');
@@ -136,7 +137,7 @@
   const pb = document.getElementById('post-body'); if (pb) { pb.maxLength = MAX; updateCharCount(pb); }
 
   // ── Barra del feed: filtros y búsqueda ──
-  const FILTERS = [['all', 'fa-border-all', 'Todo'], ['kudos', 'fa-award', 'Reconocimientos'], ['mentions', 'fa-at', 'Para mí'], ['img', 'fa-image', 'Con imagen'], ['mine', 'fa-user', 'Mías']];
+  const FILTERS = [['all', 'fa-border-all', 'Todo'], ['kudos', 'fa-award', 'Reconocimientos'], ['mentions', 'fa-at', 'Para mí'], ['img', 'fa-image', 'Con imagen'], ['mine', 'fa-user', 'Mías']].filter(f => f[0] !== 'kudos' || ON('kudos'));
   bar.innerHTML = `<div class="cm-chips">${FILTERS.map(([k, i, l]) => `<button type="button" data-f="${k}" class="${k === 'all' ? 'on' : ''}"><i class="fa-solid ${i}"></i> ${l}</button>`).join('')}</div>
     <label class="cm-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="cm-q" placeholder="Buscar en el feed…" autocomplete="off"></label>`;
   bar.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b || b.dataset.f === filter) return; filter = b.dataset.f; bar.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); tap(); load(false); });
@@ -265,7 +266,7 @@
 
   // ── Encuestas: armar desde el compositor ──
   const compActs = document.querySelector('.composer .comp-actions');
-  if (compActs) {
+  if (compActs && ON('polls')) {
     const pbtn = document.createElement('button'); pbtn.type = 'button'; pbtn.className = 'comp-action-btn cm-poll-btn'; pbtn.title = 'Hacer una encuesta'; pbtn.innerHTML = '<i class="fa-solid fa-square-poll-vertical"></i> Encuesta';
     const kb = document.getElementById('cm-kudos-open'); (kb || compActs.lastChild).before(pbtn);
     const builder = document.createElement('div'); builder.className = 'cm-pbuild'; builder.hidden = true;
@@ -301,7 +302,7 @@
 
   // ── Filtros nuevos: Encuestas y Novedades ──
   const chips = bar.querySelector('.cm-chips');
-  [['polls', 'fa-square-poll-vertical', 'Encuestas'], ['auto', 'fa-bolt', 'Novedades']].forEach(([k, i, l]) => chips.insertAdjacentHTML('beforeend', `<button type="button" data-f="${k}"><i class="fa-solid ${i}"></i> ${l}</button>`));
+  [['polls', 'fa-square-poll-vertical', 'Encuestas'], ['auto', 'fa-bolt', 'Novedades']].filter(([k]) => k === 'polls' ? ON('polls') || ON('qotd') : ['content', 'ach', 'landing', 'member', 'birthday', 'anniv'].some(ON)).forEach(([k, i, l]) => chips.insertAdjacentHTML('beforeend', `<button type="button" data-f="${k}"><i class="fa-solid ${i}"></i> ${l}</button>`));
 
   // ── Hoy en el equipo: pregunta del día, cumpleaños y café ──
   const T = CM_CFG.today || {};

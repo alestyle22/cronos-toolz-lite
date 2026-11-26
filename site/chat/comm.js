@@ -32,7 +32,7 @@
       ${d.kudos && d.kudos.length ? `<div class="ccm-kudos">${d.kudos.map(k => `<span title="${esc(k.name)}">${esc(k.emoji)} ${esc(k.name)} <b>×${+k.n}</b></span>`).join('')}</div>` : ''}
       <div class="ccm-btns">
         <a class="cc-btn" href="/toolz/perfil.php?u=${+d.id}" target="_blank" rel="noopener"><i class="fa-solid fa-id-card"></i> ${self ? 'Mi perfil' : 'Ver perfil'}</a>
-        ${self ? '<a class="cc-btn" href="/toolz/comunidad.php" target="_blank" rel="noopener"><i class="fa-solid fa-people-group"></i> Comunidad</a>' : `<button type="button" class="cc-btn ccm-kbtn" data-ccm-kudos="${+d.id}"><i class="fa-solid fa-award"></i> Reconocer</button>`}
+        ${self ? '<a class="cc-btn" href="/toolz/comunidad.php" target="_blank" rel="noopener"><i class="fa-solid fa-people-group"></i> Comunidad</a>' : `${d.kudos_list && Object.keys(d.kudos_list).length ? `<button type="button" class="cc-btn ccm-kbtn" data-ccm-kudos="${+d.id}"><i class="fa-solid fa-award"></i> Reconocer</button>` : ''}`}
       </div>`;
     const card = host.closest('.cc-card'); if (card) { const r = card.getBoundingClientRect(); if (r.bottom > innerHeight - 8) card.style.top = Math.max(8, innerHeight - r.height - 8) + 'px'; }
   }

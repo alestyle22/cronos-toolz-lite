@@ -69,7 +69,7 @@ $tickets = function (?array $blk, string $empty, bool $showWho, string $whoLabel
     elseif ($blk['hidden'] > 0) $o .= '<div class="pf-hidden"><i class="fa-solid fa-lock"></i> y ' . (int)$blk['hidden'] . ' más que no podés ver</div>';
     return $o;
 };
-$cfg = ['me' => $me, 'uid' => $uid, 'self' => $self, 'name' => $name, 'username' => (string)$p['username'], 'kudos' => CM_KUDOS,
+$cfg = ['me' => $me, 'uid' => $uid, 'self' => $self, 'name' => $name, 'username' => (string)$p['username'], 'kudos' => cm_on('kudos') ? CM_KUDOS : [],
     'team' => array_map(fn($t) => ['id' => (int)$t['id'], 'name' => (string)($t['display_name'] ?: $t['username']), 'username' => (string)$t['username'], 'avatar' => (string)$t['avatar']], $team)];
 ?>
 <!DOCTYPE html>
@@ -135,7 +135,7 @@ $cfg = ['me' => $me, 'uid' => $uid, 'self' => $self, 'name' => $name, 'username'
           <a class="pf-btn" href="/toolz/user_config.php"><i class="fa-solid fa-sliders"></i> Preferencias</a>
         <?php else: ?>
           <a class="pf-btn pri" href="/toolz/chat/?u=<?= $uid ?>"><i class="fa-solid fa-comment-dots"></i> Mensaje</a>
-          <button class="pf-btn kudos" type="button" id="pf-kudos"><i class="fa-solid fa-award"></i> Reconocer</button>
+          <?php if (cm_on('kudos')): ?><button class="pf-btn kudos" type="button" id="pf-kudos"><i class="fa-solid fa-award"></i> Reconocer</button><?php endif; ?>
           <a class="pf-btn" href="/toolz/comunidad.php?mencionar=<?= $h(rawurlencode((string)$p['username'])) ?>"><i class="fa-solid fa-at"></i> Mencionar</a>
         <?php endif; ?>
         <button class="pf-btn ghost" type="button" id="pf-copy" title="Copiar el enlace a este perfil"><i class="fa-solid fa-link"></i> Copiar enlace</button>
@@ -309,7 +309,7 @@ $cfg = ['me' => $me, 'uid' => $uid, 'self' => $self, 'name' => $name, 'username'
         <?php foreach ($x['kudos_list'] as $k): $kb = CM_KUDOS[$k['badge']] ?? ['🏆', 'Reconocimiento']; $gn = (string)($k['display_name'] ?: $k['username']); ?>
         <div class="pf-kcard"><span class="pf-kcard-e"><?= $h($kb[0]) ?></span><div><b><?= $h($kb[1]) ?></b><p><?= nl2br($h($k['body'])) ?></p><small><a href="/toolz/perfil.php?u=<?= (int)$k['uid'] ?>"><?= $avatar($k['avatar'], $gn, 18) ?> <?= $h($gn) ?></a> · <?= $h($ago($k['created_at'])) ?></small></div></div>
         <?php endforeach; ?>
-        <?php if (!$x['kudos_list']): ?><div class="pf-card pf-empty-big"><i class="fa-solid fa-award"></i><?= $self ? 'Todavía no te reconocieron. ¡Reconocé a alguien del equipo y arrancá la ola!' : 'Nadie le dio un reconocimiento todavía. <button type="button" class="pf-link" id="pf-kudos2">Sé la primera persona</button>' ?></div><?php endif; ?>
+        <?php if (!$x['kudos_list']): ?><div class="pf-card pf-empty-big"><i class="fa-solid fa-award"></i><?= $self ? 'Todavía no te reconocieron. ¡Reconocé a alguien del equipo y arrancá la ola!' : 'Nadie le dio un reconocimiento todavía.' . (cm_on('kudos') ? ' <button type="button" class="pf-link" id="pf-kudos2">Sé la primera persona</button>' : '') ?></div><?php endif; ?>
       </div>
     </div>
 

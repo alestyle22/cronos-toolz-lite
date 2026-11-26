@@ -5,6 +5,7 @@
 (function () {
   'use strict';
   const P = CM_CFG.pulse || {};
+  const ON = k => !CM_CFG.parts || CM_CFG.parts[k] !== false;   // partes apagadas en Admin › Comunidad
   const moving = () => document.documentElement.classList.contains('g7-move');
   const F = () => (window.G7Juice && window.G7Juice._fx) || null;
   const feedCol = document.querySelector('.feed-col'), right = document.querySelector('.right-col'), left = document.querySelector('.left-col');
@@ -22,7 +23,7 @@
     <div class="cme-hero-s">
       <div><b data-n="${+P.online || 0}">${+P.online || 0}</b><span><i class="cme-live"></i> conectados</span></div>
       <div><b data-n="${+P.posts_today || 0}">${+P.posts_today || 0}</b><span>publicaciones hoy</span></div>
-      <div><b data-n="${+P.kudos_week || 0}">${+P.kudos_week || 0}</b><span>reconocimientos esta semana</span></div>
+      ${ON('kudos') ? `<div><b data-n="${+P.kudos_week || 0}">${+P.kudos_week || 0}</b><span>reconocimientos esta semana</span></div>` : ''}
     </div>`;
   feedCol.prepend(hero);
 
@@ -54,9 +55,9 @@
       <a class="nav-item" href="/toolz/perfil.php"><i class="fa-solid fa-id-card"></i> Mi perfil</a>
       <a class="nav-item" href="/toolz/logros.php"><i class="fa-solid fa-trophy"></i> Mis logros</a>
       <a class="nav-item" href="/toolz/chat/"><i class="fa-solid fa-comments"></i> Chat</a>
-      <button type="button" class="nav-item" id="cme-kudos"><i class="fa-solid fa-award"></i> Reconocer a alguien</button>`;
+      ${ON('kudos') ? '<button type="button" class="nav-item" id="cme-kudos"><i class="fa-solid fa-award"></i> Reconocer a alguien</button>' : ''}`;
     left.appendChild(links);
-    links.querySelector('#cme-kudos').addEventListener('click', () => document.getElementById('cm-kudos-open')?.click());
+    links.querySelector('#cme-kudos')?.addEventListener('click', () => document.getElementById('cm-kudos-open')?.click());
   }
 
   // ── Columna derecha: tendencias y ranking ──
@@ -66,7 +67,7 @@
     const cards = [];
     if ((P.trending || []).length) cards.push(mk(`<div class="cme-card-h"><i class="fa-solid fa-fire"></i> Tendencias</div>${P.trending.map((t, i) => `<a class="cme-trend" href="/toolz/comunidad.php?post=${+t.id}" data-post="${+t.id}"><span class="cme-trend-n">${i + 1}</span><div><b>${escH(t.name)}</b><small>${escH(t.kind === 'kudos' ? '🏆 Reconocimiento' : t.kind === 'poll' ? '📊 ' + t.body : t.body || (t.img ? '📷 Imagen' : ''))}</small></div><em>🔥 ${+t.score}</em></a>`).join('')}`));
     if ((P.leaders || []).length) cards.push(mk(`<div class="cme-card-h"><i class="fa-solid fa-award"></i> Los más reconocidos <small>30 días</small></div>${P.leaders.map((u, i) => `<a class="cme-lead" href="/toolz/perfil.php?u=${+u.id}" data-g7-user="${+u.id}"><span class="cme-medal">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${av(u, 30)}<b>${escH(u.name)}</b><em>${+u.n}</em></a>`).join('')}`));
-    else cards.push(mk(`<div class="cme-card-h"><i class="fa-solid fa-award"></i> Reconocimientos</div><p class="cme-muted">Todavía nadie recibió uno este mes. ¡Sé quien arranca!</p><button type="button" class="cme-cta" data-cme-k>Reconocer a alguien</button>`));
+    else if (ON('kudos')) cards.push(mk(`<div class="cme-card-h"><i class="fa-solid fa-award"></i> Reconocimientos</div><p class="cme-muted">Todavía nadie recibió uno este mes. ¡Sé quien arranca!</p><button type="button" class="cme-cta" data-cme-k>Reconocer a alguien</button>`));
     cards.reverse().forEach(c => after ? after.after(c) : right.prepend(c));
     right.addEventListener('click', e => {
       if (e.target.closest('[data-cme-k]')) document.getElementById('cm-kudos-open')?.click();

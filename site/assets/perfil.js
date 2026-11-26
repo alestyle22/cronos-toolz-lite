@@ -36,7 +36,7 @@
   });
 
   // Reconocer
-  const kudos = () => window.CMKudos && CMKudos.open({ to: D.uid, team: D.team, kudos: D.kudos, me: D.me, onDone: () => setTimeout(() => location.reload(), 900) });
+  const kudos = () => window.CMKudos && Object.keys(D.kudos || {}).length && CMKudos.open({ to: D.uid, team: D.team, kudos: D.kudos, me: D.me, onDone: () => setTimeout(() => location.reload(), 900) });
   ['pf-kudos', 'pf-kudos2'].forEach(id => { const b = $(id); if (b) b.addEventListener('click', kudos); });
   if (new URLSearchParams(location.search).get('reconocer') && !D.self) setTimeout(kudos, 300);   // llega desde el chat u otra página
 

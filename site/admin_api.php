@@ -356,6 +356,18 @@ case 'user_delete':
 case 'uc_sources':
 case 'uc_items':
 case 'uc_of_user':
+// Admin › Comunidad: qué partes se usan (admin_comunidad.js, comunidad_lib.php → CM_PARTS)
+case 'cm_parts_get':
+case 'cm_parts_save':
+    require_once __DIR__ . '/comunidad_lib.php';
+    $defs = []; foreach (CM_PARTS as $k => $d) $defs[] = ['key' => $k, 'label' => $d[0], 'icon' => $d[1], 'help' => $d[2], 'group' => $d[3]];
+    if ($act === 'cm_parts_save') {
+        $before = cm_parts(); $on = cm_parts_save((array)($in['parts'] ?? []));
+        $chg = []; foreach ($on as $k => $v) if ($v !== $before[$k]) $chg[$k] = $v ? 'on' : 'off';
+        if ($chg) g7_audit('community.parts', 'community', $chg, $__me);
+        $__ok(['on' => $on]);
+    }
+    $__ok(['defs' => $defs, 'on' => cm_parts()]);
 case 'uc_move':
 case 'uc_undo':
     require_once __DIR__ . '/user_content_lib.php';

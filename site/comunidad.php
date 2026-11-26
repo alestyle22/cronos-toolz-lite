@@ -22,6 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input=$isJson?json_decode(file_get_contents('php://input'),true):null;
     $action=$_POST['action']??($input['action']??'');
     cm_install3($db);
+    // Partes apagadas desde Admin › Comunidad (cm_parts)
+    $__off = ['add_poll' => 'polls', 'vote_poll' => 'polls', 'coffee_done' => 'coffee', 'give_kudos' => 'kudos'];
+    if (isset($__off[$action]) && !cm_on($__off[$action])) { echo json_encode(['error' => CM_PARTS[$__off[$action]][0] . ' está apagado en esta Comunidad.']); exit; }
 
     // ── Comunidad 3: encuestas, café, sincronización ──
     if ($action==='add_poll') {
@@ -76,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pc = $db->prepare('SELECT COUNT(*) FROM g7_posts WHERE user_id=?'); $pc->execute([$id]);
         echo json_encode(['id' => (int)$u['id'], 'name' => $u['display_name'] ?: $u['username'], 'username' => $u['username'], 'avatar' => (string)$u['avatar'], 'position' => (string)$u['position'],
             'level' => $x['level'] ? ['label' => $x['level']['label'] ?? '', 'emoji' => $x['level']['emoji'] ?? '', 'color' => $x['level']['color'] ?? ''] : null, 'xp' => $x['xp'], 'medals' => $x['medals'],
-            'kudos_n' => $x['kudos_n'], 'kudos' => array_slice($x['kudos'], 0, 3), 'posts' => (int)$pc->fetchColumn(), 'ach' => array_slice($x['ach'], 0, 4), 'me' => (int)$currentUser['id'], 'kudos_list' => CM_KUDOS]); exit;
+            'kudos_n' => $x['kudos_n'], 'kudos' => array_slice($x['kudos'], 0, 3), 'posts' => (int)$pc->fetchColumn(), 'ach' => array_slice($x['ach'], 0, 4), 'me' => (int)$currentUser['id'], 'kudos_list' => cm_on('kudos') ? CM_KUDOS : []]); exit;
     }
     // Para la pantalla de inicio del chat (chat/chat-plus.js): cumpleaños, pregunta del día y café de la semana
     if ($action==='today') {
@@ -706,7 +709,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
       <div class="comp-footer">
         <div class="comp-actions">
           <button class="comp-action-btn" data-on-click="cmPick" data-click-1="s:post-img-input" title="Agregar imagen"><i class="fa-solid fa-image"></i></button>
-          <button class="comp-action-btn cm-kudos-btn" type="button" id="cm-kudos-open" title="Reconocer a alguien del equipo"><i class="fa-solid fa-award"></i> Reconocer</button>
+          <button class="comp-action-btn cm-kudos-btn" type="button" id="cm-kudos-open" title="Reconocer a alguien del equipo"<?= cm_on('kudos') ? '' : ' hidden' ?>><i class="fa-solid fa-award"></i> Reconocer</button>
           <span class="char-count" id="char-count">500</span>
         </div>
         <button class="pub-btn" id="pub-btn" data-on-click="submitPost" disabled>Publicar</button>
@@ -950,11 +953,12 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
   try {
     $__pulse['online'] = (int)$db->query('SELECT COUNT(*) FROM g7_users WHERE active = 1 AND last_seen > DATE_SUB(NOW(), INTERVAL 5 MINUTE)')->fetchColumn();
     $__pulse['posts_today'] = (int)$db->query("SELECT COUNT(*) FROM g7_posts WHERE DATE(created_at) = CURDATE() AND kind <> 'qotd'")->fetchColumn();
-    $__pulse['kudos_week'] = (int)$db->query("SELECT COUNT(*) FROM g7_posts WHERE kind = 'kudos' AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
-    $__pulse['trending'] = $db->query("SELECT p.id, p.body, p.kind, p.img, u.id uid, COALESCE(NULLIF(u.display_name,''),u.username) name, u.avatar,
+    $__pulse['kudos_week'] = cm_on('kudos') ? (int)$db->query("SELECT COUNT(*) FROM g7_posts WHERE kind = 'kudos' AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn() : null;
+    $__pw = cm_parts_where('p');
+    if (cm_on('trending')) $__pulse['trending'] = $db->query("SELECT p.id, p.body, p.kind, p.img, u.id uid, COALESCE(NULLIF(u.display_name,''),u.username) name, u.avatar,
         (SELECT COUNT(*) FROM g7_post_reactions r WHERE r.post_id = p.id) + 2 * (SELECT COUNT(*) FROM g7_post_replies r WHERE r.post_id = p.id) score
-        FROM g7_posts p JOIN g7_users u ON u.id = p.user_id WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) AND p.kind <> 'qotd' HAVING score > 0 ORDER BY score DESC, p.id DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
-    $__pulse['leaders'] = $db->query("SELECT u.id, COALESCE(NULLIF(u.display_name,''),u.username) name, u.avatar, COUNT(*) n FROM g7_posts p JOIN g7_users u ON u.id = p.target_user_id
+        FROM g7_posts p JOIN g7_users u ON u.id = p.user_id WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) AND p.kind <> 'qotd'" . ($__pw ? ' AND ' . $__pw : '') . " HAVING score > 0 ORDER BY score DESC, p.id DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
+    if (cm_on('kudos')) $__pulse['leaders'] = $db->query("SELECT u.id, COALESCE(NULLIF(u.display_name,''),u.username) name, u.avatar, COUNT(*) n FROM g7_posts p JOIN g7_users u ON u.id = p.target_user_id
         WHERE p.kind = 'kudos' AND p.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY u.id ORDER BY n DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
   } catch (Throwable $e) {}
   $__cmCfg = [
@@ -964,6 +968,7 @@ body{background:#0a0a0a;color:#e4e4e7;font-family:'Inter',sans-serif;min-height:
     // la más nueva (no la primera: la fijada puede ser vieja y el sondeo volvía a traer las nuevas, duplicadas)
     'lastPostTime' => $feedPosts ? date('Y-m-d H:i:s', max(array_map(fn($p) => strtotime($p['created_at']), $feedPosts))) : '2000-01-01',
     'lastActivity' => $activity ? date('Y-m-d H:i:s', strtotime($activity[0]['created_at'])) : '2000-01-01',
+    'parts' => cm_parts(),
     'feed' => $cmFirst, 'maxPost' => CM_MAX_POST, 'kudos' => CM_KUDOS, 'meUser' => $currentUser['username'],
   ];
 ?>

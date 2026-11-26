@@ -445,6 +445,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
     <button class="adm-nav-item" data-sec="topbar" data-on-click="admShow" data-click-1="s:topbar" data-click-2="this"><i class="fa-solid fa-bars"></i> Topbar & Logo</button>
     <button class="adm-nav-item" data-sec="notif" data-on-click="admShow" data-click-1="s:notif" data-click-2="this"><i class="fa-solid fa-bell"></i> Notificaciones</button>
     <?php if (is_file(__DIR__ . '/admin_mails.php')): ?><button class="adm-nav-item" data-sec="mails" data-on-click="admShow" data-click-1="s:mails" data-click-2="this"><i class="fa-solid fa-envelope-open-text"></i> Mails</button><?php endif; ?>
+    <?php if (is_file(__DIR__ . '/admin_comunidad.php') && (g7_modules()['comunidad']['mode'] ?? 'on') !== 'off'): /* Comunidad: qué partes se usan (COMUNIDAD_PARTES.md) */ ?><button class="adm-nav-item" data-sec="comunidad" data-on-click="admShow" data-click-1="s:comunidad" data-click-2="this"><i class="fa-solid fa-people-group"></i> Comunidad</button><?php endif; ?>
     <?php if (is_file(__DIR__ . '/admin_bienestar.php') && (g7_modules()['bienestar']['mode'] ?? 'off') !== 'off'): /* Bienestar: privacidad, reconocimientos, hábitos, vacaciones (BIENESTAR.md) */ ?><button class="adm-nav-item" data-sec="bienestar" data-on-click="admShow" data-click-1="s:bienestar" data-click-2="this"><i class="fa-solid fa-spa"></i> Bienestar</button><?php endif; ?>
     <button class="adm-nav-item" data-sec="monday" data-on-click="admShow" data-click-1="s:monday" data-click-2="this"><i class="fa-solid fa-check-square"></i> Monday API</button>
 <?php if (g7_super_ok((int)$currentUser['id'])): ?>
@@ -521,6 +522,7 @@ body{background:var(--g7-bg);color:var(--g7-text);font-family:var(--g7-font);min
     <?php include __DIR__ . '/admin_rubro.php'; ?>
     <?php if (is_file(__DIR__ . '/admin_portal.php')) include __DIR__ . '/admin_portal.php'; ?>
     <?php if (is_file(__DIR__ . '/admin_mails.php')) include __DIR__ . '/admin_mails.php'; ?>
+    <?php if (is_file(__DIR__ . '/admin_comunidad.php') && (g7_modules()['comunidad']['mode'] ?? 'on') !== 'off') include __DIR__ . '/admin_comunidad.php'; ?>
     <?php if (is_file(__DIR__ . '/admin_bienestar.php') && (g7_modules()['bienestar']['mode'] ?? 'off') !== 'off') include __DIR__ . '/admin_bienestar.php'; ?>
     <?php include __DIR__ . '/admin_integraciones.php'; ?>
     <?php if (g7_super_ok((int)$currentUser['id'])) include __DIR__ . '/admin_updates.php'; ?>

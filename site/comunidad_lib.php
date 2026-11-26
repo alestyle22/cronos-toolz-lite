@@ -55,6 +55,7 @@ function cm_feed(PDO $db, array $me, string $filter = 'all', string $q = '', int
     elseif ($filter === 'auto') $w[] = "p.kind = 'auto'";
     elseif ($filter === 'mine') { $w[] = '(p.user_id = ? OR p.target_user_id = ?)'; $a[] = $me['id']; $a[] = $me['id']; }
     elseif ($filter === 'mentions') { $w[] = '(p.body LIKE ? OR p.target_user_id = ?)'; $a[] = '%@' . $me['username'] . '%'; $a[] = $me['id']; }
+    if (($pw = cm_parts_where('p')) !== '') $w[] = $pw;
     if ($q !== '') { $w[] = '(p.body LIKE ? OR u.display_name LIKE ? OR u.username LIKE ?)'; $like = '%' . $q . '%'; array_push($a, $like, $like, $like); }
     $order = ($before > 0 || $filter !== 'all' || $q !== '') ? 'p.created_at DESC, p.id DESC' : 'p.pinned DESC, p.created_at DESC, p.id DESC';
     $st = $db->prepare('SELECT p.*,u.username,u.display_name,u.avatar FROM g7_posts p JOIN g7_users u ON u.id=p.user_id' . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY $order LIMIT " . ($limit + 1));
@@ -217,6 +218,48 @@ const CM_AUTO = [   // tipos de publicación automática: ícono, color, texto
     'landing' => ['fa-rocket', '#22c55e'], 'member' => ['fa-hand-sparkles', '#60a5fa'], 'birthday' => ['fa-cake-candles', '#ec4899'], 'anniv' => ['fa-champagne-glasses', '#f59e0b'],
 ];
 
+/* Partes de la Comunidad que el admin puede apagar (Admin › Comunidad, admin_comunidad.js). Se guardan en g7_config 'community_parts'
+   como {clave: 0|1}; lo que no está guardado queda prendido. Apagar una parte deja de generarla, la saca del feed y esconde sus botones. COMUNIDAD_PARTES.md */
+const CM_PARTS = [
+    'qotd'     => ['Pregunta del día', 'fa-comment-dots', 'Una pregunta para charlar cada día, arriba del feed y en el inicio del chat.', 'Participación'],
+    'polls'    => ['Encuestas', 'fa-square-poll-vertical', 'Cualquiera puede armar una encuesta en el feed.', 'Participación'],
+    'coffee'   => ['Café de la semana', 'fa-mug-hot', 'Cada lunes arma parejas al azar para charlar 15 minutos.', 'Participación'],
+    'kudos'    => ['Reconocimientos', 'fa-award', 'El botón Reconocer, sus publicaciones y el ranking de los más reconocidos.', 'Participación'],
+    'trending' => ['Tendencias', 'fa-fire', 'Las publicaciones con más reacciones de las últimas dos semanas.', 'Participación'],
+    'birthday' => ['Cumpleaños', 'fa-cake-candles', 'Publicación y aviso a todo el equipo el día del cumpleaños.', 'Fechas'],
+    'anniv'    => ['Aniversarios en el equipo', 'fa-champagne-glasses', 'Publicación cuando alguien cumple años en el equipo.', 'Fechas'],
+    'content'  => ['Contenidos nuevos', 'fa-layer-group', 'Publica solo cuando alguien sube una promo, un lanzamiento o un mailing.', 'Novedades automáticas'],
+    'ach'      => ['Medallas y rangos', 'fa-medal', 'Publica cuando alguien gana una medalla de Oro o más, o sube de rango.', 'Novedades automáticas'],
+    'landing'  => ['Landings publicadas', 'fa-rocket', 'Publica cuando sale una landing nueva.', 'Novedades automáticas'],
+    'member'   => ['Gente nueva', 'fa-hand-sparkles', 'Da la bienvenida a cada persona que se suma.', 'Novedades automáticas'],
+];
+/** Qué partes están prendidas: [clave => bool]. */
+function cm_parts(bool $reset = false): array {
+    static $p = null; if ($p !== null && !$reset) return $p;
+    $saved = function_exists('g7_cfg_json') ? g7_cfg_json('community_parts', []) : [];
+    $p = []; foreach (CM_PARTS as $k => $_) $p[$k] = !array_key_exists($k, $saved) || !empty($saved[$k]);
+    return $p;
+}
+function cm_on(string $k): bool { return cm_parts()[$k] ?? true; }
+/** Guarda las partes (solo las claves conocidas) y devuelve el estado nuevo. */
+function cm_parts_save(array $in): array {
+    $v = []; foreach (CM_PARTS as $k => $_) $v[$k] = array_key_exists($k, $in) ? (empty($in[$k]) ? 0 : 1) : (cm_on($k) ? 1 : 0);
+    g7_cfg_set('community_parts', $v);
+    return cm_parts(true);
+}
+/** SQL que saca del feed lo apagado (o '' si está todo prendido). */
+function cm_parts_where(string $a = 'p'): string {
+    $w = []; $kinds = [];
+    if (!cm_on('qotd')) $kinds[] = 'qotd';
+    if (!cm_on('polls')) $kinds[] = 'poll';
+    if (!cm_on('kudos')) $kinds[] = 'kudos';
+    if ($kinds) $w[] = "$a.kind NOT IN ('" . implode("','", $kinds) . "')";
+    $badges = [];
+    foreach (['content' => ['content'], 'ach' => ['ach', 'rank'], 'landing' => ['landing'], 'member' => ['member'], 'birthday' => ['birthday'], 'anniv' => ['anniv']] as $k => $bs) if (!cm_on($k)) array_push($badges, ...$bs);
+    if ($badges) $w[] = "NOT ($a.kind = 'auto' AND $a.badge IN ('" . implode("','", $badges) . "'))";
+    return implode(' AND ', $w);
+}
+
 function cm_install3(PDO $db): void {
     static $done = false; if ($done) return; $done = true;
     cm_install($db);
@@ -257,10 +300,10 @@ function cm_auto_sync(PDO $db, bool $force = false): void {
     $first = cm_state($db, 'init') === null;
     $uidByName = function (string $un) use ($db) { static $c = []; if (!array_key_exists($un, $c)) { $q = $db->prepare('SELECT id FROM g7_users WHERE username = ?'); $q->execute([$un]); $c[$un] = (int)$q->fetchColumn(); } return $c[$un]; };
     $TYPE = ['promo' => 'una promo', 'launch' => 'un lanzamiento', 'paid' => 'piezas de pauta', 'social' => 'piezas de redes', 'mailings' => 'un mailing', 'otro' => 'un contenido'];
-    // 1) contenidos nuevos
+    // 1) contenidos nuevos (apagado: igual avanza el marcador, para no publicar lo viejo al prenderlo)
     try {
         $last = (int)(cm_state($db, 'last_content') ?? 0);
-        if ($first || !$last) cm_state($db, 'last_content', (string)(int)$db->query('SELECT COALESCE(MAX(id),0) FROM g7_content')->fetchColumn());
+        if ($first || !$last || !cm_on('content')) cm_state($db, 'last_content', (string)(int)$db->query('SELECT COALESCE(MAX(id),0) FROM g7_content')->fetchColumn());
         else {
             $q = $db->prepare("SELECT id, name, type, author, img, created_at FROM g7_content WHERE id > ? AND type <> 'tarea' ORDER BY id LIMIT 20"); $q->execute([$last]);
             foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $c) {
@@ -274,7 +317,7 @@ function cm_auto_sync(PDO $db, bool $force = false): void {
     // 2) medallas altas y rangos
     try {
         $lastAt = cm_state($db, 'last_ach_at');
-        if ($first || !$lastAt) cm_state($db, 'last_ach_at', (string)($db->query('SELECT COALESCE(MAX(unlocked_at), NOW()) FROM g7_achievements')->fetchColumn()));
+        if ($first || !$lastAt || !cm_on('ach')) cm_state($db, 'last_ach_at', (string)($db->query('SELECT COALESCE(MAX(unlocked_at), NOW()) FROM g7_achievements')->fetchColumn()));
         else {
             require_once __DIR__ . '/achievements_lib.php'; $cat = g7_ach_catalog($db);
             $q = $db->prepare("SELECT user_id, ach_key, tier, unlocked_at FROM g7_achievements WHERE unlocked_at > ? AND (tier >= 3 OR ach_key LIKE 'rank\\_%') ORDER BY unlocked_at LIMIT 30"); $q->execute([$lastAt]);
@@ -289,7 +332,7 @@ function cm_auto_sync(PDO $db, bool $force = false): void {
     // 3) landings publicadas
     try {
         $lastL = cm_state($db, 'last_landing_at');
-        if ($first || !$lastL) cm_state($db, 'last_landing_at', (string)($db->query('SELECT COALESCE(MAX(published_at), NOW()) FROM g7_landings')->fetchColumn()));
+        if ($first || !$lastL || !cm_on('landing')) cm_state($db, 'last_landing_at', (string)($db->query('SELECT COALESCE(MAX(published_at), NOW()) FROM g7_landings')->fetchColumn()));
         else {
             $q = $db->prepare('SELECT id, name, created_by, public_url, published_at FROM g7_landings WHERE published_at > ? ORDER BY published_at LIMIT 10'); $q->execute([$lastL]);
             foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $l) { $lastL = max($lastL, (string)$l['published_at']); if ((int)$l['created_by']) cm_auto_post($db, (int)$l['created_by'], 'auto', 'landing', 'Publicó la landing «' . $l['name'] . '»', '', ['href' => (string)$l['public_url'] ?: '/toolz/landing-gen/', 'cta' => 'Ver landing']); }
@@ -299,7 +342,7 @@ function cm_auto_sync(PDO $db, bool $force = false): void {
     // 4) gente nueva
     try {
         $lastU = (int)(cm_state($db, 'last_user') ?? 0);
-        if ($first || !$lastU) cm_state($db, 'last_user', (string)(int)$db->query('SELECT COALESCE(MAX(id),0) FROM g7_users')->fetchColumn());
+        if ($first || !$lastU || !cm_on('member')) cm_state($db, 'last_user', (string)(int)$db->query('SELECT COALESCE(MAX(id),0) FROM g7_users')->fetchColumn());
         else {
             $q = $db->prepare('SELECT id, display_name, username, position FROM g7_users WHERE id > ? AND active = 1 ORDER BY id LIMIT 10'); $q->execute([$lastU]);
             foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $u) { $lastU = max($lastU, (int)$u['id']); cm_auto_post($db, (int)$u['id'], 'auto', 'member', '¡Se sumó al equipo' . ($u['position'] ? ' como ' . $u['position'] : '') . '! Dale la bienvenida 👋', '', ['href' => '/toolz/perfil.php?u=' . (int)$u['id'], 'cta' => 'Ver su perfil']); }
@@ -309,7 +352,7 @@ function cm_auto_sync(PDO $db, bool $force = false): void {
     // 5) pregunta del día
     $today = date('Y-m-d');
     try {
-        if (cm_state($db, 'qotd_date') !== $today) {
+        if (cm_on('qotd') && cm_state($db, 'qotd_date') !== $today) {
             cm_state($db, 'qotd_date', $today);
             $n = count(CM_QOTD); $i = (int)floor($now / 86400) % $n;
             $id = cm_auto_post($db, cm_system_user($db), 'qotd', '', CM_QOTD[$i], '', ['date' => $today]);
@@ -323,18 +366,18 @@ function cm_auto_sync(PDO $db, bool $force = false): void {
             $md = date('m-d');
             $q = $db->prepare("SELECT id, display_name, username FROM g7_users WHERE active = 1 AND birthday IS NOT NULL AND DATE_FORMAT(birthday, '%m-%d') = ?"); $q->execute([$md]);
             $all = $db->query('SELECT id FROM g7_users WHERE active = 1')->fetchAll(PDO::FETCH_COLUMN);
-            foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $u) {
+            foreach (cm_on('birthday') ? $q->fetchAll(PDO::FETCH_ASSOC) : [] as $u) {
                 $nm = $u['display_name'] ?: $u['username'];
                 $pid = cm_auto_post($db, (int)$u['id'], 'auto', 'birthday', '¡Hoy es el cumpleaños de ' . $nm . '! 🎂 Dejale tu saludo acá abajo.', '', ['href' => '/toolz/perfil.php?u=' . (int)$u['id'] . '#muro', 'cta' => 'Ir a su muro']);
                 foreach ($all as $to) if ((int)$to !== (int)$u['id']) pushNotif($db, (int)$to, (int)$u['id'], 'birthday', $pid, 0, '🎂 Hoy cumple años ' . $nm);
             }
             $q = $db->prepare("SELECT id, display_name, username, COALESCE(joined_at, DATE(created_at)) j FROM g7_users WHERE active = 1 AND DATE_FORMAT(COALESCE(joined_at, DATE(created_at)), '%m-%d') = ? AND YEAR(COALESCE(joined_at, DATE(created_at))) < YEAR(CURDATE())"); $q->execute([$md]);
-            foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $u) { $y = (int)date('Y') - (int)substr((string)$u['j'], 0, 4);
+            foreach (cm_on('anniv') ? $q->fetchAll(PDO::FETCH_ASSOC) : [] as $u) { $y = (int)date('Y') - (int)substr((string)$u['j'], 0, 4);
                 cm_auto_post($db, (int)$u['id'], 'auto', 'anniv', 'Cumple ' . $y . ($y === 1 ? ' año' : ' años') . ' en el equipo 🥂 ¡Felicitalo!', '', ['href' => '/toolz/perfil.php?u=' . (int)$u['id'], 'cta' => 'Ver su perfil']); }
         }
     } catch (Throwable $e) {}
     // 7) café de la semana
-    try { if (cm_state($db, 'coffee_week') !== cm_week()) cm_coffee_pair($db); } catch (Throwable $e) {}
+    try { if (cm_on('coffee') && cm_state($db, 'coffee_week') !== cm_week()) cm_coffee_pair($db); } catch (Throwable $e) {}
     if ($first) cm_state($db, 'init', date('c'));
 }
 
@@ -373,9 +416,9 @@ function cm_coffee_mine(PDO $db, int $uid): ?array {
 }
 /** "Hoy en el equipo": pregunta del día, cumpleaños de hoy y de los próximos 14 días, y mi café de la semana. Lo usan comunidad.php y el chat. */
 function cm_today(PDO $db, int $uid): array {
-    $t = ['qotd' => null, 'bdays' => [], 'soon' => [], 'coffee' => cm_coffee_mine($db, $uid)];
-    try { $qp = (int)(cm_state($db, 'qotd_post') ?? 0); if ($qp) { $q = $db->prepare('SELECT p.id, p.body, (SELECT COUNT(*) FROM g7_post_replies r WHERE r.post_id = p.id) n, (SELECT COUNT(*) FROM g7_post_replies r WHERE r.post_id = p.id AND r.user_id = ?) mine FROM g7_posts p WHERE p.id = ?'); $q->execute([$uid, $qp]); $t['qotd'] = $q->fetch(PDO::FETCH_ASSOC) ?: null; } } catch (Throwable $e) {}
-    try { foreach ($db->query("SELECT id, COALESCE(NULLIF(display_name,''),username) name, avatar, birthday, DATEDIFF(DATE(CONCAT(YEAR(CURDATE()) + (DATE_FORMAT(birthday,'%m-%d') < DATE_FORMAT(CURDATE(),'%m-%d')), '-', DATE_FORMAT(birthday,'%m-%d'))), CURDATE()) d FROM g7_users WHERE active = 1 AND birthday IS NOT NULL HAVING d <= 14 ORDER BY d")->fetchAll(PDO::FETCH_ASSOC) as $b) { $b['id'] = (int)$b['id']; $b['d'] = (int)$b['d']; $b['when'] = $b['d'] === 0 ? 'Hoy' : ($b['d'] === 1 ? 'Mañana' : 'En ' . $b['d'] . ' días'); unset($b['birthday']); if ($b['d'] === 0) $t['bdays'][] = $b; else $t['soon'][] = $b; } } catch (Throwable $e) {}
+    $t = ['qotd' => null, 'bdays' => [], 'soon' => [], 'coffee' => cm_on('coffee') ? cm_coffee_mine($db, $uid) : null];
+    if (cm_on('qotd')) try { $qp = (int)(cm_state($db, 'qotd_post') ?? 0); if ($qp) { $q = $db->prepare('SELECT p.id, p.body, (SELECT COUNT(*) FROM g7_post_replies r WHERE r.post_id = p.id) n, (SELECT COUNT(*) FROM g7_post_replies r WHERE r.post_id = p.id AND r.user_id = ?) mine FROM g7_posts p WHERE p.id = ?'); $q->execute([$uid, $qp]); $t['qotd'] = $q->fetch(PDO::FETCH_ASSOC) ?: null; } } catch (Throwable $e) {}
+    if (cm_on('birthday')) try { foreach ($db->query("SELECT id, COALESCE(NULLIF(display_name,''),username) name, avatar, birthday, DATEDIFF(DATE(CONCAT(YEAR(CURDATE()) + (DATE_FORMAT(birthday,'%m-%d') < DATE_FORMAT(CURDATE(),'%m-%d')), '-', DATE_FORMAT(birthday,'%m-%d'))), CURDATE()) d FROM g7_users WHERE active = 1 AND birthday IS NOT NULL HAVING d <= 14 ORDER BY d")->fetchAll(PDO::FETCH_ASSOC) as $b) { $b['id'] = (int)$b['id']; $b['d'] = (int)$b['d']; $b['when'] = $b['d'] === 0 ? 'Hoy' : ($b['d'] === 1 ? 'Mañana' : 'En ' . $b['d'] . ' días'); unset($b['birthday']); if ($b['d'] === 0) $t['bdays'][] = $b; else $t['soon'][] = $b; } } catch (Throwable $e) {}
     return $t;
 }
 /** Encuesta: opciones (meta) con votos y el mío. */
